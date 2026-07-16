@@ -1,8 +1,8 @@
 # WebHemi.PHP
 
-Greenfield Symfony 8 CMS engine for PHP-first deployments. Production installs need **Composer only** (plus AssetMapper CDN assets) — no Node.js runtime.
+Greenfield Symfony 8 CMS engine for PHP-first deployments. **No Node.js / npm / `node_modules` in this repository** — not for production and not for local PHP work. Composer + AssetMapper only.
 
-UI components come from [`@webhemi/ui`](../webhemi-ui) (Storybook design system), synced locally or later published to NPM.
+UI (TypeScript/React, including admin pages) is built in [`webhemi-ui`](../webhemi-ui) and synced or pulled via NPM as `@webhemi/ui`. Controllers under `assets/react/controllers/` are plain JS re-exports.
 
 ## Requirements
 

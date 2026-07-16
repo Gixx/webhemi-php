@@ -4,6 +4,13 @@ framework:
         paths:
             - assets/
         missing_import_mode: strict
+        # Browsers reject ES modules served as text/html; .jsx is missing from Symfony's default map.
+        extensions:
+            jsx: text/javascript
+            tsx: text/javascript
+        excluded_patterns:
+            - '*.d.ts'
+            - '*/controllers.json'
 
 when@prod:
     framework:

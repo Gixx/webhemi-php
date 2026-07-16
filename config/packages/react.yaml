@@ -1,0 +1,4 @@
+# config/packages/react.yaml
+react:
+    # Plain JS re-exports of @webhemi/ui page components (no Node/Babel in this repo).
+    controllers_path: '%kernel.project_dir%/assets/react/controllers'

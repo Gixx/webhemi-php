@@ -1,7 +1,21 @@
 "use client";
 
+// node_modules/clsx/dist/clsx.mjs
+function r(e) {
+  var t, f, n = "";
+  if ("string" == typeof e || "number" == typeof e) n += e;
+  else if ("object" == typeof e) if (Array.isArray(e)) {
+    var o = e.length;
+    for (t = 0; t < o; t++) e[t] && (f = r(e[t])) && (n && (n += " "), n += f);
+  } else for (f in e) e[f] && (n && (n += " "), n += f);
+  return n;
+}
+function clsx() {
+  for (var e, t, f = 0, n = "", o = arguments.length; f < o; f++) (e = arguments[f]) && (t = r(e)) && (n && (n += " "), n += t);
+  return n;
+}
+
 // src/lib/cn.ts
-import { clsx } from "clsx";
 function cn(...inputs) {
   return clsx(inputs);
 }
@@ -239,8 +253,31 @@ function Alert({ tone = "info", title, children, className, ...rest }) {
   );
 }
 
+// src/components/FlashList/FlashList.tsx
+import { jsx as jsx10 } from "react/jsx-runtime";
+function toneForFlash(key) {
+  if (key === "success") {
+    return "success";
+  }
+  if (key === "warning") {
+    return "warning";
+  }
+  if (key === "info") {
+    return "info";
+  }
+  return "danger";
+}
+function FlashList({ flashes }) {
+  if (!flashes) {
+    return null;
+  }
+  return Object.entries(flashes).flatMap(
+    ([tone, messages]) => messages.map((message, index) => /* @__PURE__ */ jsx10(Alert, { tone: toneForFlash(tone), className: "mb-4", children: message }, `${tone}-${index}`))
+  );
+}
+
 // src/components/DataTable/DataTable.tsx
-import { jsx as jsx10, jsxs as jsxs7 } from "react/jsx-runtime";
+import { jsx as jsx11, jsxs as jsxs7 } from "react/jsx-runtime";
 function DataTable({
   columns,
   rows,
@@ -250,12 +287,12 @@ function DataTable({
   className
 }) {
   if (loading) {
-    return /* @__PURE__ */ jsx10("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: "Loading\u2026" });
+    return /* @__PURE__ */ jsx11("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: "Loading\u2026" });
   }
   if (rows.length === 0) {
-    return /* @__PURE__ */ jsx10("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-dashed border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: emptyMessage });
+    return /* @__PURE__ */ jsx11("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-dashed border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: emptyMessage });
   }
-  return /* @__PURE__ */ jsx10(
+  return /* @__PURE__ */ jsx11(
     "div",
     {
       className: cn(
@@ -263,12 +300,12 @@ function DataTable({
         className
       ),
       children: /* @__PURE__ */ jsxs7("table", { className: "w-full border-collapse text-left text-sm", children: [
-        /* @__PURE__ */ jsx10("thead", { className: "bg-[var(--wh-color-canvas)] text-[var(--wh-color-muted)]", children: /* @__PURE__ */ jsx10("tr", { children: columns.map((col) => /* @__PURE__ */ jsx10("th", { className: cn("px-4 py-3 font-semibold", col.className), children: col.header }, col.key)) }) }),
-        /* @__PURE__ */ jsx10("tbody", { children: rows.map((row) => /* @__PURE__ */ jsx10(
+        /* @__PURE__ */ jsx11("thead", { className: "bg-[var(--wh-color-canvas)] text-[var(--wh-color-muted)]", children: /* @__PURE__ */ jsx11("tr", { children: columns.map((col) => /* @__PURE__ */ jsx11("th", { className: cn("px-4 py-3 font-semibold", col.className), children: col.header }, col.key)) }) }),
+        /* @__PURE__ */ jsx11("tbody", { children: rows.map((row) => /* @__PURE__ */ jsx11(
           "tr",
           {
             className: "border-t border-[var(--wh-color-line)] hover:bg-[color-mix(in_srgb,var(--wh-color-accent)_6%,white)]",
-            children: columns.map((col) => /* @__PURE__ */ jsx10("td", { className: cn("px-4 py-3", col.className), children: col.render(row) }, col.key))
+            children: columns.map((col) => /* @__PURE__ */ jsx11("td", { className: cn("px-4 py-3", col.className), children: col.render(row) }, col.key))
           },
           rowKey(row)
         )) })
@@ -278,7 +315,7 @@ function DataTable({
 }
 
 // src/components/Pagination/Pagination.tsx
-import { jsx as jsx11, jsxs as jsxs8 } from "react/jsx-runtime";
+import { jsx as jsx12, jsxs as jsxs8 } from "react/jsx-runtime";
 function Pagination({ page, pageCount, onPageChange, className }) {
   if (pageCount <= 1) {
     return null;
@@ -289,7 +326,7 @@ function Pagination({ page, pageCount, onPageChange, className }) {
       className: cn("wh-ui mt-4 flex items-center justify-between gap-3", className),
       "aria-label": "Pagination",
       children: [
-        /* @__PURE__ */ jsx11(
+        /* @__PURE__ */ jsx12(
           Button,
           {
             variant: "secondary",
@@ -305,7 +342,7 @@ function Pagination({ page, pageCount, onPageChange, className }) {
           " of ",
           pageCount
         ] }),
-        /* @__PURE__ */ jsx11(
+        /* @__PURE__ */ jsx12(
           Button,
           {
             variant: "secondary",
@@ -322,7 +359,7 @@ function Pagination({ page, pageCount, onPageChange, className }) {
 
 // src/components/Modal/Modal.tsx
 import { useEffect } from "react";
-import { jsx as jsx12, jsxs as jsxs9 } from "react/jsx-runtime";
+import { jsx as jsx13, jsxs as jsxs9 } from "react/jsx-runtime";
 function Modal({ open, title, children, onClose, footer, className }) {
   useEffect(() => {
     if (!open) {
@@ -340,7 +377,7 @@ function Modal({ open, title, children, onClose, footer, className }) {
     return null;
   }
   return /* @__PURE__ */ jsxs9("div", { className: "wh-ui fixed inset-0 z-50 flex items-center justify-center p-4", children: [
-    /* @__PURE__ */ jsx12(
+    /* @__PURE__ */ jsx13(
       "button",
       {
         type: "button",
@@ -361,11 +398,11 @@ function Modal({ open, title, children, onClose, footer, className }) {
         ),
         children: [
           /* @__PURE__ */ jsxs9("div", { className: "flex items-center justify-between border-b border-[var(--wh-color-line)] px-4 py-3", children: [
-            /* @__PURE__ */ jsx12("h2", { id: "wh-modal-title", className: "font-[family-name:var(--wh-font-display)] text-lg", children: title }),
-            /* @__PURE__ */ jsx12(Button, { variant: "ghost", size: "sm", onClick: onClose, "aria-label": "Close", children: "\xD7" })
+            /* @__PURE__ */ jsx13("h2", { id: "wh-modal-title", className: "font-[family-name:var(--wh-font-display)] text-lg", children: title }),
+            /* @__PURE__ */ jsx13(Button, { variant: "ghost", size: "sm", onClick: onClose, "aria-label": "Close", children: "\xD7" })
           ] }),
-          /* @__PURE__ */ jsx12("div", { className: "px-4 py-4", children }),
-          footer ? /* @__PURE__ */ jsx12("div", { className: "flex justify-end gap-2 border-t border-[var(--wh-color-line)] px-4 py-3", children: footer }) : null
+          /* @__PURE__ */ jsx13("div", { className: "px-4 py-4", children }),
+          footer ? /* @__PURE__ */ jsx13("div", { className: "flex justify-end gap-2 border-t border-[var(--wh-color-line)] px-4 py-3", children: footer }) : null
         ]
       }
     )
@@ -373,7 +410,7 @@ function Modal({ open, title, children, onClose, footer, className }) {
 }
 
 // src/components/PageHeader/PageHeader.tsx
-import { jsx as jsx13, jsxs as jsxs10 } from "react/jsx-runtime";
+import { jsx as jsx14, jsxs as jsxs10 } from "react/jsx-runtime";
 function PageHeader({ title, description, actions, className }) {
   return /* @__PURE__ */ jsxs10(
     "header",
@@ -384,17 +421,17 @@ function PageHeader({ title, description, actions, className }) {
       ),
       children: [
         /* @__PURE__ */ jsxs10("div", { children: [
-          /* @__PURE__ */ jsx13("h1", { className: "font-[family-name:var(--wh-font-display)] text-3xl tracking-tight text-[var(--wh-color-ink)]", children: title }),
-          description ? /* @__PURE__ */ jsx13("p", { className: "mt-1 max-w-2xl text-[var(--wh-color-muted)]", children: description }) : null
+          /* @__PURE__ */ jsx14("h1", { className: "font-[family-name:var(--wh-font-display)] text-3xl tracking-tight text-[var(--wh-color-ink)]", children: title }),
+          description ? /* @__PURE__ */ jsx14("p", { className: "mt-1 max-w-2xl text-[var(--wh-color-muted)]", children: description }) : null
         ] }),
-        actions ? /* @__PURE__ */ jsx13("div", { className: "flex flex-wrap gap-2", children: actions }) : null
+        actions ? /* @__PURE__ */ jsx14("div", { className: "flex flex-wrap gap-2", children: actions }) : null
       ]
     }
   );
 }
 
 // src/components/Sidebar/Sidebar.tsx
-import { jsx as jsx14, jsxs as jsxs11 } from "react/jsx-runtime";
+import { jsx as jsx15, jsxs as jsxs11 } from "react/jsx-runtime";
 function Sidebar({ brand = "WebHemi", items, className }) {
   return /* @__PURE__ */ jsxs11(
     "aside",
@@ -405,10 +442,10 @@ function Sidebar({ brand = "WebHemi", items, className }) {
       ),
       children: [
         /* @__PURE__ */ jsxs11("div", { className: "border-b border-white/10 px-5 py-5", children: [
-          /* @__PURE__ */ jsx14("p", { className: "font-[family-name:var(--wh-font-display)] text-2xl tracking-tight", children: brand }),
-          /* @__PURE__ */ jsx14("p", { className: "text-xs uppercase tracking-[0.2em] text-white/60", children: "Admin" })
+          /* @__PURE__ */ jsx15("p", { className: "font-[family-name:var(--wh-font-display)] text-2xl tracking-tight", children: brand }),
+          /* @__PURE__ */ jsx15("p", { className: "text-xs uppercase tracking-[0.2em] text-white/60", children: "Admin" })
         ] }),
-        /* @__PURE__ */ jsx14("nav", { className: "flex flex-1 flex-col gap-1 p-3", "aria-label": "Admin", children: items.map((item) => /* @__PURE__ */ jsxs11(
+        /* @__PURE__ */ jsx15("nav", { className: "flex flex-1 flex-col gap-1 p-3", "aria-label": "Admin", children: items.map((item) => /* @__PURE__ */ jsxs11(
           "a",
           {
             href: item.href,
@@ -418,7 +455,7 @@ function Sidebar({ brand = "WebHemi", items, className }) {
             ),
             "aria-current": item.active ? "page" : void 0,
             children: [
-              item.icon ? /* @__PURE__ */ jsx14(Icon, { name: item.icon }) : null,
+              item.icon ? /* @__PURE__ */ jsx15(Icon, { name: item.icon }) : null,
               item.label
             ]
           },
@@ -430,7 +467,7 @@ function Sidebar({ brand = "WebHemi", items, className }) {
 }
 
 // src/components/TopBar/TopBar.tsx
-import { jsx as jsx15, jsxs as jsxs12 } from "react/jsx-runtime";
+import { jsx as jsx16, jsxs as jsxs12 } from "react/jsx-runtime";
 function TopBar({ title, userLabel, actions, className }) {
   return /* @__PURE__ */ jsxs12(
     "div",
@@ -440,10 +477,10 @@ function TopBar({ title, userLabel, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsx15("p", { className: "text-sm font-medium text-[var(--wh-color-muted)]", children: title ?? "Control panel" }),
+        /* @__PURE__ */ jsx16("p", { className: "text-sm font-medium text-[var(--wh-color-muted)]", children: title ?? "Control panel" }),
         /* @__PURE__ */ jsxs12("div", { className: "flex items-center gap-3", children: [
           actions,
-          userLabel ? /* @__PURE__ */ jsx15("span", { className: "rounded-[var(--wh-radius-sm)] bg-[var(--wh-color-canvas)] px-3 py-1 text-sm", children: userLabel }) : null
+          userLabel ? /* @__PURE__ */ jsx16("span", { className: "rounded-[var(--wh-radius-sm)] bg-[var(--wh-color-canvas)] px-3 py-1 text-sm", children: userLabel }) : null
         ] })
       ]
     }
@@ -451,7 +488,7 @@ function TopBar({ title, userLabel, actions, className }) {
 }
 
 // src/components/AdminLayout/AdminLayout.tsx
-import { jsx as jsx16, jsxs as jsxs13 } from "react/jsx-runtime";
+import { jsx as jsx17, jsxs as jsxs13 } from "react/jsx-runtime";
 function AdminLayout({
   brand,
   navItems,
@@ -462,16 +499,16 @@ function AdminLayout({
   className
 }) {
   return /* @__PURE__ */ jsxs13("div", { className: cn("wh-ui flex min-h-screen bg-[var(--wh-color-canvas)]", className), children: [
-    /* @__PURE__ */ jsx16(Sidebar, { brand, items: navItems }),
+    /* @__PURE__ */ jsx17(Sidebar, { brand, items: navItems }),
     /* @__PURE__ */ jsxs13("div", { className: "flex min-w-0 flex-1 flex-col", children: [
-      /* @__PURE__ */ jsx16(TopBar, { title: topBarTitle, userLabel, actions: topBarActions }),
-      /* @__PURE__ */ jsx16("main", { className: "flex-1 p-6", children })
+      /* @__PURE__ */ jsx17(TopBar, { title: topBarTitle, userLabel, actions: topBarActions }),
+      /* @__PURE__ */ jsx17("main", { className: "flex-1 p-6", children })
     ] })
   ] });
 }
 
 // src/components/LoginForm/LoginForm.tsx
-import { jsx as jsx17, jsxs as jsxs14 } from "react/jsx-runtime";
+import { jsx as jsx18, jsxs as jsxs14 } from "react/jsx-runtime";
 function LoginForm({
   action = "/login",
   method = "post",
@@ -504,13 +541,13 @@ function LoginForm({
       ),
       children: [
         /* @__PURE__ */ jsxs14("div", { className: "mb-6 text-center", children: [
-          /* @__PURE__ */ jsx17("p", { className: "font-[family-name:var(--wh-font-display)] text-3xl text-[var(--wh-color-ink)]", children: "WebHemi" }),
-          /* @__PURE__ */ jsx17("p", { className: "mt-1 text-sm text-[var(--wh-color-muted)]", children: "Sign in to the control panel" })
+          /* @__PURE__ */ jsx18("p", { className: "font-[family-name:var(--wh-font-display)] text-3xl text-[var(--wh-color-ink)]", children: "WebHemi" }),
+          /* @__PURE__ */ jsx18("p", { className: "mt-1 text-sm text-[var(--wh-color-muted)]", children: "Sign in to the control panel" })
         ] }),
-        error ? /* @__PURE__ */ jsx17(Alert, { tone: "danger", title: "Sign-in failed", className: "mb-4", children: error }) : null,
+        error ? /* @__PURE__ */ jsx18(Alert, { tone: "danger", title: "Sign-in failed", className: "mb-4", children: error }) : null,
         /* @__PURE__ */ jsxs14("form", { action, method, onSubmit: handleSubmit, children: [
-          csrfToken ? /* @__PURE__ */ jsx17("input", { type: "hidden", name: csrfFieldName, value: csrfToken }) : null,
-          /* @__PURE__ */ jsx17(FormField, { label: "Email", htmlFor: "email", required: true, children: /* @__PURE__ */ jsx17(
+          csrfToken ? /* @__PURE__ */ jsx18("input", { type: "hidden", name: csrfFieldName, value: csrfToken }) : null,
+          /* @__PURE__ */ jsx18(FormField, { label: "Email", htmlFor: "email", required: true, children: /* @__PURE__ */ jsx18(
             Input,
             {
               id: "email",
@@ -521,7 +558,7 @@ function LoginForm({
               required: true
             }
           ) }),
-          /* @__PURE__ */ jsx17(FormField, { label: "Password", htmlFor: "password", required: true, children: /* @__PURE__ */ jsx17(
+          /* @__PURE__ */ jsx18(FormField, { label: "Password", htmlFor: "password", required: true, children: /* @__PURE__ */ jsx18(
             Input,
             {
               id: "password",
@@ -531,8 +568,8 @@ function LoginForm({
               required: true
             }
           ) }),
-          /* @__PURE__ */ jsx17("div", { className: "mb-6", children: /* @__PURE__ */ jsx17(Checkbox, { name: "remember", label: "Remember me" }) }),
-          /* @__PURE__ */ jsx17(Button, { type: "submit", className: "w-full", loading, children: "Sign in" })
+          /* @__PURE__ */ jsx18("div", { className: "mb-6", children: /* @__PURE__ */ jsx18(Checkbox, { name: "remember", label: "Remember me" }) }),
+          /* @__PURE__ */ jsx18(Button, { type: "submit", className: "w-full", loading, children: "Sign in" })
         ] })
       ]
     }
@@ -540,7 +577,7 @@ function LoginForm({
 }
 
 // src/components/views/SiteListView.tsx
-import { jsx as jsx18, jsxs as jsxs15 } from "react/jsx-runtime";
+import { jsx as jsx19, jsxs as jsxs15 } from "react/jsx-runtime";
 function SiteListView({
   sites,
   loading = false,
@@ -548,15 +585,15 @@ function SiteListView({
   editHref = (site) => `/admin/sites/${site.id}`
 }) {
   return /* @__PURE__ */ jsxs15("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx18(
+    /* @__PURE__ */ jsx19(
       PageHeader,
       {
         title: "Sites",
         description: "Multi-tenant sites bound to one or more hostnames.",
-        actions: /* @__PURE__ */ jsx18("a", { href: createHref, children: /* @__PURE__ */ jsx18(Button, { children: "New site" }) })
+        actions: /* @__PURE__ */ jsx19("a", { href: createHref, children: /* @__PURE__ */ jsx19(Button, { children: "New site" }) })
       }
     ),
-    /* @__PURE__ */ jsx18(
+    /* @__PURE__ */ jsx19(
       DataTable,
       {
         loading,
@@ -565,7 +602,7 @@ function SiteListView({
         emptyMessage: "No sites yet. Create the first tenant.",
         columns: [
           { key: "name", header: "Name", render: (row) => row.name },
-          { key: "slug", header: "Slug", render: (row) => /* @__PURE__ */ jsx18("code", { children: row.slug }) },
+          { key: "slug", header: "Slug", render: (row) => /* @__PURE__ */ jsx19("code", { children: row.slug }) },
           {
             key: "hosts",
             header: "Hosts",
@@ -574,12 +611,12 @@ function SiteListView({
           {
             key: "status",
             header: "Status",
-            render: (row) => /* @__PURE__ */ jsx18(Badge, { tone: row.enabled ? "success" : "neutral", children: row.enabled ? "Enabled" : "Disabled" })
+            render: (row) => /* @__PURE__ */ jsx19(Badge, { tone: row.enabled ? "success" : "neutral", children: row.enabled ? "Enabled" : "Disabled" })
           },
           {
             key: "actions",
             header: "",
-            render: (row) => /* @__PURE__ */ jsx18("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
+            render: (row) => /* @__PURE__ */ jsx19("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
           }
         ]
       }
@@ -588,7 +625,7 @@ function SiteListView({
 }
 
 // src/components/views/SiteHostListView.tsx
-import { jsx as jsx19, jsxs as jsxs16 } from "react/jsx-runtime";
+import { jsx as jsx20, jsxs as jsxs16 } from "react/jsx-runtime";
 var statusTone = {
   pending: "warning",
   verified: "accent",
@@ -601,15 +638,15 @@ function SiteHostListView({
   verifyHref = (host) => `/admin/hosts/${host.id}/verify`
 }) {
   return /* @__PURE__ */ jsxs16("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx19(
+    /* @__PURE__ */ jsx20(
       PageHeader,
       {
         title: "Hosts",
         description: "Domain names mapped to sites and surfaces (admin, site, api).",
-        actions: /* @__PURE__ */ jsx19("a", { href: createHref, children: /* @__PURE__ */ jsx19(Button, { children: "Add host" }) })
+        actions: /* @__PURE__ */ jsx20("a", { href: createHref, children: /* @__PURE__ */ jsx20(Button, { children: "Add host" }) })
       }
     ),
-    /* @__PURE__ */ jsx19(
+    /* @__PURE__ */ jsx20(
       DataTable,
       {
         loading,
@@ -617,22 +654,22 @@ function SiteHostListView({
         rowKey: (row) => row.id,
         emptyMessage: "No hosts configured.",
         columns: [
-          { key: "host", header: "Hostname", render: (row) => /* @__PURE__ */ jsx19("code", { children: row.host }) },
+          { key: "host", header: "Hostname", render: (row) => /* @__PURE__ */ jsx20("code", { children: row.host }) },
           { key: "site", header: "Site", render: (row) => row.siteName },
           {
             key: "surface",
             header: "Surface",
-            render: (row) => /* @__PURE__ */ jsx19(Badge, { tone: "accent", children: row.surface })
+            render: (row) => /* @__PURE__ */ jsx20(Badge, { tone: "accent", children: row.surface })
           },
           {
             key: "status",
             header: "Status",
-            render: (row) => /* @__PURE__ */ jsx19(Badge, { tone: statusTone[row.status], children: row.status })
+            render: (row) => /* @__PURE__ */ jsx20(Badge, { tone: statusTone[row.status], children: row.status })
           },
           {
             key: "actions",
             header: "",
-            render: (row) => row.status === "pending" ? /* @__PURE__ */ jsx19("a", { href: verifyHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Verify" }) : "\u2014"
+            render: (row) => row.status === "pending" ? /* @__PURE__ */ jsx20("a", { href: verifyHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Verify" }) : "\u2014"
           }
         ]
       }
@@ -641,7 +678,7 @@ function SiteHostListView({
 }
 
 // src/components/views/UserListView.tsx
-import { jsx as jsx20, jsxs as jsxs17 } from "react/jsx-runtime";
+import { jsx as jsx21, jsxs as jsxs17 } from "react/jsx-runtime";
 function UserListView({
   users,
   loading = false,
@@ -649,15 +686,15 @@ function UserListView({
   editHref = (user) => `/admin/users/${user.id}`
 }) {
   return /* @__PURE__ */ jsxs17("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx20(
+    /* @__PURE__ */ jsx21(
       PageHeader,
       {
         title: "Users",
         description: "Accounts with global roles and optional per-site assignments.",
-        actions: /* @__PURE__ */ jsx20("a", { href: createHref, children: /* @__PURE__ */ jsx20(Button, { children: "New user" }) })
+        actions: /* @__PURE__ */ jsx21("a", { href: createHref, children: /* @__PURE__ */ jsx21(Button, { children: "New user" }) })
       }
     ),
-    /* @__PURE__ */ jsx20(
+    /* @__PURE__ */ jsx21(
       DataTable,
       {
         loading,
@@ -669,49 +706,7 @@ function UserListView({
           {
             key: "roles",
             header: "Roles",
-            render: (row) => /* @__PURE__ */ jsx20("div", { className: "flex flex-wrap gap-1", children: row.roles.map((role) => /* @__PURE__ */ jsx20(Badge, { children: role }, role)) })
-          },
-          {
-            key: "actions",
-            header: "",
-            render: (row) => /* @__PURE__ */ jsx20("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
-          }
-        ]
-      }
-    )
-  ] });
-}
-
-// src/components/views/RoleListView.tsx
-import { jsx as jsx21, jsxs as jsxs18 } from "react/jsx-runtime";
-function RoleListView({
-  roles,
-  loading = false,
-  createHref = "/admin/roles/new",
-  editHref = (role) => `/admin/roles/${role.id}`
-}) {
-  return /* @__PURE__ */ jsxs18("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx21(
-      PageHeader,
-      {
-        title: "Roles & permissions",
-        description: "RBAC roles with permission strings such as site.list.",
-        actions: /* @__PURE__ */ jsx21("a", { href: createHref, children: /* @__PURE__ */ jsx21(Button, { children: "New role" }) })
-      }
-    ),
-    /* @__PURE__ */ jsx21(
-      DataTable,
-      {
-        loading,
-        rows: roles,
-        rowKey: (row) => row.id,
-        emptyMessage: "No roles defined.",
-        columns: [
-          { key: "name", header: "Role", render: (row) => row.name },
-          {
-            key: "permissions",
-            header: "Permissions",
-            render: (row) => /* @__PURE__ */ jsx21("div", { className: "flex flex-wrap gap-1", children: row.permissions.map((permission) => /* @__PURE__ */ jsx21(Badge, { tone: "accent", children: permission }, permission)) })
+            render: (row) => /* @__PURE__ */ jsx21("div", { className: "flex flex-wrap gap-1", children: row.roles.map((role) => /* @__PURE__ */ jsx21(Badge, { children: role }, role)) })
           },
           {
             key: "actions",
@@ -723,18 +718,164 @@ function RoleListView({
     )
   ] });
 }
+
+// src/components/views/RoleListView.tsx
+import { jsx as jsx22, jsxs as jsxs18 } from "react/jsx-runtime";
+function RoleListView({
+  roles,
+  loading = false,
+  createHref = "/admin/roles/new",
+  editHref = (role) => `/admin/roles/${role.id}`
+}) {
+  return /* @__PURE__ */ jsxs18("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx22(
+      PageHeader,
+      {
+        title: "Roles & permissions",
+        description: "RBAC roles with permission strings such as site.list.",
+        actions: /* @__PURE__ */ jsx22("a", { href: createHref, children: /* @__PURE__ */ jsx22(Button, { children: "New role" }) })
+      }
+    ),
+    /* @__PURE__ */ jsx22(
+      DataTable,
+      {
+        loading,
+        rows: roles,
+        rowKey: (row) => row.id,
+        emptyMessage: "No roles defined.",
+        columns: [
+          { key: "name", header: "Role", render: (row) => row.name },
+          {
+            key: "permissions",
+            header: "Permissions",
+            render: (row) => /* @__PURE__ */ jsx22("div", { className: "flex flex-wrap gap-1", children: row.permissions.map((permission) => /* @__PURE__ */ jsx22(Badge, { tone: "accent", children: permission }, permission)) })
+          },
+          {
+            key: "actions",
+            header: "",
+            render: (row) => /* @__PURE__ */ jsx22("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
+          }
+        ]
+      }
+    )
+  ] });
+}
+
+// src/components/pages/LoginPage.tsx
+import { jsx as jsx23 } from "react/jsx-runtime";
+function LoginPage({
+  action,
+  csrfToken,
+  csrfFieldName,
+  emailDefault,
+  error
+}) {
+  return /* @__PURE__ */ jsx23(
+    LoginForm,
+    {
+      action,
+      csrfToken,
+      csrfFieldName,
+      emailDefault: emailDefault || "",
+      error: error || void 0
+    }
+  );
+}
+
+// src/components/pages/AdminDashboard.tsx
+import { jsx as jsx24, jsxs as jsxs19 } from "react/jsx-runtime";
+function AdminDashboard({
+  userLabel,
+  navItems,
+  siteCount = 0,
+  hostCount = 0,
+  flashes
+}) {
+  return /* @__PURE__ */ jsxs19(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Dashboard", children: [
+    /* @__PURE__ */ jsx24(FlashList, { flashes }),
+    /* @__PURE__ */ jsx24(
+      PageHeader,
+      {
+        title: "Dashboard",
+        description: "Multi-tenant control panel powered by @webhemi/ui."
+      }
+    ),
+    /* @__PURE__ */ jsxs19("div", { style: { display: "flex", gap: "1.5rem", flexWrap: "wrap" }, children: [
+      /* @__PURE__ */ jsxs19(Alert, { tone: "info", title: "Sites", children: [
+        siteCount,
+        " configured"
+      ] }),
+      /* @__PURE__ */ jsxs19(Alert, { tone: "info", title: "Hosts", children: [
+        hostCount,
+        " configured"
+      ] })
+    ] })
+  ] });
+}
+
+// src/components/pages/SitesPage.tsx
+import { jsx as jsx25, jsxs as jsxs20 } from "react/jsx-runtime";
+function SitesPage({
+  userLabel,
+  navItems,
+  sites,
+  canEdit,
+  createAction,
+  flashes
+}) {
+  return /* @__PURE__ */ jsxs20(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Sites", children: [
+    /* @__PURE__ */ jsx25(FlashList, { flashes }),
+    /* @__PURE__ */ jsx25(SiteListView, { sites: sites || [], createHref: "#create-site" }),
+    canEdit ? /* @__PURE__ */ jsxs20("form", { id: "create-site", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
+      /* @__PURE__ */ jsx25(FormField, { label: "Name", htmlFor: "name", required: true, children: /* @__PURE__ */ jsx25(Input, { id: "name", name: "name", required: true }) }),
+      /* @__PURE__ */ jsx25(FormField, { label: "Slug", htmlFor: "slug", required: true, hint: "Lowercase identifier", children: /* @__PURE__ */ jsx25(Input, { id: "slug", name: "slug", required: true }) }),
+      /* @__PURE__ */ jsx25(Button, { type: "submit", children: "Create site" })
+    ] }) : null
+  ] });
+}
+
+// src/components/pages/HostsPage.tsx
+import { jsx as jsx26, jsxs as jsxs21 } from "react/jsx-runtime";
+function HostsPage({
+  userLabel,
+  navItems,
+  hosts,
+  sites,
+  canEdit,
+  createAction,
+  flashes
+}) {
+  return /* @__PURE__ */ jsxs21(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Hosts", children: [
+    /* @__PURE__ */ jsx26(FlashList, { flashes }),
+    /* @__PURE__ */ jsx26(SiteHostListView, { hosts: hosts || [], createHref: "#create-host" }),
+    canEdit ? /* @__PURE__ */ jsxs21("form", { id: "create-host", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
+      /* @__PURE__ */ jsx26(FormField, { label: "Hostname", htmlFor: "host", required: true, children: /* @__PURE__ */ jsx26(Input, { id: "host", name: "host", placeholder: "www.example.com", required: true }) }),
+      /* @__PURE__ */ jsx26(FormField, { label: "Site", htmlFor: "site_id", required: true, children: /* @__PURE__ */ jsx26(Select, { id: "site_id", name: "site_id", required: true, children: (sites || []).map((site) => /* @__PURE__ */ jsx26("option", { value: site.id, children: site.name }, site.id)) }) }),
+      /* @__PURE__ */ jsx26(FormField, { label: "Surface", htmlFor: "surface", children: /* @__PURE__ */ jsxs21(Select, { id: "surface", name: "surface", defaultValue: "site", children: [
+        /* @__PURE__ */ jsx26("option", { value: "admin", children: "admin" }),
+        /* @__PURE__ */ jsx26("option", { value: "site", children: "site" }),
+        /* @__PURE__ */ jsx26("option", { value: "api", children: "api" })
+      ] }) }),
+      /* @__PURE__ */ jsx26(Button, { type: "submit", children: "Add host" })
+    ] }) : null
+  ] });
+}
 export {
+  AdminDashboard,
   AdminLayout,
   Alert,
   Badge,
   Button,
   Checkbox,
   DataTable,
+  FlashList,
   FormField,
+  HostsPage,
   Icon,
   Input,
   Label,
   LoginForm,
+  LoginPage,
   Modal,
   PageHeader,
   Pagination,
@@ -743,6 +884,7 @@ export {
   Sidebar,
   SiteHostListView,
   SiteListView,
+  SitesPage,
   TopBar,
   UserListView
 };
