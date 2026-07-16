@@ -3,11 +3,11 @@
 {% block title %}Dashboard — WebHemi{% endblock %}
 
 {% block body %}
-{{ react_component('AdminDashboard', {
+<div {{ react_component('AdminDashboard', {
     userLabel: userLabel,
     navItems: navItems,
     siteCount: siteCount,
     hostCount: hostCount,
     flashes: app.flashes
-}) }}
+}) }}></div>
 {% endblock %}

@@ -3,7 +3,7 @@
 {% block title %}Hosts — WebHemi{% endblock %}
 
 {% block body %}
-{{ react_component('HostsPage', {
+<div {{ react_component('HostsPage', {
     userLabel: userLabel,
     navItems: navItems,
     hosts: hosts,
@@ -11,5 +11,5 @@
     canEdit: canEdit,
     createAction: path('admin_hosts'),
     flashes: app.flashes
-}) }}
+}) }}></div>
 {% endblock %}
