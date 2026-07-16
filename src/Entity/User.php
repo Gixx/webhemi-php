@@ -1,0 +1,130 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Entity;
+
+use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
+
+#[ORM\Entity(repositoryClass: UserRepository::class)]
+#[ORM\Table(name: 'app_user')]
+#[ORM\UniqueConstraint(name: 'uniq_app_user_email', columns: ['email'])]
+class User implements UserInterface, PasswordAuthenticatedUserInterface
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    private ?int $id = null;
+
+    #[ORM\Column(length: 191)]
+    private string $email = '';
+
+    #[ORM\Column(length: 255)]
+    private string $passwordHash = '';
+
+    /** @var Collection<int, Role> */
+    #[ORM\ManyToMany(targetEntity: Role::class, inversedBy: 'users')]
+    #[ORM\JoinTable(name: 'user_role')]
+    private Collection $roles;
+
+    /** @var Collection<int, SiteAssignment> */
+    #[ORM\OneToMany(
+        targetEntity: SiteAssignment::class,
+        mappedBy: 'user',
+        cascade: ['persist', 'remove'],
+        orphanRemoval: true
+    )]
+    private Collection $siteAssignments;
+
+    public function __construct()
+    {
+        $this->roles = new ArrayCollection();
+        $this->siteAssignments = new ArrayCollection();
+    }
+
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+
+    public function getEmail(): string
+    {
+        return $this->email;
+    }
+
+    public function setEmail(string $email): self
+    {
+        $this->email = strtolower(trim($email));
+
+        return $this;
+    }
+
+    public function getUserIdentifier(): string
+    {
+        return $this->email;
+    }
+
+    public function getPassword(): string
+    {
+        return $this->passwordHash;
+    }
+
+    public function setPassword(string $passwordHash): self
+    {
+        $this->passwordHash = $passwordHash;
+
+        return $this;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function getRoles(): array
+    {
+        $names = [];
+        foreach ($this->roles as $role) {
+            $names[] = $role->getName();
+        }
+
+        $names[] = 'ROLE_USER';
+
+        return array_values(array_unique($names));
+    }
+
+    /** @return Collection<int, Role> */
+    public function getRoleEntities(): Collection
+    {
+        return $this->roles;
+    }
+
+    public function addRole(Role $role): self
+    {
+        if (!$this->roles->contains($role)) {
+            $this->roles->add($role);
+        }
+
+        return $this;
+    }
+
+    public function removeRole(Role $role): self
+    {
+        $this->roles->removeElement($role);
+
+        return $this;
+    }
+
+    /** @return Collection<int, SiteAssignment> */
+    public function getSiteAssignments(): Collection
+    {
+        return $this->siteAssignments;
+    }
+
+    public function eraseCredentials(): void
+    {
+    }
+}

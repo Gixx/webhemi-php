@@ -1,0 +1,47 @@
+{
+  "info": {
+    "name": "WebHemi Admin API",
+    "description": "JSON API for WebHemi.PHP admin surface",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://admin.webhemi.local" },
+    { "key": "email", "value": "admin@webhemi.local" },
+    { "key": "password", "value": "ChangeMe!" }
+  ],
+  "item": [
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": "{{baseUrl}}/admin/api/login"
+      }
+    },
+    {
+      "name": "Me",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/api/me"
+      }
+    },
+    {
+      "name": "List sites",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/api/sites"
+      }
+    },
+    {
+      "name": "List hosts",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/admin/api/hosts"
+      }
+    }
+  ]
+}

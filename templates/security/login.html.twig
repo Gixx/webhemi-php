@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sign in — WebHemi{% endblock %}
+
+{% block body %}
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;background:var(--wh-color-canvas,#e8edf1);">
+    {{ react_component('LoginPage', {
+        action: path('app_login'),
+        csrfToken: csrf_token('authenticate'),
+        csrfFieldName: '_csrf_token',
+        emailDefault: last_username,
+        error: error
+    }) }}
+</div>
+{% endblock %}

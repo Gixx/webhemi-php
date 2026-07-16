@@ -1,0 +1,54 @@
+deptrac:
+  paths:
+    - ./src
+  exclude_files:
+    - '#.*Test.*#'
+  layers:
+    - name: Entity
+      collectors:
+        - type: directory
+          value: src/Entity/.*
+    - name: Repository
+      collectors:
+        - type: directory
+          value: src/Repository/.*
+    - name: Controller
+      collectors:
+        - type: directory
+          value: src/Controller/.*
+    - name: Security
+      collectors:
+        - type: directory
+          value: src/Security/.*
+    - name: Routing
+      collectors:
+        - type: directory
+          value: src/Routing/.*
+    - name: SiteHost
+      collectors:
+        - type: directory
+          value: src/SiteHost/.*
+    - name: Command
+      collectors:
+        - type: directory
+          value: src/Command/.*
+  ruleset:
+    Entity:
+      - Repository
+    Repository:
+      - Entity
+    Controller:
+      - Entity
+      - Repository
+      - SiteHost
+      - Routing
+    Security:
+      - Entity
+      - Repository
+    Routing:
+      - Entity
+      - Repository
+    SiteHost: ~
+    Command:
+      - Entity
+      - Repository

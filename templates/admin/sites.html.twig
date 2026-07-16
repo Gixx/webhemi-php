@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sites — WebHemi{% endblock %}
+
+{% block body %}
+{{ react_component('SitesPage', {
+    userLabel: userLabel,
+    navItems: navItems,
+    sites: sites,
+    canEdit: canEdit,
+    createAction: path('admin_sites'),
+    flashes: app.flashes
+}) }}
+{% endblock %}
