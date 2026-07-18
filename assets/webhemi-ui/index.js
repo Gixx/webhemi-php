@@ -20,7 +20,7 @@ function cn(...inputs) {
   return clsx(inputs);
 }
 
-// src/components/Button/Button.tsx
+// src/shared/components/Button/Button.tsx
 import { jsx, jsxs } from "react/jsx-runtime";
 var variantClass = {
   primary: "bg-[var(--wh-color-accent)] text-white hover:brightness-110 border-transparent",
@@ -64,7 +64,7 @@ function Button({
   );
 }
 
-// src/components/Input/Input.tsx
+// src/shared/components/Input/Input.tsx
 import { jsx as jsx2 } from "react/jsx-runtime";
 function Input({ className, invalid, id, ...rest }) {
   return /* @__PURE__ */ jsx2(
@@ -82,7 +82,7 @@ function Input({ className, invalid, id, ...rest }) {
   );
 }
 
-// src/components/Label/Label.tsx
+// src/shared/components/Label/Label.tsx
 import { jsx as jsx3, jsxs as jsxs2 } from "react/jsx-runtime";
 function Label({ children, required, className, ...rest }) {
   return /* @__PURE__ */ jsxs2(
@@ -101,7 +101,7 @@ function Label({ children, required, className, ...rest }) {
   );
 }
 
-// src/components/Select/Select.tsx
+// src/shared/components/Select/Select.tsx
 import { jsx as jsx4 } from "react/jsx-runtime";
 function Select({ className, invalid, children, ...rest }) {
   return /* @__PURE__ */ jsx4(
@@ -119,7 +119,7 @@ function Select({ className, invalid, children, ...rest }) {
   );
 }
 
-// src/components/Checkbox/Checkbox.tsx
+// src/shared/components/Checkbox/Checkbox.tsx
 import { jsx as jsx5, jsxs as jsxs3 } from "react/jsx-runtime";
 function Checkbox({ label, className, id, ...rest }) {
   const inputId = id ?? `wh-cb-${label.replace(/\s+/g, "-").toLowerCase()}`;
@@ -147,7 +147,7 @@ function Checkbox({ label, className, id, ...rest }) {
   );
 }
 
-// src/components/Badge/Badge.tsx
+// src/shared/components/Badge/Badge.tsx
 import { jsx as jsx6 } from "react/jsx-runtime";
 var toneClass = {
   neutral: "bg-[var(--wh-color-line)] text-[var(--wh-color-ink)]",
@@ -171,7 +171,7 @@ function Badge({ tone = "neutral", className, children, ...rest }) {
   );
 }
 
-// src/components/Icon/Icon.tsx
+// src/shared/components/Icon/Icon.tsx
 import { jsx as jsx7, jsxs as jsxs4 } from "react/jsx-runtime";
 var paths = {
   dashboard: "M3 3h8v8H3V3zm10 0h8v5h-8V3zM3 13h5v8H3v-8zm7 0h11v8H10v-8z",
@@ -204,7 +204,7 @@ function Icon({ name, title, className, ...rest }) {
   );
 }
 
-// src/components/FormField/FormField.tsx
+// src/shared/components/FormField/FormField.tsx
 import { jsx as jsx8, jsxs as jsxs5 } from "react/jsx-runtime";
 function FormField({
   label,
@@ -223,7 +223,7 @@ function FormField({
   ] });
 }
 
-// src/components/Alert/Alert.tsx
+// src/shared/components/Alert/Alert.tsx
 import { jsx as jsx9, jsxs as jsxs6 } from "react/jsx-runtime";
 var toneClass2 = {
   info: "border-[var(--wh-color-accent)] bg-[color-mix(in_srgb,var(--wh-color-accent)_10%,white)]",
@@ -253,7 +253,7 @@ function Alert({ tone = "info", title, children, className, ...rest }) {
   );
 }
 
-// src/components/FlashList/FlashList.tsx
+// src/admin/components/FlashList/FlashList.tsx
 import { jsx as jsx10 } from "react/jsx-runtime";
 function toneForFlash(key) {
   if (key === "success") {
@@ -276,7 +276,7 @@ function FlashList({ flashes }) {
   );
 }
 
-// src/components/DataTable/DataTable.tsx
+// src/admin/components/DataTable/DataTable.tsx
 import { jsx as jsx11, jsxs as jsxs7 } from "react/jsx-runtime";
 function DataTable({
   columns,
@@ -314,7 +314,7 @@ function DataTable({
   );
 }
 
-// src/components/Pagination/Pagination.tsx
+// src/admin/components/Pagination/Pagination.tsx
 import { jsx as jsx12, jsxs as jsxs8 } from "react/jsx-runtime";
 function Pagination({ page, pageCount, onPageChange, className }) {
   if (pageCount <= 1) {
@@ -357,7 +357,7 @@ function Pagination({ page, pageCount, onPageChange, className }) {
   );
 }
 
-// src/components/Modal/Modal.tsx
+// src/admin/components/Modal/Modal.tsx
 import { useEffect } from "react";
 import { jsx as jsx13, jsxs as jsxs9 } from "react/jsx-runtime";
 function Modal({ open, title, children, onClose, footer, className }) {
@@ -409,7 +409,7 @@ function Modal({ open, title, children, onClose, footer, className }) {
   ] });
 }
 
-// src/components/PageHeader/PageHeader.tsx
+// src/admin/components/PageHeader/PageHeader.tsx
 import { jsx as jsx14, jsxs as jsxs10 } from "react/jsx-runtime";
 function PageHeader({ title, description, actions, className }) {
   return /* @__PURE__ */ jsxs10(
@@ -430,7 +430,7 @@ function PageHeader({ title, description, actions, className }) {
   );
 }
 
-// src/components/Sidebar/Sidebar.tsx
+// src/admin/components/Sidebar/Sidebar.tsx
 import { jsx as jsx15, jsxs as jsxs11 } from "react/jsx-runtime";
 function Sidebar({ brand = "WebHemi", items, className }) {
   return /* @__PURE__ */ jsxs11(
@@ -466,7 +466,7 @@ function Sidebar({ brand = "WebHemi", items, className }) {
   );
 }
 
-// src/components/TopBar/TopBar.tsx
+// src/admin/components/TopBar/TopBar.tsx
 import { jsx as jsx16, jsxs as jsxs12 } from "react/jsx-runtime";
 function TopBar({ title, userLabel, actions, className }) {
   return /* @__PURE__ */ jsxs12(
@@ -487,7 +487,7 @@ function TopBar({ title, userLabel, actions, className }) {
   );
 }
 
-// src/components/AdminLayout/AdminLayout.tsx
+// src/admin/components/AdminLayout/AdminLayout.tsx
 import { jsx as jsx17, jsxs as jsxs13 } from "react/jsx-runtime";
 function AdminLayout({
   brand,
@@ -507,7 +507,7 @@ function AdminLayout({
   ] });
 }
 
-// src/components/LoginForm/LoginForm.tsx
+// src/admin/components/LoginForm/LoginForm.tsx
 import { jsx as jsx18, jsxs as jsxs14 } from "react/jsx-runtime";
 function LoginForm({
   action = "/login",
@@ -576,7 +576,7 @@ function LoginForm({
   );
 }
 
-// src/components/views/SiteListView.tsx
+// src/admin/views/SiteListView.tsx
 import { jsx as jsx19, jsxs as jsxs15 } from "react/jsx-runtime";
 function SiteListView({
   sites,
@@ -624,7 +624,7 @@ function SiteListView({
   ] });
 }
 
-// src/components/views/SiteHostListView.tsx
+// src/admin/views/SiteHostListView.tsx
 import { jsx as jsx20, jsxs as jsxs16 } from "react/jsx-runtime";
 var statusTone = {
   pending: "warning",
@@ -677,7 +677,7 @@ function SiteHostListView({
   ] });
 }
 
-// src/components/views/UserListView.tsx
+// src/admin/views/UserListView.tsx
 import { jsx as jsx21, jsxs as jsxs17 } from "react/jsx-runtime";
 function UserListView({
   users,
@@ -719,7 +719,7 @@ function UserListView({
   ] });
 }
 
-// src/components/views/RoleListView.tsx
+// src/admin/views/RoleListView.tsx
 import { jsx as jsx22, jsxs as jsxs18 } from "react/jsx-runtime";
 function RoleListView({
   roles,
@@ -761,7 +761,7 @@ function RoleListView({
   ] });
 }
 
-// src/components/pages/LoginPage.tsx
+// src/admin/pages/LoginPage.tsx
 import { jsx as jsx23 } from "react/jsx-runtime";
 function LoginPage({
   action,
@@ -782,7 +782,7 @@ function LoginPage({
   );
 }
 
-// src/components/pages/AdminDashboard.tsx
+// src/admin/pages/AdminDashboard.tsx
 import { jsx as jsx24, jsxs as jsxs19 } from "react/jsx-runtime";
 function AdminDashboard({
   userLabel,
@@ -813,7 +813,7 @@ function AdminDashboard({
   ] });
 }
 
-// src/components/pages/SitesPage.tsx
+// src/admin/pages/SitesPage.tsx
 import { jsx as jsx25, jsxs as jsxs20 } from "react/jsx-runtime";
 function SitesPage({
   userLabel,
@@ -834,7 +834,7 @@ function SitesPage({
   ] });
 }
 
-// src/components/pages/HostsPage.tsx
+// src/admin/pages/HostsPage.tsx
 import { jsx as jsx26, jsxs as jsxs21 } from "react/jsx-runtime";
 function HostsPage({
   userLabel,
@@ -860,6 +860,74 @@ function HostsPage({
     ] }) : null
   ] });
 }
+
+// src/themes/default/components/SiteHeader/SiteHeader.tsx
+import { jsx as jsx27, jsxs as jsxs22 } from "react/jsx-runtime";
+function SiteHeader({ siteName, navItems = [], actions, className }) {
+  return /* @__PURE__ */ jsx27(
+    "header",
+    {
+      className: cn(
+        "wh-ui border-b border-[var(--wh-color-line)] bg-[var(--wh-color-surface)]",
+        className
+      ),
+      children: /* @__PURE__ */ jsxs22("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
+        /* @__PURE__ */ jsx27(
+          "a",
+          {
+            href: "/",
+            className: "font-[family-name:var(--wh-font-display)] text-2xl text-[var(--wh-color-ink)] no-underline",
+            children: siteName
+          }
+        ),
+        /* @__PURE__ */ jsx27("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx27(
+          "a",
+          {
+            href: item.href,
+            className: cn(
+              "text-sm no-underline",
+              item.active ? "font-semibold text-[var(--wh-color-accent)]" : "text-[var(--wh-color-muted)] hover:text-[var(--wh-color-ink)]"
+            ),
+            children: item.label
+          },
+          item.href
+        )) }),
+        actions ? /* @__PURE__ */ jsx27("div", { className: "flex items-center gap-2", children: actions }) : null
+      ] })
+    }
+  );
+}
+
+// src/themes/default/components/Hero/Hero.tsx
+import { jsx as jsx28, jsxs as jsxs23 } from "react/jsx-runtime";
+function Hero({ title, subtitle, actions, className }) {
+  return /* @__PURE__ */ jsxs23(
+    "section",
+    {
+      className: cn(
+        "wh-ui relative overflow-hidden bg-[var(--wh-color-ink)] text-[var(--wh-color-surface)]",
+        className
+      ),
+      children: [
+        /* @__PURE__ */ jsx28(
+          "div",
+          {
+            className: "pointer-events-none absolute inset-0 opacity-40",
+            style: {
+              background: "radial-gradient(ellipse at 20% 20%, var(--wh-color-accent) 0%, transparent 55%), radial-gradient(ellipse at 80% 80%, var(--wh-color-accent-hot) 0%, transparent 50%)"
+            },
+            "aria-hidden": true
+          }
+        ),
+        /* @__PURE__ */ jsxs23("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
+          /* @__PURE__ */ jsx28("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
+          subtitle ? /* @__PURE__ */ jsx28("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
+          actions ? /* @__PURE__ */ jsx28("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
+        ] })
+      ]
+    }
+  );
+}
 export {
   AdminDashboard,
   AdminLayout,
@@ -870,6 +938,7 @@ export {
   DataTable,
   FlashList,
   FormField,
+  Hero,
   HostsPage,
   Icon,
   Input,
@@ -882,6 +951,7 @@ export {
   RoleListView,
   Select,
   Sidebar,
+  SiteHeader,
   SiteHostListView,
   SiteListView,
   SitesPage,
