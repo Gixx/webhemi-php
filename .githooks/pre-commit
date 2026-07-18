@@ -1,10 +1,46 @@
 #!/usr/bin/env bash
-# Reject staged text files that still contain CR (CRLF).
+# Reject staged text files that still contain CR (CRLF), then run the full QA suite.
+# Binary paths (.phar, images, …) are ignored — they may contain legitimate CR bytes.
 set -euo pipefail
+
+HOOK_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+REPO_ROOT=$(dirname "$HOOK_DIR")
+cd "$REPO_ROOT"
+
+BINARY_EXT_RE='\.(phar|png|jpe?g|gif|webp|ico|woff2?|ttf|eot|zip|gz|tar|sqlite|db|pdf|exe|dll|so|o|a)$'
+
+is_binary_staged() {
+  local file="$1"
+  local lower
+  lower="$(printf '%s' "$file" | tr '[:upper:]' '[:lower:]')"
+
+  if [[ "$lower" =~ $BINARY_EXT_RE ]]; then
+    return 0
+  fi
+
+  local attr
+  attr="$(git check-attr binary -- "$file" 2>/dev/null || true)"
+  if [[ "$attr" == *": binary: set" ]]; then
+    return 0
+  fi
+
+  # NUL byte ⇒ binary (compare byte counts; do not pass NUL to grep argv)
+  local raw stripped
+  raw="$(head -c 8192 "$file" | wc -c)"
+  stripped="$(head -c 8192 "$file" | tr -d '\0' | wc -c)"
+  if [[ "$raw" != "$stripped" ]]; then
+    return 0
+  fi
+
+  return 1
+}
 
 crlf_files=()
 while IFS= read -r -d '' file; do
   [[ -f "$file" ]] || continue
+  if is_binary_staged "$file"; then
+    continue
+  fi
   if grep -qU $'\r' "$file" 2>/dev/null; then
     crlf_files+=("$file")
   fi
@@ -13,8 +49,14 @@ done < <(git diff --cached --name-only -z --diff-filter=ACMR)
 if ((${#crlf_files[@]} > 0)); then
   echo "ERROR: CRLF line endings detected in staged files (LF only):" >&2
   printf '  %s\n' "${crlf_files[@]}" >&2
-  echo "Fix with: sed -i 's/\\r\$//' <file>   (or dos2unix)" >&2
+  echo "Fix with: composer run fix:line-ending-fixer" >&2
   exit 1
 fi
 
-exit 0
+if ! command -v composer >/dev/null 2>&1; then
+  echo "[pre-commit] Composer is not available in PATH." >&2
+  exit 1
+fi
+
+echo "[pre-commit] Running composer run qa..."
+composer run qa

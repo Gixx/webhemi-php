@@ -32,6 +32,6 @@ final class HostContext
 
     public function isResolved(): bool
     {
-        return null !== $this->siteHost;
+        return $this->siteHost instanceof SiteHost;
     }
 }

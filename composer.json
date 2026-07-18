@@ -89,15 +89,36 @@
         "post-update-cmd": [
             "@auto-scripts"
         ],
+        "qa:lint": "bash bin/php-lint",
         "qa:phpcs": "vendor/bin/phpcs --standard=phpcs.xml.dist",
+        "qa:php-cs-fixer:dry-run": "vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php --dry-run --diff",
         "qa:phpstan": "vendor/bin/phpstan analyse -c phpstan.dist.neon",
+        "qa:psalm": "vendor/bin/psalm.phar --config=psalm.xml",
+        "qa:phpcpd": "@php bin/phpcpd.phar src",
+        "qa:phploc": "@php bin/phploc.phar src",
         "qa:deptrac": "vendor/bin/deptrac analyse --config-file=deptrac.yaml",
+        "qa:rector:dry-run": "vendor/bin/rector process src --config=rector.php --dry-run",
         "test:phpunit": "vendor/bin/phpunit -c phpunit.dist.xml",
         "qa": [
+            "@qa:lint",
             "@qa:phpcs",
+            "@qa:php-cs-fixer:dry-run",
+            "@qa:rector:dry-run",
             "@qa:phpstan",
+            "@qa:phpcpd",
+            "@qa:phploc",
             "@qa:deptrac",
             "@test:phpunit"
+        ],
+        "fix:phpcbf": "vendor/bin/phpcbf --standard=phpcs.xml.dist",
+        "fix:php-cs-fixer": "vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php",
+        "fix:rector": "vendor/bin/rector process src --config=rector.php",
+        "fix:line-ending-fixer": "bash bin/line-ending-fixer",
+        "fix": [
+            "@fix:line-ending-fixer",
+            "@fix:phpcbf",
+            "@fix:php-cs-fixer",
+            "@fix:rector"
         ],
         "sync-ui": "bash bin/sync-ui.sh"
     },
@@ -115,6 +136,8 @@
         "friendsofphp/php-cs-fixer": "^3.95",
         "phpstan/phpstan": "^2.2",
         "phpunit/phpunit": "^13.2",
+        "psalm/phar": "^6.16.1",
+        "rector/rector": "^2.5.7",
         "squizlabs/php_codesniffer": "^4.0",
         "symfony/browser-kit": "8.0.*",
         "symfony/css-selector": "8.0.*",

@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<psalm findUnusedIssueHandlerSuppression="false" errorLevel="4">
+    <projectFiles>
+        <directory name="src" />
+        <ignoreFiles>
+            <directory name="vendor" />
+        </ignoreFiles>
+    </projectFiles>
+
+    <issueHandlers>
+        <MissingOverrideAttribute errorLevel="suppress" />
+        <UnusedClass>
+            <errorLevel type="suppress">
+                <directory name="src/Controller" />
+                <directory name="src/Routing" />
+                <directory name="src/Command" />
+                <directory name="src/Security" />
+                <file name="src/Kernel.php" />
+            </errorLevel>
+        </UnusedClass>
+        <PossiblyUnusedMethod>
+            <errorLevel type="suppress">
+                <directory name="src/Entity" />
+                <directory name="src/Controller" />
+                <directory name="src/Routing" />
+                <directory name="src/Security" />
+                <directory name="src/SiteHost" />
+                <directory name="src/Repository" />
+                <directory name="src/Command" />
+            </errorLevel>
+        </PossiblyUnusedMethod>
+        <PossiblyUnusedProperty>
+            <errorLevel type="suppress">
+                <directory name="src/Entity" />
+                <directory name="src/SiteHost" />
+            </errorLevel>
+        </PossiblyUnusedProperty>
+        <UnusedProperty>
+            <errorLevel type="suppress">
+                <directory name="src/Entity" />
+            </errorLevel>
+        </UnusedProperty>
+        <ClassMustBeFinal>
+            <errorLevel type="suppress">
+                <directory name="src/Entity" />
+                <directory name="src/Repository" />
+                <file name="src/Kernel.php" />
+            </errorLevel>
+        </ClassMustBeFinal>
+        <PropertyNotSetInConstructor>
+            <errorLevel type="suppress">
+                <directory name="src/Entity" />
+                <directory name="src/Controller" />
+            </errorLevel>
+        </PropertyNotSetInConstructor>
+        <RedundantCastGivenDocblockType>
+            <errorLevel type="suppress">
+                <directory name="src/Routing" />
+            </errorLevel>
+        </RedundantCastGivenDocblockType>
+        <MoreSpecificReturnType>
+            <errorLevel type="suppress">
+                <file name="src/Entity/User.php" />
+            </errorLevel>
+        </MoreSpecificReturnType>
+        <LessSpecificReturnStatement>
+            <errorLevel type="suppress">
+                <file name="src/Entity/User.php" />
+            </errorLevel>
+        </LessSpecificReturnStatement>
+        <PossiblyInvalidArgument>
+            <errorLevel type="suppress">
+                <file name="src/SiteHost/Verification/HostOwnershipVerifier.php" />
+            </errorLevel>
+        </PossiblyInvalidArgument>
+    </issueHandlers>
+</psalm>

@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+# Convert CRLF (and lone CR) line endings to LF in text files.
+# Skips binaries (.phar, images, etc.) — those must keep embedded CR bytes.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+SKIP_DIRS=(
+  .git
+  vendor
+  var
+  node_modules
+  public/bundles
+  public/assets
+  .phpunit.cache
+  .psalm
+)
+
+# Explicit text targets (safer than blacklisting — avoids corrupting binaries).
+TEXT_EXT_RE='\.(php|md|markdown|yml|yaml|json|js|cjs|mjs|jsx|ts|tsx|css|scss|html|htm|twig|xml|xsl|neon|dist|env|sh|bash|zsh|txt|svg|sql|toml|ini|cfg|conf|neon|lock|xml|neon|php|rst|csv|tsv|editorconfig|gitattributes|gitignore|npmrc|nvmrc|babelrc|eslintrc|prettierrc)$'
+
+TEXT_BASENAMES_RE='^(Makefile|Dockerfile|LICENSE|CHANGELOG|AUTHORS|NOTICE|Procfile|composer\.json|composer\.lock|package\.json|package-lock\.json|symfony\.lock|importmap\.php|rector\.php|deptrac\.yaml|phpunit\.dist\.xml|phpcs\.xml\.dist|phpstan\.dist\.neon|psalm\.xml)$'
+
+is_skipped_dir() {
+  local path="$1"
+  local d
+  for d in "${SKIP_DIRS[@]}"; do
+    case "$path" in
+      "$d"|"$d"/*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+is_text_file() {
+  local file="$1"
+  local base
+  base="$(basename "$file")"
+
+  if [[ "$base" =~ $TEXT_BASENAMES_RE ]]; then
+    return 0
+  fi
+
+  # Dotfiles like .env, .env.test, .gitignore
+  if [[ "$base" == .* ]]; then
+    case "$base" in
+      .env|.env.*|.gitignore|.gitattributes|.editorconfig|.php-cs-fixer.dist.php)
+        return 0
+        ;;
+    esac
+  fi
+
+  if [[ "$file" =~ $TEXT_EXT_RE ]]; then
+    return 0
+  fi
+
+  if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local attr
+    attr="$(git check-attr binary -- "$file" 2>/dev/null || true)"
+    if [[ "$attr" == *": binary: set" ]]; then
+      return 1
+    fi
+    attr="$(git check-attr text -- "$file" 2>/dev/null || true)"
+    if [[ "$attr" == *": text: set" ]]; then
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+has_nul_byte() {
+  local file="$1"
+  local raw stripped
+  raw="$(head -c 8192 "$file" | wc -c)"
+  stripped="$(head -c 8192 "$file" | tr -d '\0' | wc -c)"
+  [[ "$raw" != "$stripped" ]]
+}
+
+has_cr() {
+  local file="$1"
+  grep -qU $'\r' "$file" 2>/dev/null
+}
+
+fix_file() {
+  local file="$1"
+  local tmp
+  tmp="$(mktemp)"
+  tr -d '\r' <"$file" >"$tmp"
+  if ! cmp -s "$file" "$tmp"; then
+    cat "$tmp" >"$file"
+    rm -f "$tmp"
+    return 0
+  fi
+  rm -f "$tmp"
+  return 1
+}
+
+collect_targets() {
+  if (($# > 0)); then
+    local arg
+    for arg in "$@"; do
+      printf '%s\0' "$arg"
+    done
+    return
+  fi
+
+  find . -type f ! -path './.git/*' -print0
+}
+
+fixed=0
+skipped=0
+checked=0
+declare -a fixed_files=()
+
+while IFS= read -r -d '' file; do
+  file="${file#./}"
+  [[ -f "$file" ]] || continue
+  if is_skipped_dir "$file"; then
+    continue
+  fi
+  if ! is_text_file "$file"; then
+    ((skipped++)) || true
+    continue
+  fi
+  if has_nul_byte "$file"; then
+    ((skipped++)) || true
+    continue
+  fi
+  ((checked++)) || true
+  if ! has_cr "$file"; then
+    continue
+  fi
+  if fix_file "$file"; then
+    ((fixed++)) || true
+    fixed_files+=("$file")
+  fi
+done < <(collect_targets "$@")
+
+if ((fixed > 0)); then
+  echo "Converted CRLF/CR → LF in ${fixed} file(s):"
+  printf '  %s\n' "${fixed_files[@]}"
+else
+  echo "No CRLF/CR line endings found in text files (checked ${checked}, skipped ${skipped} non-text/binary)."
+fi
+
+exit 0

@@ -4,6 +4,17 @@ Greenfield Symfony 8 CMS engine for PHP-first deployments. **No Node.js / npm / 
 
 UI (TypeScript/React, including admin pages) is built in [`webhemi-ui`](../webhemi-ui) and synced or pulled via NPM as `@webhemi/ui`. Controllers under `assets/react/controllers/` are plain JS re-exports.
 
+[![Minimum PHP Version](https://img.shields.io/badge/PHP->%3D8.4-blue.svg)](https://php.net/)
+[![Email](https://img.shields.io/badge/email-navig80@gmail.com-blue.svg?style=flat-square)](mailto:navig80@gmail.com)
+[![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE)
+
+![Build Status](https://github.com/Gixx/webhemi-php/actions/workflows/ci.yml/badge.svg)
+[![PHPCS](https://github.com/Gixx/webhemi-php/actions/workflows/badge-phpcs.yml/badge.svg)](https://github.com/Gixx/webhemi-php/actions/workflows/badge-phpcs.yml)
+[![PHPStan](https://github.com/Gixx/webhemi-php/actions/workflows/badge-phpstan.yml/badge.svg)](https://github.com/Gixx/webhemi-php/actions/workflows/badge-phpstan.yml)
+[![Deptrac](https://github.com/Gixx/webhemi-php/actions/workflows/badge-deptrac.yml/badge.svg)](https://github.com/Gixx/webhemi-php/actions/workflows/badge-deptrac.yml)
+[![PHPUnit](https://github.com/Gixx/webhemi-php/actions/workflows/badge-phpunit.yml/badge.svg)](https://github.com/Gixx/webhemi-php/actions/workflows/badge-phpunit.yml)
+[![codecov](https://codecov.io/gh/Gixx/webhemi-php/branch/main/graph/badge.svg)](https://codecov.io/gh/Gixx/webhemi-php)
+
 ## Requirements
 
 - PHP >= 8.4
@@ -55,6 +66,19 @@ Host → surface resolution: `App\Routing\HostContextSubscriber`.
 
 ```bash
 composer qa
+```
+
+Runs lint, PHPCS, PHP CS Fixer (dry-run), Rector (dry-run), PHPStan, PHPCPD, PHPLOC, Deptrac, and PHPUnit.
+
+Optional: `composer run qa:psalm`
+
+### Git hooks
+
+Enable the repository-managed Git hooks (CRLF check + `composer run qa` on pre-commit):
+
+```bash
+chmod +x .githooks/pre-commit
+git config core.hooksPath .githooks
 ```
 
 ## Docs
