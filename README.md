@@ -8,7 +8,7 @@ UI (TypeScript/React, including admin pages) is built in [`webhemi-ui`](../webhe
 
 - PHP >= 8.4
 - Composer 2
-- SQLite (default) or MySQL/PostgreSQL
+- MariaDB/MySQL (default local: `webhemi_dev`) or SQLite/PostgreSQL
 
 ## Quick start
 
