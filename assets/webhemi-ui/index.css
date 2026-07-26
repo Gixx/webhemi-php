@@ -80,7 +80,6 @@
     --width-window-xs: 220px;
     --width-window-sm: 332px;
     --width-window-md: 550px;
-    --width-window-lg: 750px;
     --width-window-xl: 1024px;
   }
 }
@@ -217,10 +216,6 @@
     width: 100%;
   }
 
-  .w-window-lg {
-    width: var(--width-window-lg);
-  }
-
   .w-window-md {
     width: var(--width-window-md);
   }
@@ -279,6 +274,10 @@
 
   .cursor-pointer {
     cursor: pointer;
+  }
+
+  .resize {
+    resize: both;
   }
 
   .flex-col {
@@ -1104,7 +1103,7 @@
   font-display: swap;
 }
 /*
- * WebHemi Admin Theme (Win98) design tokens.
+ * WebHemi Admin Theme (Retro OS) design tokens.
  * Scoped to [data-wh-theme="admin"] per Admin98 integration contract.
  * Consumed by owned chrome / product SCSS.
  */
@@ -1138,7 +1137,7 @@
   --range-track-height: 4px;
   --range-spacing: 10px;
 
-  /* Radio / checkbox layout math (from 98.css) */
+  /* Radio / checkbox layout math (checkbox/radio metrics) */
   --radio-total-width-precalc: var(--radio-width) + var(--radio-label-spacing);
   --radio-total-width: calc(var(--radio-total-width-precalc));
   --radio-left: calc(-1 * var(--radio-total-width-precalc));
@@ -1196,7 +1195,7 @@
 }
 
 /*
- * Admin Theme style entry: owned Win98 chrome + product shell/layouts.
+ * Admin Theme style entry: owned Retro OS chrome + product shell/layouts.
  * Sass meta.load-css nests selectors under [data-wh-theme="admin"] so Default
  * frontend stories never inherit global button/input chrome.
  *
@@ -1660,7 +1659,7 @@ html[data-wh-theme=admin] {
   /*
    * While the list is open, keep the closed control light so Firefox does not
    * infer a dark OS popup from the navy focus face (see Firefox bug 1825958).
-   * Win98 list itself is white; navy highlight is on the selected row.
+   * Retro OS list itself is white; navy highlight is on the selected row.
    */
 }
 [data-wh-theme=admin] select:open {
@@ -2232,6 +2231,8 @@ html[data-wh-theme=admin] {
   background-position: top center;
   background-repeat: no-repeat;
   background-size: 48px;
+  font-family: var(--font-chrome);
+  font-size: var(--font-size-chrome);
 }
 [data-wh-theme=admin] .dashboard [draggable=true] {
   touch-action: none;
@@ -2242,13 +2243,16 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .icon > a {
   display: block;
   text-align: center;
-  color: #ffffff;
   width: 90px;
   padding-top: 50px;
   height: 90px;
   text-decoration: none;
+  font-family: inherit;
 }
-[data-wh-theme=admin] .panel.icon-list .icon > a {
+[data-wh-theme=admin] .icon.label-tone-light > a {
+  color: #ffffff;
+}
+[data-wh-theme=admin] .icon.label-tone-dark > a {
   color: #000000;
 }
 [data-wh-theme=admin] .icon > a > span {
@@ -2256,6 +2260,7 @@ html[data-wh-theme=admin] {
   width: 88px;
   max-height: 38px;
   line-height: 15px;
+  font-family: inherit;
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2495,7 +2500,7 @@ html[data-wh-theme=admin] {
   display: none;
 }
 [data-wh-theme=admin] {
-  /* Sticky pressed look for the active window's task button (98.css :active inset). */
+  /* Sticky pressed look for the active window's task button (pressed :active inset). */
 }
 [data-wh-theme=admin] #toolbar .task-buttons > .task.active,
 [data-wh-theme=admin] #toolbar .task-buttons > .task[aria-pressed=true] {
@@ -2716,7 +2721,7 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] {
   /*
    * Bleed content to the window chrome inside .window-body
-   * (98.css uses margin: 8px on .window-body). Prefer layout-encoded bleed;
+   * (classic chrome used margin: 8px on .window-body). Prefer layout-encoded bleed;
    * keep .stretched for one-off cases.
    */
 }
@@ -2732,7 +2737,7 @@ html[data-wh-theme=admin] {
   /* Product: window-pane layouts (icon / wizard / heading / dialog). */
   /* --- Window pane layouts --- */
   /*
-   * Win98 groove separators between stacked / wizard panels.
+   * Retro OS groove separators between stacked / wizard panels.
    * First: bottom only; last: top only; middle: both.
    */
 }
@@ -2919,7 +2924,7 @@ html[data-wh-theme=admin] {
   max-width: none;
   box-sizing: border-box;
 }
-[data-wh-theme=admin] .dialog-panel-layout > .panel.banner .login-banner,
+[data-wh-theme=admin] .dialog-panel-layout > .panel.banner .dialog-banner,
 [data-wh-theme=admin] .dialog-panel-layout > .panel.banner > img {
   display: block;
   width: 100%;
@@ -3026,9 +3031,9 @@ html[data-wh-theme=admin] {
   background-color: #fff;
 }
 [data-wh-theme=admin] {
-  /* Product: custom Win98 scrollbar host (scrollbar.js). */
+  /* Product: custom Retro OS scrollbar host (scrollbar.js). */
   /*
-   * Custom Win98 scrollbar host (see assets/script/scrollbar.js).
+   * Custom Retro OS scrollbar host (see assets/script/scrollbar.js).
    * .scrollable becomes a grid shell; .scrollable-viewport is the real overflow box.
    */
 }
@@ -3224,8 +3229,10 @@ html[data-wh-theme=admin] {
   --wh-space-8: 2rem;
 }
 
-/* Theme-owned document face (no shared Preflight) */
-[data-wh-theme="default"] body {
+/* Theme-owned document face (canvas stories only).
+ * Skip when Storybook Docs is mounted — `.sbdocs` lives on the same body and
+ * must keep Storybook’s own typography/layout (Introduction MDX, autodocs). */
+[data-wh-theme="default"] body:not(:has(.sbdocs)) {
   margin: 0;
   font-family: var(--wh-font-body);
   color: var(--wh-color-ink);

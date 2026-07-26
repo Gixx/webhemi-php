@@ -387,172 +387,13 @@ function TreeView({ className, children, ...rest }) {
   return /* @__PURE__ */ jsx19("ul", { className: cn("tree-view", className), ...rest, children });
 }
 
-// src/admin/chrome/SunkenPanel.tsx
-import { jsx as jsx20 } from "react/jsx-runtime";
-function SunkenPanel({ className, children, ...rest }) {
-  return /* @__PURE__ */ jsx20("div", { className: cn("sunken-panel", className), ...rest, children });
-}
-function FieldBorder({ disabled = false, className, children, ...rest }) {
-  return /* @__PURE__ */ jsx20(
-    "div",
-    {
-      className: cn(disabled ? "field-border-disabled" : "field-border", className),
-      ...rest,
-      children
-    }
-  );
-}
-
-// src/admin/chrome/Table.tsx
+// src/admin/chrome/Scrollable.tsx
 import { useRef } from "react";
 
-// src/admin/chrome/useTableView.ts
+// src/admin/chrome/useCustomScrollbar.ts
 import { useEffect } from "react";
-var HIGHLIGHTED = "highlighted";
-function isBodyRow(element) {
-  return element instanceof HTMLTableRowElement && element.parentElement?.tagName === "TBODY";
-}
-function useTableView(tableRef, enabled = true) {
-  useEffect(() => {
-    const table = tableRef.current;
-    if (!enabled || !table) {
-      return;
-    }
-    if (table.dataset.interactiveBound === "true") {
-      return;
-    }
-    table.dataset.interactiveBound = "true";
-    const onClick = (event) => {
-      const newlySelectedRow = event.composedPath().find(isBodyRow);
-      if (!newlySelectedRow) {
-        return;
-      }
-      const tbody = newlySelectedRow.parentElement;
-      if (!tbody) {
-        return;
-      }
-      const previouslySelectedRow = Array.from(tbody.children).filter(isBodyRow).find((row) => row.classList.contains(HIGHLIGHTED));
-      if (previouslySelectedRow && previouslySelectedRow !== newlySelectedRow) {
-        previouslySelectedRow.classList.remove(HIGHLIGHTED);
-      }
-      newlySelectedRow.classList.toggle(HIGHLIGHTED);
-    };
-    table.addEventListener("click", onClick);
-    return () => {
-      table.removeEventListener("click", onClick);
-      delete table.dataset.interactiveBound;
-    };
-  }, [tableRef, enabled]);
-}
 
-// src/admin/chrome/Table.tsx
-import { jsx as jsx21 } from "react/jsx-runtime";
-function Table({ interactive = false, className, children, ...rest }) {
-  const ref = useRef(null);
-  useTableView(ref, interactive);
-  return /* @__PURE__ */ jsx21("table", { ref, className: cn(interactive && "interactive", className), ...rest, children });
-}
-function TableRow({ highlighted = false, className, children, ...rest }) {
-  return /* @__PURE__ */ jsx21("tr", { className: cn(highlighted && "highlighted", className), ...rest, children });
-}
-
-// src/admin/chrome/Progress.tsx
-import { jsx as jsx22 } from "react/jsx-runtime";
-function Progress({ value = 0, segmented = false, className, ...rest }) {
-  const clamped = Math.max(0, Math.min(100, value));
-  return /* @__PURE__ */ jsx22("div", { className: cn("progress-indicator", segmented && "segmented", className), ...rest, children: /* @__PURE__ */ jsx22("span", { className: "progress-indicator-bar", style: { width: `${clamped}%` } }) });
-}
-
-// src/admin/assets/icons/dialog_error.svg
-var dialog_error_default = "./dialog_error-RSKXJD7U.svg";
-
-// src/admin/assets/icons/dialog_info.svg
-var dialog_info_default = "./dialog_info-OEI2FWMM.svg";
-
-// src/admin/assets/icons/dialog_question.svg
-var dialog_question_default = "./dialog_question-ZAVMO6YL.svg";
-
-// src/admin/assets/icons/dialog_warning.svg
-var dialog_warning_default = "./dialog_warning-PXQ4WDGL.svg";
-
-// src/admin/bricks/PaneWindowShell.tsx
-import { jsx as jsx23, jsxs as jsxs9 } from "react/jsx-runtime";
-var TITLE_BAR_ICON_OPTIONS = [
-  "none",
-  "control-panel",
-  "site",
-  "network-neighborhood",
-  "users",
-  "roles",
-  "permissions",
-  "hosts",
-  "sites",
-  "settings",
-  "themes"
-];
-function resolveTitleBarIcon(value) {
-  return value && value !== "none" ? value : void 0;
-}
-function PaneWindowShell({
-  title,
-  titleIcon,
-  titleBarControls,
-  inactive = false,
-  statusBar,
-  children,
-  resizable = false,
-  className,
-  bodyClassName,
-  width,
-  style,
-  ...rest
-}) {
-  const mergedStyle = width !== void 0 ? { ...style, width } : style;
-  const controls = titleBarControls === null ? null : titleBarControls ?? /* @__PURE__ */ jsx23(TitleBarControls, { children: /* @__PURE__ */ jsx23(TitleBarControl, { action: "Close" }) });
-  return /* @__PURE__ */ jsxs9(Window, { className: cn(resizable && "resizable", className), style: mergedStyle, ...rest, children: [
-    /* @__PURE__ */ jsxs9(TitleBar, { inactive, children: [
-      /* @__PURE__ */ jsx23(TitleBarText, { className: titleIcon, children: title }),
-      controls
-    ] }),
-    /* @__PURE__ */ jsx23(WindowBody, { className: bodyClassName, children }),
-    statusBar
-  ] });
-}
-
-// src/admin/bricks/DialogWindow.tsx
-import { Fragment as Fragment3, jsx as jsx24, jsxs as jsxs10 } from "react/jsx-runtime";
-var DIALOG_ICONS = {
-  info: dialog_info_default,
-  question: dialog_question_default,
-  warning: dialog_warning_default,
-  error: dialog_error_default
-};
-function DialogWindow({
-  banner,
-  type = "none",
-  children,
-  actions,
-  className,
-  ...shell
-}) {
-  const iconSrc = type === "none" ? null : DIALOG_ICONS[type];
-  return /* @__PURE__ */ jsx24(PaneWindowShell, { className: cn("w-window-sm", className), ...shell, children: /* @__PURE__ */ jsxs10("div", { className: "window-pane dialog-panel-layout", children: [
-    banner ? /* @__PURE__ */ jsx24("div", { className: "panel banner", children: banner }) : null,
-    /* @__PURE__ */ jsx24("div", { className: cn("panel", iconSrc && "dialog-typed"), children: iconSrc ? /* @__PURE__ */ jsxs10(Fragment3, { children: [
-      /* @__PURE__ */ jsx24("img", { className: "dialog-icon", src: iconSrc, alt: "", width: 32, height: 32 }),
-      /* @__PURE__ */ jsx24("div", { className: "dialog-body", children })
-    ] }) : children }),
-    actions ? /* @__PURE__ */ jsx24("div", { className: "panel actions", children: actions }) : null
-  ] }) });
-}
-
-// src/admin/bricks/ScrollableRegion.tsx
-import { useRef as useRef2 } from "react";
-
-// src/admin/bricks/useCustomScrollbar.ts
-import { useEffect as useEffect2 } from "react";
-
-// src/admin/bricks/attachCustomScrollbar.ts
+// src/admin/chrome/attachCustomScrollbar.ts
 var THUMB_MIN = 17;
 var ARROW_STEP = 24;
 var REPEAT_DELAY_MS = 400;
@@ -802,9 +643,9 @@ function attachCustomScrollbar(host, viewport) {
   };
 }
 
-// src/admin/bricks/useCustomScrollbar.ts
+// src/admin/chrome/useCustomScrollbar.ts
 function useCustomScrollbar(hostRef, viewportRef) {
-  useEffect2(() => {
+  useEffect(() => {
     const host = hostRef.current;
     const viewport = viewportRef.current;
     if (!host || !viewport) {
@@ -814,18 +655,188 @@ function useCustomScrollbar(hostRef, viewportRef) {
   }, [hostRef, viewportRef]);
 }
 
-// src/admin/bricks/ScrollableRegion.tsx
-import { jsx as jsx25 } from "react/jsx-runtime";
-function ScrollableRegion({
+// src/admin/chrome/Scrollable.tsx
+import { jsx as jsx20 } from "react/jsx-runtime";
+function Scrollable({
   className,
   children,
   viewportClassName,
   ...rest
 }) {
-  const hostRef = useRef2(null);
-  const viewportRef = useRef2(null);
+  const hostRef = useRef(null);
+  const viewportRef = useRef(null);
   useCustomScrollbar(hostRef, viewportRef);
-  return /* @__PURE__ */ jsx25("div", { ref: hostRef, className: cn("scrollable", className), ...rest, children: /* @__PURE__ */ jsx25("div", { ref: viewportRef, className: cn("scrollable-viewport", viewportClassName), children }) });
+  return /* @__PURE__ */ jsx20("div", { ref: hostRef, className: cn("scrollable", className), ...rest, children: /* @__PURE__ */ jsx20("div", { ref: viewportRef, className: cn("scrollable-viewport", viewportClassName), children }) });
+}
+
+// src/admin/chrome/SunkenPanel.tsx
+import { jsx as jsx21 } from "react/jsx-runtime";
+function SunkenPanel({
+  scrollable = false,
+  className,
+  children,
+  ...rest
+}) {
+  if (scrollable) {
+    return /* @__PURE__ */ jsx21(Scrollable, { className: cn("sunken-panel", className), ...rest, children });
+  }
+  return /* @__PURE__ */ jsx21("div", { className: cn("sunken-panel", className), ...rest, children });
+}
+function FieldBorder({
+  disabled = false,
+  scrollable = false,
+  className,
+  children,
+  ...rest
+}) {
+  const borderClass = disabled ? "field-border-disabled" : "field-border";
+  if (scrollable) {
+    return /* @__PURE__ */ jsx21(Scrollable, { className: cn(borderClass, className), ...rest, children });
+  }
+  return /* @__PURE__ */ jsx21("div", { className: cn(borderClass, className), ...rest, children });
+}
+
+// src/admin/chrome/Table.tsx
+import { useRef as useRef2 } from "react";
+
+// src/admin/chrome/useTableView.ts
+import { useEffect as useEffect2 } from "react";
+var HIGHLIGHTED = "highlighted";
+function isBodyRow(element) {
+  return element instanceof HTMLTableRowElement && element.parentElement?.tagName === "TBODY";
+}
+function useTableView(tableRef, enabled = true) {
+  useEffect2(() => {
+    const table = tableRef.current;
+    if (!enabled || !table) {
+      return;
+    }
+    if (table.dataset.interactiveBound === "true") {
+      return;
+    }
+    table.dataset.interactiveBound = "true";
+    const onClick = (event) => {
+      const newlySelectedRow = event.composedPath().find(isBodyRow);
+      if (!newlySelectedRow) {
+        return;
+      }
+      const tbody = newlySelectedRow.parentElement;
+      if (!tbody) {
+        return;
+      }
+      const previouslySelectedRow = Array.from(tbody.children).filter(isBodyRow).find((row) => row.classList.contains(HIGHLIGHTED));
+      if (previouslySelectedRow && previouslySelectedRow !== newlySelectedRow) {
+        previouslySelectedRow.classList.remove(HIGHLIGHTED);
+      }
+      newlySelectedRow.classList.toggle(HIGHLIGHTED);
+    };
+    table.addEventListener("click", onClick);
+    return () => {
+      table.removeEventListener("click", onClick);
+      delete table.dataset.interactiveBound;
+    };
+  }, [tableRef, enabled]);
+}
+
+// src/admin/chrome/Table.tsx
+import { jsx as jsx22 } from "react/jsx-runtime";
+function Table({ interactive = false, className, children, ...rest }) {
+  const ref = useRef2(null);
+  useTableView(ref, interactive);
+  return /* @__PURE__ */ jsx22("table", { ref, className: cn(interactive && "interactive", className), ...rest, children });
+}
+function TableRow({ highlighted = false, className, children, ...rest }) {
+  return /* @__PURE__ */ jsx22("tr", { className: cn(highlighted && "highlighted", className), ...rest, children });
+}
+
+// src/admin/chrome/Progress.tsx
+import { jsx as jsx23 } from "react/jsx-runtime";
+function Progress({ value = 0, segmented = false, className, ...rest }) {
+  const clamped = Math.max(0, Math.min(100, value));
+  return /* @__PURE__ */ jsx23("div", { className: cn("progress-indicator", segmented && "segmented", className), ...rest, children: /* @__PURE__ */ jsx23("span", { className: "progress-indicator-bar", style: { width: `${clamped}%` } }) });
+}
+
+// src/admin/assets/icons/dialog_error.svg
+var dialog_error_default = "./dialog_error-RSKXJD7U.svg";
+
+// src/admin/assets/icons/dialog_info.svg
+var dialog_info_default = "./dialog_info-OEI2FWMM.svg";
+
+// src/admin/assets/icons/dialog_question.svg
+var dialog_question_default = "./dialog_question-ZAVMO6YL.svg";
+
+// src/admin/assets/icons/dialog_warning.svg
+var dialog_warning_default = "./dialog_warning-PXQ4WDGL.svg";
+
+// src/admin/bricks/PaneWindowShell.tsx
+import { jsx as jsx24, jsxs as jsxs9 } from "react/jsx-runtime";
+var TITLE_BAR_ICON_OPTIONS = [
+  "none",
+  "control-panel",
+  "site",
+  "network-neighborhood",
+  "users",
+  "roles",
+  "permissions",
+  "hosts",
+  "sites",
+  "settings",
+  "themes"
+];
+function resolveTitleBarIcon(value) {
+  return value && value !== "none" ? value : void 0;
+}
+function PaneWindowShell({
+  title,
+  titleIcon,
+  titleBarControls,
+  inactive = false,
+  statusBar,
+  children,
+  resizable = false,
+  className,
+  bodyClassName,
+  width,
+  style,
+  ...rest
+}) {
+  const mergedStyle = width !== void 0 ? { ...style, width } : style;
+  const controls = titleBarControls === null ? null : titleBarControls ?? /* @__PURE__ */ jsx24(TitleBarControls, { children: /* @__PURE__ */ jsx24(TitleBarControl, { action: "Close" }) });
+  return /* @__PURE__ */ jsxs9(Window, { className: cn(resizable && "resizable", className), style: mergedStyle, ...rest, children: [
+    /* @__PURE__ */ jsxs9(TitleBar, { inactive, children: [
+      /* @__PURE__ */ jsx24(TitleBarText, { className: titleIcon, children: title }),
+      controls
+    ] }),
+    /* @__PURE__ */ jsx24(WindowBody, { className: bodyClassName, children }),
+    statusBar
+  ] });
+}
+
+// src/admin/bricks/DialogWindow.tsx
+import { Fragment as Fragment3, jsx as jsx25, jsxs as jsxs10 } from "react/jsx-runtime";
+var DIALOG_ICONS = {
+  info: dialog_info_default,
+  question: dialog_question_default,
+  warning: dialog_warning_default,
+  error: dialog_error_default
+};
+function DialogWindow({
+  banner,
+  type = "none",
+  children,
+  actions,
+  className,
+  ...shell
+}) {
+  const iconSrc = type === "none" ? null : DIALOG_ICONS[type];
+  return /* @__PURE__ */ jsx25(PaneWindowShell, { className: cn("w-window-sm", className), ...shell, children: /* @__PURE__ */ jsxs10("div", { className: "window-pane dialog-panel-layout", children: [
+    banner ? /* @__PURE__ */ jsx25("div", { className: "panel banner", children: banner }) : null,
+    /* @__PURE__ */ jsx25("div", { className: cn("panel", iconSrc && "dialog-typed"), children: iconSrc ? /* @__PURE__ */ jsxs10(Fragment3, { children: [
+      /* @__PURE__ */ jsx25("img", { className: "dialog-icon", src: iconSrc, alt: "", width: 32, height: 32 }),
+      /* @__PURE__ */ jsx25("div", { className: "dialog-body", children })
+    ] }) : children }),
+    actions ? /* @__PURE__ */ jsx25("div", { className: "panel actions", children: actions }) : null
+  ] }) });
 }
 
 // src/admin/bricks/IconPanelWindow.tsx
@@ -848,17 +859,10 @@ function IconPanelWindow({
       className: cn("w-window-xl", className),
       resizable,
       ...shell,
-      children: /* @__PURE__ */ jsxs11(
-        ScrollableRegion,
-        {
-          className: "window-pane icon-panel-layout field-border",
-          style: paneStyle,
-          children: [
-            /* @__PURE__ */ jsx26("div", { className: cn("panel info", infoUnselected && "unselected"), children: info }),
-            /* @__PURE__ */ jsx26("div", { className: "panel icon-list", children })
-          ]
-        }
-      )
+      children: /* @__PURE__ */ jsxs11(FieldBorder, { scrollable: true, className: "window-pane icon-panel-layout", style: paneStyle, children: [
+        /* @__PURE__ */ jsx26("div", { className: cn("panel info", infoUnselected && "unselected"), children: info }),
+        /* @__PURE__ */ jsx26("div", { className: "panel icon-list", children })
+      ] })
     }
   );
 }
@@ -879,28 +883,12 @@ function WizardWindow({
   ] }) });
 }
 
-// src/admin/bricks/HeadingPanelWindow.tsx
-import { jsx as jsx28, jsxs as jsxs13 } from "react/jsx-runtime";
-function HeadingPanelWindow({
-  heading,
-  children,
-  actions,
-  wrapBody = true,
-  className,
-  ...shell
-}) {
-  return /* @__PURE__ */ jsx28(PaneWindowShell, { className: cn("w-window-lg", className), ...shell, children: /* @__PURE__ */ jsxs13("div", { className: "window-pane heading-panel-layout", children: [
-    /* @__PURE__ */ jsx28("div", { className: "panel", children: heading }),
-    wrapBody ? /* @__PURE__ */ jsx28("div", { className: "panel", children }) : children,
-    actions ? /* @__PURE__ */ jsx28("div", { className: "panel actions", children: actions }) : null
-  ] }) });
-}
-
-// src/admin/bricks/DesktopIcon.tsx
-import { jsx as jsx29 } from "react/jsx-runtime";
-function DesktopIcon({
+// src/admin/bricks/SystemIcon.tsx
+import { jsx as jsx28 } from "react/jsx-runtime";
+function SystemIcon({
   kind,
   label,
+  labelTone = "light",
   href = "#",
   description,
   draggable = false,
@@ -929,21 +917,21 @@ function DesktopIcon({
     onActivate?.();
     onOpen?.();
   };
-  return /* @__PURE__ */ jsx29(
+  return /* @__PURE__ */ jsx28(
     "div",
     {
-      className: cn("icon", kind, className),
+      className: cn("icon", kind, `label-tone-${labelTone}`, className),
       draggable,
       onDoubleClick: handleDoubleClick,
       ...rest,
-      children: /* @__PURE__ */ jsx29(
+      children: /* @__PURE__ */ jsx28(
         "a",
         {
           href,
           "data-description": description,
           ...linkProps,
           onClick: handleClick,
-          children: /* @__PURE__ */ jsx29("span", { children: label })
+          children: /* @__PURE__ */ jsx28("span", { children: label })
         }
       )
     }
@@ -951,7 +939,7 @@ function DesktopIcon({
 }
 
 // src/admin/components/FlashList/FlashList.tsx
-import { jsx as jsx30 } from "react/jsx-runtime";
+import { jsx as jsx29 } from "react/jsx-runtime";
 function toneForFlash(key) {
   if (key === "success") {
     return "success";
@@ -969,12 +957,12 @@ function FlashList({ flashes }) {
     return null;
   }
   return Object.entries(flashes).flatMap(
-    ([tone, messages]) => messages.map((message, index) => /* @__PURE__ */ jsx30(Alert, { tone: toneForFlash(tone), className: "mb-4", children: message }, `${tone}-${index}`))
+    ([tone, messages]) => messages.map((message, index) => /* @__PURE__ */ jsx29(Alert, { tone: toneForFlash(tone), className: "mb-4", children: message }, `${tone}-${index}`))
   );
 }
 
 // src/admin/components/DataTable/DataTable.tsx
-import { jsx as jsx31, jsxs as jsxs14 } from "react/jsx-runtime";
+import { jsx as jsx30, jsxs as jsxs13 } from "react/jsx-runtime";
 function DataTable({
   columns,
   rows,
@@ -984,25 +972,25 @@ function DataTable({
   className
 }) {
   if (loading) {
-    return /* @__PURE__ */ jsx31("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: "Loading\u2026" });
+    return /* @__PURE__ */ jsx30("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: "Loading\u2026" });
   }
   if (rows.length === 0) {
-    return /* @__PURE__ */ jsx31("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-dashed border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: emptyMessage });
+    return /* @__PURE__ */ jsx30("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-dashed border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: emptyMessage });
   }
-  return /* @__PURE__ */ jsx31(
+  return /* @__PURE__ */ jsx30(
     "div",
     {
       className: cn(
         "wh-ui overflow-x-auto rounded-[var(--wh-radius-md)] border border-[var(--wh-color-line)] bg-[var(--wh-color-surface)]",
         className
       ),
-      children: /* @__PURE__ */ jsxs14("table", { className: "w-full border-collapse text-left text-sm", children: [
-        /* @__PURE__ */ jsx31("thead", { className: "bg-[var(--wh-color-canvas)] text-[var(--wh-color-muted)]", children: /* @__PURE__ */ jsx31("tr", { children: columns.map((col) => /* @__PURE__ */ jsx31("th", { className: cn("px-4 py-3 font-semibold", col.className), children: col.header }, col.key)) }) }),
-        /* @__PURE__ */ jsx31("tbody", { children: rows.map((row) => /* @__PURE__ */ jsx31(
+      children: /* @__PURE__ */ jsxs13("table", { className: "w-full border-collapse text-left text-sm", children: [
+        /* @__PURE__ */ jsx30("thead", { className: "bg-[var(--wh-color-canvas)] text-[var(--wh-color-muted)]", children: /* @__PURE__ */ jsx30("tr", { children: columns.map((col) => /* @__PURE__ */ jsx30("th", { className: cn("px-4 py-3 font-semibold", col.className), children: col.header }, col.key)) }) }),
+        /* @__PURE__ */ jsx30("tbody", { children: rows.map((row) => /* @__PURE__ */ jsx30(
           "tr",
           {
             className: "border-t border-[var(--wh-color-line)] hover:bg-[color-mix(in_srgb,var(--wh-color-accent)_6%,white)]",
-            children: columns.map((col) => /* @__PURE__ */ jsx31("td", { className: cn("px-4 py-3", col.className), children: col.render(row) }, col.key))
+            children: columns.map((col) => /* @__PURE__ */ jsx30("td", { className: cn("px-4 py-3", col.className), children: col.render(row) }, col.key))
           },
           rowKey(row)
         )) })
@@ -1012,18 +1000,18 @@ function DataTable({
 }
 
 // src/admin/components/Pagination/Pagination.tsx
-import { jsx as jsx32, jsxs as jsxs15 } from "react/jsx-runtime";
+import { jsx as jsx31, jsxs as jsxs14 } from "react/jsx-runtime";
 function Pagination({ page, pageCount, onPageChange, className }) {
   if (pageCount <= 1) {
     return null;
   }
-  return /* @__PURE__ */ jsxs15(
+  return /* @__PURE__ */ jsxs14(
     "nav",
     {
       className: cn("wh-ui mt-4 flex items-center justify-between gap-3", className),
       "aria-label": "Pagination",
       children: [
-        /* @__PURE__ */ jsx32(
+        /* @__PURE__ */ jsx31(
           Button,
           {
             variant: "secondary",
@@ -1033,13 +1021,13 @@ function Pagination({ page, pageCount, onPageChange, className }) {
             children: "Previous"
           }
         ),
-        /* @__PURE__ */ jsxs15("span", { className: "text-sm text-[var(--wh-color-muted)]", children: [
+        /* @__PURE__ */ jsxs14("span", { className: "text-sm text-[var(--wh-color-muted)]", children: [
           "Page ",
           page,
           " of ",
           pageCount
         ] }),
-        /* @__PURE__ */ jsx32(
+        /* @__PURE__ */ jsx31(
           Button,
           {
             variant: "secondary",
@@ -1056,7 +1044,7 @@ function Pagination({ page, pageCount, onPageChange, className }) {
 
 // src/admin/components/Modal/Modal.tsx
 import { useEffect as useEffect3 } from "react";
-import { jsx as jsx33, jsxs as jsxs16 } from "react/jsx-runtime";
+import { jsx as jsx32, jsxs as jsxs15 } from "react/jsx-runtime";
 function Modal({ open, title, children, onClose, footer, className }) {
   useEffect3(() => {
     if (!open) {
@@ -1073,8 +1061,8 @@ function Modal({ open, title, children, onClose, footer, className }) {
   if (!open) {
     return null;
   }
-  return /* @__PURE__ */ jsxs16("div", { className: "wh-ui fixed inset-0 z-50 flex items-center justify-center p-4", children: [
-    /* @__PURE__ */ jsx33(
+  return /* @__PURE__ */ jsxs15("div", { className: "wh-ui fixed inset-0 z-50 flex items-center justify-center p-4", children: [
+    /* @__PURE__ */ jsx32(
       "button",
       {
         type: "button",
@@ -1083,7 +1071,7 @@ function Modal({ open, title, children, onClose, footer, className }) {
         onClick: onClose
       }
     ),
-    /* @__PURE__ */ jsxs16(
+    /* @__PURE__ */ jsxs15(
       "div",
       {
         role: "dialog",
@@ -1094,12 +1082,12 @@ function Modal({ open, title, children, onClose, footer, className }) {
           className
         ),
         children: [
-          /* @__PURE__ */ jsxs16("div", { className: "flex items-center justify-between border-b border-[var(--wh-color-line)] px-4 py-3", children: [
-            /* @__PURE__ */ jsx33("h2", { id: "wh-modal-title", className: "font-[family-name:var(--wh-font-display)] text-lg", children: title }),
-            /* @__PURE__ */ jsx33(Button, { variant: "ghost", size: "sm", onClick: onClose, "aria-label": "Close", children: "\xD7" })
+          /* @__PURE__ */ jsxs15("div", { className: "flex items-center justify-between border-b border-[var(--wh-color-line)] px-4 py-3", children: [
+            /* @__PURE__ */ jsx32("h2", { id: "wh-modal-title", className: "font-[family-name:var(--wh-font-display)] text-lg", children: title }),
+            /* @__PURE__ */ jsx32(Button, { variant: "ghost", size: "sm", onClick: onClose, "aria-label": "Close", children: "\xD7" })
           ] }),
-          /* @__PURE__ */ jsx33("div", { className: "px-4 py-4", children }),
-          footer ? /* @__PURE__ */ jsx33("div", { className: "flex justify-end gap-2 border-t border-[var(--wh-color-line)] px-4 py-3", children: footer }) : null
+          /* @__PURE__ */ jsx32("div", { className: "px-4 py-4", children }),
+          footer ? /* @__PURE__ */ jsx32("div", { className: "flex justify-end gap-2 border-t border-[var(--wh-color-line)] px-4 py-3", children: footer }) : null
         ]
       }
     )
@@ -1107,9 +1095,9 @@ function Modal({ open, title, children, onClose, footer, className }) {
 }
 
 // src/admin/components/PageHeader/PageHeader.tsx
-import { jsx as jsx34, jsxs as jsxs17 } from "react/jsx-runtime";
+import { jsx as jsx33, jsxs as jsxs16 } from "react/jsx-runtime";
 function PageHeader({ title, description, actions, className }) {
-  return /* @__PURE__ */ jsxs17(
+  return /* @__PURE__ */ jsxs16(
     "header",
     {
       className: cn(
@@ -1117,20 +1105,20 @@ function PageHeader({ title, description, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsxs17("div", { children: [
-          /* @__PURE__ */ jsx34("h1", { className: "font-[family-name:var(--wh-font-display)] text-3xl tracking-tight text-[var(--wh-color-ink)]", children: title }),
-          description ? /* @__PURE__ */ jsx34("p", { className: "mt-1 max-w-2xl text-[var(--wh-color-muted)]", children: description }) : null
+        /* @__PURE__ */ jsxs16("div", { children: [
+          /* @__PURE__ */ jsx33("h1", { className: "font-[family-name:var(--wh-font-display)] text-3xl tracking-tight text-[var(--wh-color-ink)]", children: title }),
+          description ? /* @__PURE__ */ jsx33("p", { className: "mt-1 max-w-2xl text-[var(--wh-color-muted)]", children: description }) : null
         ] }),
-        actions ? /* @__PURE__ */ jsx34("div", { className: "flex flex-wrap gap-2", children: actions }) : null
+        actions ? /* @__PURE__ */ jsx33("div", { className: "flex flex-wrap gap-2", children: actions }) : null
       ]
     }
   );
 }
 
 // src/admin/components/Sidebar/Sidebar.tsx
-import { jsx as jsx35, jsxs as jsxs18 } from "react/jsx-runtime";
+import { jsx as jsx34, jsxs as jsxs17 } from "react/jsx-runtime";
 function Sidebar({ brand = "WebHemi", items, className }) {
-  return /* @__PURE__ */ jsxs18(
+  return /* @__PURE__ */ jsxs17(
     "aside",
     {
       className: cn(
@@ -1138,11 +1126,11 @@ function Sidebar({ brand = "WebHemi", items, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsxs18("div", { className: "border-b border-white/10 px-5 py-5", children: [
-          /* @__PURE__ */ jsx35("p", { className: "font-[family-name:var(--wh-font-display)] text-2xl tracking-tight", children: brand }),
-          /* @__PURE__ */ jsx35("p", { className: "text-xs uppercase tracking-[0.2em] text-white/60", children: "Admin" })
+        /* @__PURE__ */ jsxs17("div", { className: "border-b border-white/10 px-5 py-5", children: [
+          /* @__PURE__ */ jsx34("p", { className: "font-[family-name:var(--wh-font-display)] text-2xl tracking-tight", children: brand }),
+          /* @__PURE__ */ jsx34("p", { className: "text-xs uppercase tracking-[0.2em] text-white/60", children: "Admin" })
         ] }),
-        /* @__PURE__ */ jsx35("nav", { className: "flex flex-1 flex-col gap-1 p-3", "aria-label": "Admin", children: items.map((item) => /* @__PURE__ */ jsxs18(
+        /* @__PURE__ */ jsx34("nav", { className: "flex flex-1 flex-col gap-1 p-3", "aria-label": "Admin", children: items.map((item) => /* @__PURE__ */ jsxs17(
           "a",
           {
             href: item.href,
@@ -1152,7 +1140,7 @@ function Sidebar({ brand = "WebHemi", items, className }) {
             ),
             "aria-current": item.active ? "page" : void 0,
             children: [
-              item.icon ? /* @__PURE__ */ jsx35(Icon, { name: item.icon }) : null,
+              item.icon ? /* @__PURE__ */ jsx34(Icon, { name: item.icon }) : null,
               item.label
             ]
           },
@@ -1164,9 +1152,9 @@ function Sidebar({ brand = "WebHemi", items, className }) {
 }
 
 // src/admin/components/TopBar/TopBar.tsx
-import { jsx as jsx36, jsxs as jsxs19 } from "react/jsx-runtime";
+import { jsx as jsx35, jsxs as jsxs18 } from "react/jsx-runtime";
 function TopBar({ title, userLabel, actions, className }) {
-  return /* @__PURE__ */ jsxs19(
+  return /* @__PURE__ */ jsxs18(
     "div",
     {
       className: cn(
@@ -1174,10 +1162,10 @@ function TopBar({ title, userLabel, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsx36("p", { className: "text-sm font-medium text-[var(--wh-color-muted)]", children: title ?? "Control panel" }),
-        /* @__PURE__ */ jsxs19("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsx35("p", { className: "text-sm font-medium text-[var(--wh-color-muted)]", children: title ?? "Control panel" }),
+        /* @__PURE__ */ jsxs18("div", { className: "flex items-center gap-3", children: [
           actions,
-          userLabel ? /* @__PURE__ */ jsx36("span", { className: "rounded-[var(--wh-radius-sm)] bg-[var(--wh-color-canvas)] px-3 py-1 text-sm", children: userLabel }) : null
+          userLabel ? /* @__PURE__ */ jsx35("span", { className: "rounded-[var(--wh-radius-sm)] bg-[var(--wh-color-canvas)] px-3 py-1 text-sm", children: userLabel }) : null
         ] })
       ]
     }
@@ -1185,7 +1173,7 @@ function TopBar({ title, userLabel, actions, className }) {
 }
 
 // src/admin/components/AdminLayout/AdminLayout.tsx
-import { jsx as jsx37, jsxs as jsxs20 } from "react/jsx-runtime";
+import { jsx as jsx36, jsxs as jsxs19 } from "react/jsx-runtime";
 function AdminLayout({
   brand,
   navItems,
@@ -1195,17 +1183,17 @@ function AdminLayout({
   children,
   className
 }) {
-  return /* @__PURE__ */ jsxs20("div", { className: cn("wh-ui flex min-h-screen bg-[var(--wh-color-canvas)]", className), children: [
-    /* @__PURE__ */ jsx37(Sidebar, { brand, items: navItems }),
-    /* @__PURE__ */ jsxs20("div", { className: "flex min-w-0 flex-1 flex-col", children: [
-      /* @__PURE__ */ jsx37(TopBar, { title: topBarTitle, userLabel, actions: topBarActions }),
-      /* @__PURE__ */ jsx37("main", { className: "flex-1 p-6", children })
+  return /* @__PURE__ */ jsxs19("div", { className: cn("wh-ui flex min-h-screen bg-[var(--wh-color-canvas)]", className), children: [
+    /* @__PURE__ */ jsx36(Sidebar, { brand, items: navItems }),
+    /* @__PURE__ */ jsxs19("div", { className: "flex min-w-0 flex-1 flex-col", children: [
+      /* @__PURE__ */ jsx36(TopBar, { title: topBarTitle, userLabel, actions: topBarActions }),
+      /* @__PURE__ */ jsx36("main", { className: "flex-1 p-6", children })
     ] })
   ] });
 }
 
 // src/admin/components/LoginForm/LoginForm.tsx
-import { jsx as jsx38, jsxs as jsxs21 } from "react/jsx-runtime";
+import { jsx as jsx37, jsxs as jsxs20 } from "react/jsx-runtime";
 function LoginForm({
   action = "/login",
   method = "post",
@@ -1229,22 +1217,22 @@ function LoginForm({
       remember: data.get("remember") === "on"
     });
   };
-  return /* @__PURE__ */ jsxs21("form", { action, method, onSubmit: handleSubmit, className: cn(className), children: [
-    csrfToken ? /* @__PURE__ */ jsx38("input", { type: "hidden", name: csrfFieldName, value: csrfToken }) : null,
-    /* @__PURE__ */ jsxs21(
+  return /* @__PURE__ */ jsxs20("form", { action, method, onSubmit: handleSubmit, className: cn(className), children: [
+    csrfToken ? /* @__PURE__ */ jsx37("input", { type: "hidden", name: csrfFieldName, value: csrfToken }) : null,
+    /* @__PURE__ */ jsxs20(
       DialogWindow,
       {
         title: "Sign in \u2014 WebHemi",
         titleBarControls: null,
-        actions: /* @__PURE__ */ jsx38(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx38(Button2, { type: "submit", isDefault: true, loading, children: "Sign in" }) }),
+        actions: /* @__PURE__ */ jsx37(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx37(Button2, { type: "submit", isDefault: true, loading, children: "Sign in" }) }),
         children: [
-          error ? /* @__PURE__ */ jsx38("p", { role: "alert", style: { marginTop: 0, marginBottom: 10, color: "#800000" }, children: error }) : null,
-          /* @__PURE__ */ jsxs21(FieldRow, { children: [
-            /* @__PURE__ */ jsxs21("label", { htmlFor: "email", children: [
-              /* @__PURE__ */ jsx38("u", { children: "E" }),
+          error ? /* @__PURE__ */ jsx37("p", { role: "alert", style: { marginTop: 0, marginBottom: 10, color: "#800000" }, children: error }) : null,
+          /* @__PURE__ */ jsxs20(FieldRow, { children: [
+            /* @__PURE__ */ jsxs20("label", { htmlFor: "email", children: [
+              /* @__PURE__ */ jsx37("u", { children: "E" }),
               "mail:"
             ] }),
-            /* @__PURE__ */ jsx38(
+            /* @__PURE__ */ jsx37(
               TextBox,
               {
                 id: "email",
@@ -1257,12 +1245,12 @@ function LoginForm({
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs21(FieldRow, { children: [
-            /* @__PURE__ */ jsxs21("label", { htmlFor: "password", children: [
-              /* @__PURE__ */ jsx38("u", { children: "P" }),
+          /* @__PURE__ */ jsxs20(FieldRow, { children: [
+            /* @__PURE__ */ jsxs20("label", { htmlFor: "password", children: [
+              /* @__PURE__ */ jsx37("u", { children: "P" }),
               "assword:"
             ] }),
-            /* @__PURE__ */ jsx38(
+            /* @__PURE__ */ jsx37(
               TextBox,
               {
                 id: "password",
@@ -1274,7 +1262,7 @@ function LoginForm({
               }
             )
           ] }),
-          /* @__PURE__ */ jsx38(FieldRow, { children: /* @__PURE__ */ jsx38(Checkbox, { id: "remember", name: "remember", label: "Remember me" }) })
+          /* @__PURE__ */ jsx37(FieldRow, { children: /* @__PURE__ */ jsx37(Checkbox, { id: "remember", name: "remember", label: "Remember me" }) })
         ]
       }
     )
@@ -1282,23 +1270,23 @@ function LoginForm({
 }
 
 // src/admin/views/SiteListView.tsx
-import { jsx as jsx39, jsxs as jsxs22 } from "react/jsx-runtime";
+import { jsx as jsx38, jsxs as jsxs21 } from "react/jsx-runtime";
 function SiteListView({
   sites,
   loading = false,
   createHref = "/admin/sites/new",
   editHref = (site) => `/admin/sites/${site.id}`
 }) {
-  return /* @__PURE__ */ jsxs22("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx39(
+  return /* @__PURE__ */ jsxs21("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx38(
       PageHeader,
       {
         title: "Sites",
         description: "Multi-tenant sites bound to one or more hostnames.",
-        actions: /* @__PURE__ */ jsx39("a", { href: createHref, children: /* @__PURE__ */ jsx39(Button, { children: "New site" }) })
+        actions: /* @__PURE__ */ jsx38("a", { href: createHref, children: /* @__PURE__ */ jsx38(Button, { children: "New site" }) })
       }
     ),
-    /* @__PURE__ */ jsx39(
+    /* @__PURE__ */ jsx38(
       DataTable,
       {
         loading,
@@ -1307,7 +1295,7 @@ function SiteListView({
         emptyMessage: "No sites yet. Create the first tenant.",
         columns: [
           { key: "name", header: "Name", render: (row) => row.name },
-          { key: "slug", header: "Slug", render: (row) => /* @__PURE__ */ jsx39("code", { children: row.slug }) },
+          { key: "slug", header: "Slug", render: (row) => /* @__PURE__ */ jsx38("code", { children: row.slug }) },
           {
             key: "hosts",
             header: "Hosts",
@@ -1316,12 +1304,12 @@ function SiteListView({
           {
             key: "status",
             header: "Status",
-            render: (row) => /* @__PURE__ */ jsx39(Badge, { tone: row.enabled ? "success" : "neutral", children: row.enabled ? "Enabled" : "Disabled" })
+            render: (row) => /* @__PURE__ */ jsx38(Badge, { tone: row.enabled ? "success" : "neutral", children: row.enabled ? "Enabled" : "Disabled" })
           },
           {
             key: "actions",
             header: "",
-            render: (row) => /* @__PURE__ */ jsx39("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
+            render: (row) => /* @__PURE__ */ jsx38("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
           }
         ]
       }
@@ -1330,7 +1318,7 @@ function SiteListView({
 }
 
 // src/admin/views/SiteHostListView.tsx
-import { jsx as jsx40, jsxs as jsxs23 } from "react/jsx-runtime";
+import { jsx as jsx39, jsxs as jsxs22 } from "react/jsx-runtime";
 var statusTone = {
   pending: "warning",
   verified: "accent",
@@ -1342,16 +1330,16 @@ function SiteHostListView({
   createHref = "/admin/hosts/new",
   verifyHref = (host) => `/admin/hosts/${host.id}/verify`
 }) {
-  return /* @__PURE__ */ jsxs23("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx40(
+  return /* @__PURE__ */ jsxs22("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx39(
       PageHeader,
       {
         title: "Hosts",
         description: "Domain names mapped to sites and surfaces (admin, site, api).",
-        actions: /* @__PURE__ */ jsx40("a", { href: createHref, children: /* @__PURE__ */ jsx40(Button, { children: "Add host" }) })
+        actions: /* @__PURE__ */ jsx39("a", { href: createHref, children: /* @__PURE__ */ jsx39(Button, { children: "Add host" }) })
       }
     ),
-    /* @__PURE__ */ jsx40(
+    /* @__PURE__ */ jsx39(
       DataTable,
       {
         loading,
@@ -1359,22 +1347,22 @@ function SiteHostListView({
         rowKey: (row) => row.id,
         emptyMessage: "No hosts configured.",
         columns: [
-          { key: "host", header: "Hostname", render: (row) => /* @__PURE__ */ jsx40("code", { children: row.host }) },
+          { key: "host", header: "Hostname", render: (row) => /* @__PURE__ */ jsx39("code", { children: row.host }) },
           { key: "site", header: "Site", render: (row) => row.siteName },
           {
             key: "surface",
             header: "Surface",
-            render: (row) => /* @__PURE__ */ jsx40(Badge, { tone: "accent", children: row.surface })
+            render: (row) => /* @__PURE__ */ jsx39(Badge, { tone: "accent", children: row.surface })
           },
           {
             key: "status",
             header: "Status",
-            render: (row) => /* @__PURE__ */ jsx40(Badge, { tone: statusTone[row.status], children: row.status })
+            render: (row) => /* @__PURE__ */ jsx39(Badge, { tone: statusTone[row.status], children: row.status })
           },
           {
             key: "actions",
             header: "",
-            render: (row) => row.status === "pending" ? /* @__PURE__ */ jsx40("a", { href: verifyHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Verify" }) : "\u2014"
+            render: (row) => row.status === "pending" ? /* @__PURE__ */ jsx39("a", { href: verifyHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Verify" }) : "\u2014"
           }
         ]
       }
@@ -1383,23 +1371,23 @@ function SiteHostListView({
 }
 
 // src/admin/views/UserListView.tsx
-import { jsx as jsx41, jsxs as jsxs24 } from "react/jsx-runtime";
+import { jsx as jsx40, jsxs as jsxs23 } from "react/jsx-runtime";
 function UserListView({
   users,
   loading = false,
   createHref = "/admin/users/new",
   editHref = (user) => `/admin/users/${user.id}`
 }) {
-  return /* @__PURE__ */ jsxs24("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx41(
+  return /* @__PURE__ */ jsxs23("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx40(
       PageHeader,
       {
         title: "Users",
         description: "Accounts with global roles and optional per-site assignments.",
-        actions: /* @__PURE__ */ jsx41("a", { href: createHref, children: /* @__PURE__ */ jsx41(Button, { children: "New user" }) })
+        actions: /* @__PURE__ */ jsx40("a", { href: createHref, children: /* @__PURE__ */ jsx40(Button, { children: "New user" }) })
       }
     ),
-    /* @__PURE__ */ jsx41(
+    /* @__PURE__ */ jsx40(
       DataTable,
       {
         loading,
@@ -1411,7 +1399,49 @@ function UserListView({
           {
             key: "roles",
             header: "Roles",
-            render: (row) => /* @__PURE__ */ jsx41("div", { className: "flex flex-wrap gap-1", children: row.roles.map((role) => /* @__PURE__ */ jsx41(Badge, { children: role }, role)) })
+            render: (row) => /* @__PURE__ */ jsx40("div", { className: "flex flex-wrap gap-1", children: row.roles.map((role) => /* @__PURE__ */ jsx40(Badge, { children: role }, role)) })
+          },
+          {
+            key: "actions",
+            header: "",
+            render: (row) => /* @__PURE__ */ jsx40("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
+          }
+        ]
+      }
+    )
+  ] });
+}
+
+// src/admin/views/RoleListView.tsx
+import { jsx as jsx41, jsxs as jsxs24 } from "react/jsx-runtime";
+function RoleListView({
+  roles,
+  loading = false,
+  createHref = "/admin/roles/new",
+  editHref = (role) => `/admin/roles/${role.id}`
+}) {
+  return /* @__PURE__ */ jsxs24("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx41(
+      PageHeader,
+      {
+        title: "Roles & permissions",
+        description: "RBAC roles with permission strings such as site.list.",
+        actions: /* @__PURE__ */ jsx41("a", { href: createHref, children: /* @__PURE__ */ jsx41(Button, { children: "New role" }) })
+      }
+    ),
+    /* @__PURE__ */ jsx41(
+      DataTable,
+      {
+        loading,
+        rows: roles,
+        rowKey: (row) => row.id,
+        emptyMessage: "No roles defined.",
+        columns: [
+          { key: "name", header: "Role", render: (row) => row.name },
+          {
+            key: "permissions",
+            header: "Permissions",
+            render: (row) => /* @__PURE__ */ jsx41("div", { className: "flex flex-wrap gap-1", children: row.permissions.map((permission) => /* @__PURE__ */ jsx41(Badge, { tone: "accent", children: permission }, permission)) })
           },
           {
             key: "actions",
@@ -1424,50 +1454,8 @@ function UserListView({
   ] });
 }
 
-// src/admin/views/RoleListView.tsx
-import { jsx as jsx42, jsxs as jsxs25 } from "react/jsx-runtime";
-function RoleListView({
-  roles,
-  loading = false,
-  createHref = "/admin/roles/new",
-  editHref = (role) => `/admin/roles/${role.id}`
-}) {
-  return /* @__PURE__ */ jsxs25("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx42(
-      PageHeader,
-      {
-        title: "Roles & permissions",
-        description: "RBAC roles with permission strings such as site.list.",
-        actions: /* @__PURE__ */ jsx42("a", { href: createHref, children: /* @__PURE__ */ jsx42(Button, { children: "New role" }) })
-      }
-    ),
-    /* @__PURE__ */ jsx42(
-      DataTable,
-      {
-        loading,
-        rows: roles,
-        rowKey: (row) => row.id,
-        emptyMessage: "No roles defined.",
-        columns: [
-          { key: "name", header: "Role", render: (row) => row.name },
-          {
-            key: "permissions",
-            header: "Permissions",
-            render: (row) => /* @__PURE__ */ jsx42("div", { className: "flex flex-wrap gap-1", children: row.permissions.map((permission) => /* @__PURE__ */ jsx42(Badge, { tone: "accent", children: permission }, permission)) })
-          },
-          {
-            key: "actions",
-            header: "",
-            render: (row) => /* @__PURE__ */ jsx42("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
-          }
-        ]
-      }
-    )
-  ] });
-}
-
 // src/admin/pages/LoginPage.tsx
-import { jsx as jsx43 } from "react/jsx-runtime";
+import { jsx as jsx42 } from "react/jsx-runtime";
 function LoginPage({
   action,
   csrfToken,
@@ -1475,7 +1463,7 @@ function LoginPage({
   emailDefault,
   error
 }) {
-  return /* @__PURE__ */ jsx43(
+  return /* @__PURE__ */ jsx42(
     LoginForm,
     {
       action,
@@ -1488,7 +1476,7 @@ function LoginPage({
 }
 
 // src/admin/pages/AdminDashboard.tsx
-import { jsx as jsx44, jsxs as jsxs26 } from "react/jsx-runtime";
+import { jsx as jsx43, jsxs as jsxs25 } from "react/jsx-runtime";
 function AdminDashboard({
   userLabel,
   navItems,
@@ -1496,21 +1484,21 @@ function AdminDashboard({
   hostCount = 0,
   flashes
 }) {
-  return /* @__PURE__ */ jsxs26(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Dashboard", children: [
-    /* @__PURE__ */ jsx44(FlashList, { flashes }),
-    /* @__PURE__ */ jsx44(
+  return /* @__PURE__ */ jsxs25(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Dashboard", children: [
+    /* @__PURE__ */ jsx43(FlashList, { flashes }),
+    /* @__PURE__ */ jsx43(
       PageHeader,
       {
         title: "Dashboard",
         description: "Multi-tenant control panel powered by @webhemi/ui."
       }
     ),
-    /* @__PURE__ */ jsxs26("div", { style: { display: "flex", gap: "1.5rem", flexWrap: "wrap" }, children: [
-      /* @__PURE__ */ jsxs26(Alert, { tone: "info", title: "Sites", children: [
+    /* @__PURE__ */ jsxs25("div", { style: { display: "flex", gap: "1.5rem", flexWrap: "wrap" }, children: [
+      /* @__PURE__ */ jsxs25(Alert, { tone: "info", title: "Sites", children: [
         siteCount,
         " configured"
       ] }),
-      /* @__PURE__ */ jsxs26(Alert, { tone: "info", title: "Hosts", children: [
+      /* @__PURE__ */ jsxs25(Alert, { tone: "info", title: "Hosts", children: [
         hostCount,
         " configured"
       ] })
@@ -1519,7 +1507,7 @@ function AdminDashboard({
 }
 
 // src/admin/pages/SitesPage.tsx
-import { jsx as jsx45, jsxs as jsxs27 } from "react/jsx-runtime";
+import { jsx as jsx44, jsxs as jsxs26 } from "react/jsx-runtime";
 function SitesPage({
   userLabel,
   navItems,
@@ -1528,19 +1516,19 @@ function SitesPage({
   createAction,
   flashes
 }) {
-  return /* @__PURE__ */ jsxs27(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Sites", children: [
-    /* @__PURE__ */ jsx45(FlashList, { flashes }),
-    /* @__PURE__ */ jsx45(SiteListView, { sites: sites || [], createHref: "#create-site" }),
-    canEdit ? /* @__PURE__ */ jsxs27("form", { id: "create-site", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
-      /* @__PURE__ */ jsx45(FormField, { label: "Name", htmlFor: "name", required: true, children: /* @__PURE__ */ jsx45(Input, { id: "name", name: "name", required: true }) }),
-      /* @__PURE__ */ jsx45(FormField, { label: "Slug", htmlFor: "slug", required: true, hint: "Lowercase identifier", children: /* @__PURE__ */ jsx45(Input, { id: "slug", name: "slug", required: true }) }),
-      /* @__PURE__ */ jsx45(Button, { type: "submit", children: "Create site" })
+  return /* @__PURE__ */ jsxs26(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Sites", children: [
+    /* @__PURE__ */ jsx44(FlashList, { flashes }),
+    /* @__PURE__ */ jsx44(SiteListView, { sites: sites || [], createHref: "#create-site" }),
+    canEdit ? /* @__PURE__ */ jsxs26("form", { id: "create-site", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
+      /* @__PURE__ */ jsx44(FormField, { label: "Name", htmlFor: "name", required: true, children: /* @__PURE__ */ jsx44(Input, { id: "name", name: "name", required: true }) }),
+      /* @__PURE__ */ jsx44(FormField, { label: "Slug", htmlFor: "slug", required: true, hint: "Lowercase identifier", children: /* @__PURE__ */ jsx44(Input, { id: "slug", name: "slug", required: true }) }),
+      /* @__PURE__ */ jsx44(Button, { type: "submit", children: "Create site" })
     ] }) : null
   ] });
 }
 
 // src/admin/pages/HostsPage.tsx
-import { jsx as jsx46, jsxs as jsxs28 } from "react/jsx-runtime";
+import { jsx as jsx45, jsxs as jsxs27 } from "react/jsx-runtime";
 function HostsPage({
   userLabel,
   navItems,
@@ -1550,34 +1538,34 @@ function HostsPage({
   createAction,
   flashes
 }) {
-  return /* @__PURE__ */ jsxs28(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Hosts", children: [
-    /* @__PURE__ */ jsx46(FlashList, { flashes }),
-    /* @__PURE__ */ jsx46(SiteHostListView, { hosts: hosts || [], createHref: "#create-host" }),
-    canEdit ? /* @__PURE__ */ jsxs28("form", { id: "create-host", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
-      /* @__PURE__ */ jsx46(FormField, { label: "Hostname", htmlFor: "host", required: true, children: /* @__PURE__ */ jsx46(Input, { id: "host", name: "host", placeholder: "www.example.com", required: true }) }),
-      /* @__PURE__ */ jsx46(FormField, { label: "Site", htmlFor: "site_id", required: true, children: /* @__PURE__ */ jsx46(Select, { id: "site_id", name: "site_id", required: true, children: (sites || []).map((site) => /* @__PURE__ */ jsx46("option", { value: site.id, children: site.name }, site.id)) }) }),
-      /* @__PURE__ */ jsx46(FormField, { label: "Surface", htmlFor: "surface", children: /* @__PURE__ */ jsxs28(Select, { id: "surface", name: "surface", defaultValue: "site", children: [
-        /* @__PURE__ */ jsx46("option", { value: "admin", children: "admin" }),
-        /* @__PURE__ */ jsx46("option", { value: "site", children: "site" }),
-        /* @__PURE__ */ jsx46("option", { value: "api", children: "api" })
+  return /* @__PURE__ */ jsxs27(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Hosts", children: [
+    /* @__PURE__ */ jsx45(FlashList, { flashes }),
+    /* @__PURE__ */ jsx45(SiteHostListView, { hosts: hosts || [], createHref: "#create-host" }),
+    canEdit ? /* @__PURE__ */ jsxs27("form", { id: "create-host", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
+      /* @__PURE__ */ jsx45(FormField, { label: "Hostname", htmlFor: "host", required: true, children: /* @__PURE__ */ jsx45(Input, { id: "host", name: "host", placeholder: "www.example.com", required: true }) }),
+      /* @__PURE__ */ jsx45(FormField, { label: "Site", htmlFor: "site_id", required: true, children: /* @__PURE__ */ jsx45(Select, { id: "site_id", name: "site_id", required: true, children: (sites || []).map((site) => /* @__PURE__ */ jsx45("option", { value: site.id, children: site.name }, site.id)) }) }),
+      /* @__PURE__ */ jsx45(FormField, { label: "Surface", htmlFor: "surface", children: /* @__PURE__ */ jsxs27(Select, { id: "surface", name: "surface", defaultValue: "site", children: [
+        /* @__PURE__ */ jsx45("option", { value: "admin", children: "admin" }),
+        /* @__PURE__ */ jsx45("option", { value: "site", children: "site" }),
+        /* @__PURE__ */ jsx45("option", { value: "api", children: "api" })
       ] }) }),
-      /* @__PURE__ */ jsx46(Button, { type: "submit", children: "Add host" })
+      /* @__PURE__ */ jsx45(Button, { type: "submit", children: "Add host" })
     ] }) : null
   ] });
 }
 
 // src/themes/default/components/SiteHeader/SiteHeader.tsx
-import { jsx as jsx47, jsxs as jsxs29 } from "react/jsx-runtime";
+import { jsx as jsx46, jsxs as jsxs28 } from "react/jsx-runtime";
 function SiteHeader({ siteName, navItems = [], actions, className }) {
-  return /* @__PURE__ */ jsx47(
+  return /* @__PURE__ */ jsx46(
     "header",
     {
       className: cn(
         "wh-ui border-b border-[var(--wh-color-line)] bg-[var(--wh-color-surface)]",
         className
       ),
-      children: /* @__PURE__ */ jsxs29("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
-        /* @__PURE__ */ jsx47(
+      children: /* @__PURE__ */ jsxs28("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
+        /* @__PURE__ */ jsx46(
           "a",
           {
             href: "/",
@@ -1585,7 +1573,7 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
             children: siteName
           }
         ),
-        /* @__PURE__ */ jsx47("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx47(
+        /* @__PURE__ */ jsx46("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx46(
           "a",
           {
             href: item.href,
@@ -1597,16 +1585,16 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
           },
           item.href
         )) }),
-        actions ? /* @__PURE__ */ jsx47("div", { className: "flex items-center gap-2", children: actions }) : null
+        actions ? /* @__PURE__ */ jsx46("div", { className: "flex items-center gap-2", children: actions }) : null
       ] })
     }
   );
 }
 
 // src/themes/default/components/Hero/Hero.tsx
-import { jsx as jsx48, jsxs as jsxs30 } from "react/jsx-runtime";
+import { jsx as jsx47, jsxs as jsxs29 } from "react/jsx-runtime";
 function Hero({ title, subtitle, actions, className }) {
-  return /* @__PURE__ */ jsxs30(
+  return /* @__PURE__ */ jsxs29(
     "section",
     {
       className: cn(
@@ -1614,7 +1602,7 @@ function Hero({ title, subtitle, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsx48(
+        /* @__PURE__ */ jsx47(
           "div",
           {
             className: "pointer-events-none absolute inset-0 opacity-40",
@@ -1624,10 +1612,10 @@ function Hero({ title, subtitle, actions, className }) {
             "aria-hidden": true
           }
         ),
-        /* @__PURE__ */ jsxs30("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
-          /* @__PURE__ */ jsx48("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
-          subtitle ? /* @__PURE__ */ jsx48("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
-          actions ? /* @__PURE__ */ jsx48("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
+        /* @__PURE__ */ jsxs29("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
+          /* @__PURE__ */ jsx47("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
+          subtitle ? /* @__PURE__ */ jsx47("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
+          actions ? /* @__PURE__ */ jsx47("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
         ] })
       ]
     }
@@ -1641,7 +1629,6 @@ export {
   Button2 as Button,
   Checkbox,
   DataTable,
-  DesktopIcon,
   DialogWindow,
   FieldBorder,
   FieldColumn,
@@ -1649,7 +1636,6 @@ export {
   FlashList,
   FormField,
   GroupBox,
-  HeadingPanelWindow,
   Hero,
   HostsPage,
   Icon,
@@ -1665,7 +1651,7 @@ export {
   Progress,
   Radio,
   RoleListView,
-  ScrollableRegion,
+  Scrollable,
   Select2 as Select,
   Sidebar,
   SiteHeader,
@@ -1676,6 +1662,7 @@ export {
   StatusBar,
   StatusBarField,
   SunkenPanel,
+  SystemIcon,
   TITLE_BAR_ICON_OPTIONS,
   Tab,
   TabList,
