@@ -11,8 +11,8 @@
  *
  * The "importmap:require" command can be used to add new entries to this file.
  *
- * Local design system: run `bin/sync-ui.sh` to copy ../webhemi-ui/dist into
- * assets/webhemi-ui (zero Node at runtime).
+ * Local design system: run `bin/sync-ui.sh` after building webhemi-ui.
+ * Copies package JS → assets/webhemi-ui/, Admin CSS + graphics → assets/admin/.
  */
 return [
     'app' => [

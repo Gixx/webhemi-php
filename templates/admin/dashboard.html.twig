@@ -1,13 +1,9 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Dashboard — WebHemi{% endblock %}
+{% block title %}WebHemi{% endblock %}
 
 {% block body %}
-<div {{ react_component('AdminDashboard', {
-    userLabel: userLabel,
-    navItems: navItems,
-    siteCount: siteCount,
-    hostCount: hostCount,
-    flashes: app.flashes
+<div {{ react_component('AdminDesktop', {
+    sites: sites
 }) }}></div>
 {% endblock %}

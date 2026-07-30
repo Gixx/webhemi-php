@@ -36,7 +36,7 @@ symfony server:start   # or php -S 127.0.0.1:8000 -t public
 
 Default seed:
 
-- Admin: `admin@webhemi.local` / `ChangeMe!`
+- Admin: `admin@webhemi.local` / `admin`
 - Hosts: `admin.webhemi.local` (admin), `www.webhemi.local` (site)
 
 Map those hosts to `127.0.0.1` in `/etc/hosts` (or Windows hosts file) for multi-domain smoke tests.

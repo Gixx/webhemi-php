@@ -43,7 +43,7 @@ final class SeedCommand extends Command
     {
         $this
             ->addOption('admin-email', null, InputOption::VALUE_REQUIRED, 'Admin email', 'admin@webhemi.local')
-            ->addOption('admin-password', null, InputOption::VALUE_REQUIRED, 'Admin password', 'ChangeMe!')
+            ->addOption('admin-password', null, InputOption::VALUE_REQUIRED, 'Admin password', 'admin')
             ->addOption('admin-host', null, InputOption::VALUE_REQUIRED, 'Admin hostname', 'admin.webhemi.local')
             ->addOption('site-host', null, InputOption::VALUE_REQUIRED, 'Site hostname', 'www.webhemi.local');
     }

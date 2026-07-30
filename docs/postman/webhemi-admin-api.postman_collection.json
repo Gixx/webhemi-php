@@ -7,7 +7,7 @@
   "variable": [
     { "key": "baseUrl", "value": "http://admin.webhemi.local" },
     { "key": "email", "value": "admin@webhemi.local" },
-    { "key": "password", "value": "ChangeMe!" }
+    { "key": "password", "value": "admin" }
   ],
   "item": [
     {

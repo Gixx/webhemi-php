@@ -11,12 +11,25 @@ composer run sync-ui
 # or: WEBHEMI_UI_DIST=/absolute/path/to/webhemi-ui/dist bash bin/sync-ui.sh
 ```
 
-This copies:
+## What sync copies
 
-- `dist/index.js` → `assets/webhemi-ui/index.js`
-- `dist/index.css` → `assets/webhemi-ui/index.css`
+| Source | Destination | Role |
+|--------|-------------|------|
+| `webhemi-ui/dist/index.js` | `assets/webhemi-ui/index.js` | Shared React package (`@webhemi/ui`) |
+| `webhemi-ui/dist/index.css` | `assets/admin/index.css` | Admin Theme stylesheet |
+| `webhemi-ui/src/admin/assets/**` | `assets/admin/**` | Admin graphics (stable names: `system/`, `icons/`, `fonts/`, `logo/`, `chrome/`) |
 
-`importmap.php` maps `@webhemi/ui` to that local path. React controllers under `assets/react/controllers/` import named exports from `@webhemi/ui`.
+Frontend themes later sync under `assets/themes/<theme-id>/` (installable / removable per site).
+
+Graphics are **never** base64-inlined into CSS/JS.
+
+| Environment | How graphics resolve |
+|-------------|----------------------|
+| Storybook | Absolute `/assets/admin/...` via `staticDirs` |
+| PHP CSS | Built `index.css` uses **relative** `url(./…)` so AssetMapper digests them |
+| PHP React (`<img>`) | Pass Twig `asset('admin/…')` as a prop (e.g. login `bannerUrl`) |
+
+`importmap.php` maps `@webhemi/ui` to `assets/webhemi-ui/index.js`. React controllers under `assets/react/controllers/` import named exports from `@webhemi/ui`. Twig loads Admin CSS via `asset('admin/index.css')`.
 
 ## npm link (optional JS tooling)
 
