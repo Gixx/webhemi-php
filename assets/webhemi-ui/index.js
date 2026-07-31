@@ -978,132 +978,8 @@ function Progress({ value = 0, segmented = false, className, ...rest }) {
   return /* @__PURE__ */ jsx27("div", { className: cn("progress-indicator", segmented && "segmented", className), ...rest, children: /* @__PURE__ */ jsx27("span", { className: "progress-indicator-bar", style: { width: `${clamped}%` } }) });
 }
 
-// src/admin/bricks/_lib/PaneWindowShell.tsx
-import { jsx as jsx28, jsxs as jsxs9 } from "react/jsx-runtime";
-var TITLE_BAR_ICON_OPTIONS = [
-  "none",
-  "control-panel",
-  "site",
-  "network-neighborhood",
-  "users",
-  "roles",
-  "permissions",
-  "hosts",
-  "sites",
-  "settings",
-  "themes"
-];
-function resolveTitleBarIcon(value) {
-  return value && value !== "none" ? value : void 0;
-}
-function PaneWindowShell({
-  title,
-  titleIcon,
-  titleBarControls,
-  inactive = false,
-  statusBar,
-  children,
-  resizable = false,
-  className,
-  bodyClassName,
-  width,
-  style,
-  ...rest
-}) {
-  const mergedStyle = width !== void 0 ? { ...style, width } : style;
-  const controls = titleBarControls === null ? null : titleBarControls ?? /* @__PURE__ */ jsx28(TitleBarControls, { children: /* @__PURE__ */ jsx28(TitleBarControl, { action: "Close" }) });
-  return /* @__PURE__ */ jsxs9(Window, { className: cn(resizable && "resizable", className), style: mergedStyle, ...rest, children: [
-    /* @__PURE__ */ jsxs9(TitleBar, { inactive, children: [
-      /* @__PURE__ */ jsx28(TitleBarText, { className: titleIcon, children: title }),
-      controls
-    ] }),
-    /* @__PURE__ */ jsx28(WindowBody, { className: bodyClassName, children }),
-    statusBar
-  ] });
-}
-
-// src/admin/bricks/DialogWindow/DialogWindow.tsx
-import { Fragment as Fragment3, jsx as jsx29, jsxs as jsxs10 } from "react/jsx-runtime";
-function DialogWindow({
-  banner,
-  type = "none",
-  children,
-  actions,
-  className,
-  ...shell
-}) {
-  const typed = type !== "none";
-  return /* @__PURE__ */ jsx29(PaneWindowShell, { className: cn("w-window-sm", className), ...shell, children: /* @__PURE__ */ jsxs10("div", { className: "window-pane dialog-panel-layout", children: [
-    banner ? /* @__PURE__ */ jsx29("div", { className: "panel banner", children: banner }) : null,
-    /* @__PURE__ */ jsx29("div", { className: cn("panel", typed && "dialog-typed"), children: typed ? /* @__PURE__ */ jsxs10(Fragment3, { children: [
-      /* @__PURE__ */ jsx29("span", { className: cn("dialog-icon", `dialog-icon--${type}`), "aria-hidden": true }),
-      /* @__PURE__ */ jsx29("div", { className: "dialog-body", children })
-    ] }) : children }),
-    actions ? /* @__PURE__ */ jsx29("div", { className: "panel actions", children: actions }) : null
-  ] }) });
-}
-
-// src/admin/bricks/IconPanelWindow/IconPanelWindow.tsx
-import { jsx as jsx30, jsxs as jsxs11 } from "react/jsx-runtime";
-function IconPanelWindow({
-  info,
-  infoUnselected = false,
-  children,
-  className,
-  paneHeight = 280,
-  resizable = true,
-  ...shell
-}) {
-  const paneStyle = {
-    height: typeof paneHeight === "number" ? `${paneHeight}px` : paneHeight
-  };
-  return /* @__PURE__ */ jsx30(
-    PaneWindowShell,
-    {
-      className: cn("w-window-xl", className),
-      resizable,
-      ...shell,
-      children: /* @__PURE__ */ jsxs11(FieldBorder, { scrollable: true, className: "window-pane icon-panel-layout", style: paneStyle, children: [
-        /* @__PURE__ */ jsx30("div", { className: cn("panel info", infoUnselected && "unselected"), children: info }),
-        /* @__PURE__ */ jsx30("div", { className: "panel icon-list", children })
-      ] })
-    }
-  );
-}
-
-// src/admin/bricks/IconPanelWindow/IconPanelSelectionInfo.tsx
-import { Fragment as Fragment4, jsx as jsx31, jsxs as jsxs12 } from "react/jsx-runtime";
-function IconPanelSelectionInfo({
-  kind,
-  label,
-  description
-}) {
-  return /* @__PURE__ */ jsxs12(Fragment4, { children: [
-    /* @__PURE__ */ jsx31("span", { className: cn("info-icon", kind), "aria-hidden": true }),
-    /* @__PURE__ */ jsx31("h1", { className: "info-title", children: label }),
-    /* @__PURE__ */ jsx31("hr", { className: "info-separator" }),
-    /* @__PURE__ */ jsx31("p", { className: "info-description", children: description })
-  ] });
-}
-
-// src/admin/bricks/WizardWindow/WizardWindow.tsx
-import { jsx as jsx32, jsxs as jsxs13 } from "react/jsx-runtime";
-function WizardWindow({
-  banner,
-  info,
-  actions,
-  className,
-  ...shell
-}) {
-  return /* @__PURE__ */ jsx32(PaneWindowShell, { className: cn("w-window-md", className), ...shell, children: /* @__PURE__ */ jsxs13("div", { className: "window-pane wizard-panel-layout", children: [
-    /* @__PURE__ */ jsx32("div", { className: "panel banner", children: banner }),
-    /* @__PURE__ */ jsx32("div", { className: "panel info", children: info }),
-    /* @__PURE__ */ jsx32("div", { className: "panel actions", children: actions })
-  ] }) });
-}
-
-// src/admin/bricks/SystemIcon/SystemIcon.tsx
-import { jsx as jsx33 } from "react/jsx-runtime";
+// src/admin/chrome/SystemIcon/SystemIcon.tsx
+import { jsx as jsx28 } from "react/jsx-runtime";
 function SystemIcon({
   kind,
   label,
@@ -1136,25 +1012,149 @@ function SystemIcon({
     onActivate?.();
     onOpen?.();
   };
-  return /* @__PURE__ */ jsx33(
+  return /* @__PURE__ */ jsx28(
     "div",
     {
       className: cn("icon", kind, `label-tone-${labelTone}`, className),
       draggable,
       onDoubleClick: handleDoubleClick,
       ...rest,
-      children: /* @__PURE__ */ jsx33(
+      children: /* @__PURE__ */ jsx28(
         "a",
         {
           href,
           "data-description": description,
           ...linkProps,
           onClick: handleClick,
-          children: /* @__PURE__ */ jsx33("span", { children: label })
+          children: /* @__PURE__ */ jsx28("span", { children: label })
         }
       )
     }
   );
+}
+
+// src/admin/bricks/_lib/PaneWindowShell.tsx
+import { jsx as jsx29, jsxs as jsxs9 } from "react/jsx-runtime";
+var TITLE_BAR_ICON_OPTIONS = [
+  "none",
+  "control-panel",
+  "site",
+  "network-neighborhood",
+  "users",
+  "roles",
+  "permissions",
+  "hosts",
+  "sites",
+  "settings",
+  "themes"
+];
+function resolveTitleBarIcon(value) {
+  return value && value !== "none" ? value : void 0;
+}
+function PaneWindowShell({
+  title,
+  titleIcon,
+  titleBarControls,
+  inactive = false,
+  statusBar,
+  children,
+  resizable = false,
+  className,
+  bodyClassName,
+  width,
+  style,
+  ...rest
+}) {
+  const mergedStyle = width !== void 0 ? { ...style, width } : style;
+  const controls = titleBarControls === null ? null : titleBarControls ?? /* @__PURE__ */ jsx29(TitleBarControls, { children: /* @__PURE__ */ jsx29(TitleBarControl, { action: "Close" }) });
+  return /* @__PURE__ */ jsxs9(Window, { className: cn(resizable && "resizable", className), style: mergedStyle, ...rest, children: [
+    /* @__PURE__ */ jsxs9(TitleBar, { inactive, children: [
+      /* @__PURE__ */ jsx29(TitleBarText, { className: titleIcon, children: title }),
+      controls
+    ] }),
+    /* @__PURE__ */ jsx29(WindowBody, { className: bodyClassName, children }),
+    statusBar
+  ] });
+}
+
+// src/admin/bricks/DialogWindow/DialogWindow.tsx
+import { Fragment as Fragment3, jsx as jsx30, jsxs as jsxs10 } from "react/jsx-runtime";
+function DialogWindow({
+  banner,
+  type = "none",
+  children,
+  actions,
+  className,
+  ...shell
+}) {
+  const typed = type !== "none";
+  return /* @__PURE__ */ jsx30(PaneWindowShell, { className: cn("w-window-sm", className), ...shell, children: /* @__PURE__ */ jsxs10("div", { className: "window-pane dialog-panel-layout", children: [
+    banner ? /* @__PURE__ */ jsx30("div", { className: "panel banner", children: banner }) : null,
+    /* @__PURE__ */ jsx30("div", { className: cn("panel", typed && "dialog-typed"), children: typed ? /* @__PURE__ */ jsxs10(Fragment3, { children: [
+      /* @__PURE__ */ jsx30("span", { className: cn("dialog-icon", `dialog-icon--${type}`), "aria-hidden": true }),
+      /* @__PURE__ */ jsx30("div", { className: "dialog-body", children })
+    ] }) : children }),
+    actions ? /* @__PURE__ */ jsx30("div", { className: "panel actions", children: actions }) : null
+  ] }) });
+}
+
+// src/admin/bricks/IconPanelWindow/IconPanelWindow.tsx
+import { jsx as jsx31, jsxs as jsxs11 } from "react/jsx-runtime";
+function IconPanelWindow({
+  info,
+  infoUnselected = false,
+  children,
+  className,
+  paneHeight = 280,
+  resizable = true,
+  ...shell
+}) {
+  const paneStyle = {
+    height: typeof paneHeight === "number" ? `${paneHeight}px` : paneHeight
+  };
+  return /* @__PURE__ */ jsx31(
+    PaneWindowShell,
+    {
+      className: cn("w-window-xl", className),
+      resizable,
+      ...shell,
+      children: /* @__PURE__ */ jsxs11(FieldBorder, { scrollable: true, className: "window-pane icon-panel-layout", style: paneStyle, children: [
+        /* @__PURE__ */ jsx31("div", { className: cn("panel info", infoUnselected && "unselected"), children: info }),
+        /* @__PURE__ */ jsx31("div", { className: "panel icon-list", children })
+      ] })
+    }
+  );
+}
+
+// src/admin/bricks/IconPanelWindow/IconPanelSelectionInfo.tsx
+import { Fragment as Fragment4, jsx as jsx32, jsxs as jsxs12 } from "react/jsx-runtime";
+function IconPanelSelectionInfo({
+  kind,
+  label,
+  description
+}) {
+  return /* @__PURE__ */ jsxs12(Fragment4, { children: [
+    /* @__PURE__ */ jsx32("span", { className: cn("info-icon", kind), "aria-hidden": true }),
+    /* @__PURE__ */ jsx32("h1", { className: "info-title", children: label }),
+    /* @__PURE__ */ jsx32("hr", { className: "info-separator" }),
+    /* @__PURE__ */ jsx32("p", { className: "info-description", children: description })
+  ] });
+}
+
+// src/admin/bricks/WizardWindow/WizardWindow.tsx
+import { jsx as jsx33, jsxs as jsxs13 } from "react/jsx-runtime";
+function WizardWindow({
+  banner,
+  info,
+  actions,
+  className,
+  ...shell
+}) {
+  return /* @__PURE__ */ jsx33(PaneWindowShell, { className: cn("w-window-md", className), ...shell, children: /* @__PURE__ */ jsxs13("div", { className: "window-pane wizard-panel-layout", children: [
+    /* @__PURE__ */ jsx33("div", { className: "panel banner", children: banner }),
+    /* @__PURE__ */ jsx33("div", { className: "panel info", children: info }),
+    /* @__PURE__ */ jsx33("div", { className: "panel actions", children: actions })
+  ] }) });
 }
 
 // src/admin/lib/assetPaths.ts

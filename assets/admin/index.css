@@ -2142,6 +2142,92 @@ html[data-wh-theme=admin] {
   background-size: 18px 100%;
 }
 [data-wh-theme=admin] {
+  /* Chrome: desktop / icon-panel system icon (glyph + label). */
+}
+[data-wh-theme=admin] .icon {
+  width: 90px;
+  height: 90px;
+  z-index: 0;
+  background-position: top center;
+  background-repeat: no-repeat;
+  background-size: 48px;
+  font-family: var(--font-chrome);
+  font-size: var(--font-size-chrome);
+}
+[data-wh-theme=admin] .icon > a {
+  display: block;
+  text-align: center;
+  width: 90px;
+  padding-top: 50px;
+  height: 90px;
+  text-decoration: none;
+  font-family: inherit;
+}
+[data-wh-theme=admin] .icon.label-tone-light > a {
+  color: #ffffff;
+}
+[data-wh-theme=admin] .icon.label-tone-dark > a {
+  color: #000000;
+}
+[data-wh-theme=admin] .icon > a > span {
+  display: inline-block;
+  width: 88px;
+  max-height: 38px;
+  line-height: 15px;
+  font-family: inherit;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-wh-theme=admin] .icon > a:focus {
+  outline: none !important;
+}
+[data-wh-theme=admin] .icon > a:focus > span {
+  outline: 1px dotted #880000;
+  background-color: #000080;
+  color: #ffffff;
+}
+[data-wh-theme=admin] .icon.control-panel,
+[data-wh-theme=admin] .panel.info > .info-icon.control-panel {
+  background-image: url("./icons/control_panel.svg");
+}
+[data-wh-theme=admin] .icon.site,
+[data-wh-theme=admin] .panel.info > .info-icon.site {
+  background-image: url("./icons/site.svg");
+}
+[data-wh-theme=admin] .icon.network-neighborhood,
+[data-wh-theme=admin] .panel.info > .info-icon.network-neighborhood {
+  background-image: url("./icons/network_neighborhood.svg");
+}
+[data-wh-theme=admin] .icon.users,
+[data-wh-theme=admin] .panel.info > .info-icon.users {
+  background-image: url("./icons/users.svg");
+}
+[data-wh-theme=admin] .icon.roles,
+[data-wh-theme=admin] .panel.info > .info-icon.roles {
+  background-image: url("./icons/roles.svg");
+}
+[data-wh-theme=admin] .icon.permissions,
+[data-wh-theme=admin] .panel.info > .info-icon.permissions {
+  background-image: url("./icons/permissions.svg");
+}
+[data-wh-theme=admin] .icon.hosts,
+[data-wh-theme=admin] .panel.info > .info-icon.hosts {
+  background-image: url("./icons/hosts.svg");
+}
+[data-wh-theme=admin] .icon.sites,
+[data-wh-theme=admin] .panel.info > .info-icon.sites {
+  background-image: url("./icons/sites.svg");
+}
+[data-wh-theme=admin] .icon.settings,
+[data-wh-theme=admin] .panel.info > .info-icon.settings {
+  background-image: url("./icons/settings.svg");
+}
+[data-wh-theme=admin] .icon.themes,
+[data-wh-theme=admin] .panel.info > .info-icon.themes {
+  background-image: url("./icons/themes.svg");
+}
+[data-wh-theme=admin] {
   /* Product bricks (shell + layouts; CSS only in Phase 1) */
   /* Product: document shell under Admin Theme (no body.dashboard contract).
    * Loaded via meta.load-css inside [data-wh-theme="admin"].
@@ -2191,7 +2277,7 @@ html[data-wh-theme=admin] {
   outline: none;
 }
 [data-wh-theme=admin] {
-  /* Product: desktop icons + floating windows (Phase 4; WM in Phase 5). */
+  /* Product: desktop shell surface (Phase 4; WM in Phase 5). Icon chrome: chrome/_icon.scss */
 }
 [data-wh-theme=admin] .dashboard {
   position: relative;
@@ -2209,101 +2295,11 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .dashboard > .desktop-window {
   position: absolute;
 }
-[data-wh-theme=admin] .icon {
-  width: 90px;
-  height: 90px;
-  z-index: 0;
-  background-position: top center;
-  background-repeat: no-repeat;
-  background-size: 48px;
-  font-family: var(--font-chrome);
-  font-size: var(--font-size-chrome);
-}
 [data-wh-theme=admin] .dashboard [draggable=true] {
   touch-action: none;
 }
 [data-wh-theme=admin] .dashboard [draggable=true].is-dragging {
   cursor: move;
-}
-[data-wh-theme=admin] .icon > a {
-  display: block;
-  text-align: center;
-  width: 90px;
-  padding-top: 50px;
-  height: 90px;
-  text-decoration: none;
-  font-family: inherit;
-}
-[data-wh-theme=admin] .icon.label-tone-light > a {
-  color: #ffffff;
-}
-[data-wh-theme=admin] .icon.label-tone-dark > a {
-  color: #000000;
-}
-[data-wh-theme=admin] .icon > a > span {
-  display: inline-block;
-  width: 88px;
-  max-height: 38px;
-  line-height: 15px;
-  font-family: inherit;
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-[data-wh-theme=admin] .icon > a:focus {
-  outline: none !important;
-}
-[data-wh-theme=admin] .icon > a:focus > span {
-  outline: 1px dotted #880000;
-  background-color: #000080;
-  color: #ffffff;
-}
-[data-wh-theme=admin] {
-  /*.panel.icon-list .icon > a:focus > span {*/
-  /*  outline: 1px dotted #880000;*/
-  /*  background-color: #000080;*/
-  /*  color: #ffffff;*/
-  /*}*/
-}
-[data-wh-theme=admin] .icon.control-panel,
-[data-wh-theme=admin] .panel.info > .info-icon.control-panel {
-  background-image: url("./icons/control_panel.svg");
-}
-[data-wh-theme=admin] .icon.site,
-[data-wh-theme=admin] .panel.info > .info-icon.site {
-  background-image: url("./icons/site.svg");
-}
-[data-wh-theme=admin] .icon.network-neighborhood,
-[data-wh-theme=admin] .panel.info > .info-icon.network-neighborhood {
-  background-image: url("./icons/network_neighborhood.svg");
-}
-[data-wh-theme=admin] .icon.users,
-[data-wh-theme=admin] .panel.info > .info-icon.users {
-  background-image: url("./icons/users.svg");
-}
-[data-wh-theme=admin] .icon.roles,
-[data-wh-theme=admin] .panel.info > .info-icon.roles {
-  background-image: url("./icons/roles.svg");
-}
-[data-wh-theme=admin] .icon.permissions,
-[data-wh-theme=admin] .panel.info > .info-icon.permissions {
-  background-image: url("./icons/permissions.svg");
-}
-[data-wh-theme=admin] .icon.hosts,
-[data-wh-theme=admin] .panel.info > .info-icon.hosts {
-  background-image: url("./icons/hosts.svg");
-}
-[data-wh-theme=admin] .icon.sites,
-[data-wh-theme=admin] .panel.info > .info-icon.sites {
-  background-image: url("./icons/sites.svg");
-}
-[data-wh-theme=admin] .icon.settings,
-[data-wh-theme=admin] .panel.info > .info-icon.settings {
-  background-image: url("./icons/settings.svg");
-}
-[data-wh-theme=admin] .icon.themes,
-[data-wh-theme=admin] .panel.info > .info-icon.themes {
-  background-image: url("./icons/themes.svg");
 }
 [data-wh-theme=admin] {
   /* Product: taskbar, Start menu, task buttons, clock. */
