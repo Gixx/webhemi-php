@@ -91,6 +91,10 @@
     pointer-events: none;
   }
 
+  .collapse {
+    visibility: collapse;
+  }
+
   .absolute {
     position: absolute;
   }
@@ -899,6 +903,10 @@
 
 *, :before, :after {
   box-sizing: border-box;
+}
+
+*, :before, :after, a, a:any-link, button, label, summary, select, option, input[type="button"], input[type="submit"], input[type="reset"], input[type="checkbox"], input[type="radio"], input[type="file"] {
+  cursor: default;
 }
 
 @property --tw-rotate-x {
@@ -1857,9 +1865,18 @@ html[data-wh-theme=admin] {
   text-decoration: none;
   color: #000;
 }
+[data-wh-theme=admin] {
+  /* Selection highlights the label only (Win98), not the row / glyph / toggle. */
+}
 [data-wh-theme=admin] ul.tree-view a:focus {
+  outline: none;
+  background: transparent;
+  color: inherit;
+}
+[data-wh-theme=admin] ul.tree-view a:focus .tree-view-label {
   background-color: var(--dialog-blue);
   color: var(--button-highlight);
+  outline: 1px dotted #000000;
 }
 [data-wh-theme=admin] ul.tree-view ul,
 [data-wh-theme=admin] ul.tree-view li {
@@ -1879,7 +1896,7 @@ html[data-wh-theme=admin] {
   display: block;
   position: absolute;
   left: -16px;
-  top: 6px;
+  top: 8px;
   width: 12px;
   border-bottom: 1px dotted #808080;
 }
@@ -1891,8 +1908,8 @@ html[data-wh-theme=admin] {
   display: block;
   position: absolute;
   left: -20px;
-  top: 7px;
-  bottom: 0px;
+  top: 9px;
+  bottom: 0;
   width: 8px;
   background: var(--button-highlight);
 }
@@ -1902,30 +1919,81 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] ul.tree-view details[open] summary {
   margin-bottom: 0;
 }
-[data-wh-theme=admin] ul.tree-view ul details > summary:before {
+[data-wh-theme=admin] ul.tree-view details > summary {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  cursor: default;
+  list-style: none;
+}
+[data-wh-theme=admin] ul.tree-view details > summary::marker,
+[data-wh-theme=admin] ul.tree-view details > summary::-webkit-details-marker {
+  display: none;
+  content: "";
+}
+[data-wh-theme=admin] ul.tree-view details > summary:focus {
+  outline: none;
+}
+[data-wh-theme=admin] {
+  /* Explicit toggle — SVG [+] / [-]; must beat global `button` chrome */
+}
+[data-wh-theme=admin] ul.tree-view button.tree-toggle {
+  box-sizing: border-box;
+  flex: 0 0 9px;
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  min-width: 9px;
+  min-height: 9px;
+  margin: 0 5px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: url("./icons/system/tree_expand.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 9px 9px;
+  box-shadow: none;
+  color: transparent;
+  text-shadow: none;
+  font-size: 0;
+  line-height: 0;
+  cursor: default;
+  vertical-align: middle;
+}
+[data-wh-theme=admin] ul.tree-view button.tree-toggle:focus {
+  outline: 1px dotted #000000;
+  outline-offset: 1px;
+}
+[data-wh-theme=admin] ul.tree-view button.tree-toggle:not(:disabled):active,
+[data-wh-theme=admin] ul.tree-view button.tree-toggle:not(:disabled):hover {
+  box-shadow: none;
+  text-shadow: none;
+  background-color: transparent;
+  background-image: url("./icons/system/tree_expand.svg");
+}
+[data-wh-theme=admin] ul.tree-view details[open] > summary > button.tree-toggle,
+[data-wh-theme=admin] ul.tree-view button.tree-toggle[aria-expanded=true] {
+  background-image: url("./icons/system/tree_collapse.svg");
+}
+[data-wh-theme=admin] ul.tree-view details[open] > summary > button.tree-toggle:not(:disabled):active,
+[data-wh-theme=admin] ul.tree-view details[open] > summary > button.tree-toggle:not(:disabled):hover,
+[data-wh-theme=admin] ul.tree-view button.tree-toggle[aria-expanded=true]:not(:disabled):active,
+[data-wh-theme=admin] ul.tree-view button.tree-toggle[aria-expanded=true]:not(:disabled):hover {
+  background-image: url("./icons/system/tree_collapse.svg");
+}
+[data-wh-theme=admin] {
+  /* Sit the toggle on the dotted junction for nested branches */
+}
+[data-wh-theme=admin] ul.tree-view ul details > summary > button.tree-toggle {
   margin-left: -22px;
   position: relative;
   z-index: 1;
 }
-[data-wh-theme=admin] ul.tree-view details > summary:before {
-  text-align: center;
-  display: block;
-  float: left;
-  content: "+";
-  border: 1px solid #808080;
-  width: 8px;
-  height: 9px;
-  line-height: 8px;
-  margin-right: 5px;
-  padding-left: 1px;
-  background-color: #fff;
-}
-[data-wh-theme=admin] ul.tree-view details[open] > summary:before {
-  content: "-";
-}
-[data-wh-theme=admin] ul.tree-view details > summary::marker,
-[data-wh-theme=admin] ul.tree-view details > summary::-webkit-details-marker {
-  content: "";
+[data-wh-theme=admin] ul.tree-view .tree-view-label {
+  display: inline;
+  padding: 0 1px;
 }
 [data-wh-theme=admin] pre {
   display: block;
@@ -2090,9 +2158,6 @@ html[data-wh-theme=admin] {
   box-sizing: border-box;
   font-weight: normal;
   padding: 0 var(--grouped-element-spacing);
-}
-[data-wh-theme=admin] table.interactive > tbody > tr {
-  cursor: pointer;
 }
 [data-wh-theme=admin] table > tbody > tr.highlighted {
   color: #fff;
@@ -3475,6 +3540,13 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .explorer-details {
   width: 100%;
 }
+[data-wh-theme=admin] {
+  /* Taller than chrome `table` (14px) so 16px glyphs have breathing room. */
+}
+[data-wh-theme=admin] .explorer-details > tbody > tr > * {
+  height: 20px;
+  vertical-align: middle;
+}
 [data-wh-theme=admin] .explorer-details td.name-cell {
   display: flex;
   flex-direction: row;
@@ -3490,6 +3562,7 @@ html[data-wh-theme=admin] {
   flex-direction: row;
   align-items: center;
   gap: 4px;
+  vertical-align: middle;
 }
 [data-wh-theme=admin] .explorer-tree-node.is-disabled,
 [data-wh-theme=admin] .explorer-tree-leaf.is-disabled,

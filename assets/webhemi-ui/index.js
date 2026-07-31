@@ -605,6 +605,23 @@ import { jsx as jsx22 } from "react/jsx-runtime";
 function TreeView({ className, children, ...rest }) {
   return /* @__PURE__ */ jsx22("ul", { className: cn("tree-view", className), ...rest, children });
 }
+function TreeToggle({
+  className,
+  expanded = false,
+  "aria-label": ariaLabel,
+  ...rest
+}) {
+  return /* @__PURE__ */ jsx22(
+    "button",
+    {
+      type: "button",
+      className: cn("tree-toggle", className),
+      "aria-expanded": expanded,
+      "aria-label": ariaLabel ?? (expanded ? "Collapse" : "Expand"),
+      ...rest
+    }
+  );
+}
 
 // src/admin/chrome/Scrollable/Scrollable.tsx
 import { useRef } from "react";
@@ -1147,6 +1164,9 @@ function WizardWindow({
   ] }) });
 }
 
+// src/admin/bricks/FileExplorerWindow/FileExplorerWindow.tsx
+import { useState } from "react";
+
 // src/admin/bricks/FileExplorerWindow/types.ts
 function formatExplorerSize(sizeBytes) {
   if (sizeBytes === void 0) {
@@ -1338,38 +1358,72 @@ function ExplorerToolbar({
 
 // src/admin/bricks/FileExplorerWindow/FileExplorerWindow.tsx
 import { jsx as jsx36, jsxs as jsxs16 } from "react/jsx-runtime";
-function treeGlyphKind(node, expandableKids) {
-  if ((node.kind === "folder" || node.role === "folder") && expandableKids) {
+function treeGlyphKind(node, expanded) {
+  if ((node.kind === "folder" || node.role === "folder") && expanded) {
     return "folder-open";
   }
   return node.kind;
 }
+function TreeNodeLabel({
+  node,
+  expanded = false
+}) {
+  return /* @__PURE__ */ jsxs16("span", { className: cn("explorer-tree-node", node.disabled && "is-disabled"), children: [
+    /* @__PURE__ */ jsx36("span", { className: cn("explorer-glyph", treeGlyphKind(node, expanded)), "aria-hidden": true }),
+    /* @__PURE__ */ jsx36("span", { className: "tree-view-label", children: node.label })
+  ] });
+}
+function ExplorerTreeBranch({
+  node,
+  onTreeSelect
+}) {
+  const kids = explorerTreeChildren(node);
+  const [open, setOpen] = useState(node.role === "site");
+  return /* @__PURE__ */ jsx36("li", { children: /* @__PURE__ */ jsxs16("details", { open, children: [
+    /* @__PURE__ */ jsxs16(
+      "summary",
+      {
+        tabIndex: -1,
+        onClick: (event) => {
+          event.preventDefault();
+        },
+        children: [
+          /* @__PURE__ */ jsx36(
+            TreeToggle,
+            {
+              expanded: open,
+              onClick: (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setOpen((value) => !value);
+              }
+            }
+          ),
+          node.disabled ? /* @__PURE__ */ jsx36("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: /* @__PURE__ */ jsx36(TreeNodeLabel, { node, expanded: open }) }) : /* @__PURE__ */ jsx36(
+            "a",
+            {
+              href: "#",
+              onClick: (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onTreeSelect?.(node);
+              },
+              children: /* @__PURE__ */ jsx36(TreeNodeLabel, { node, expanded: open })
+            }
+          )
+        ]
+      }
+    ),
+    /* @__PURE__ */ jsx36("ul", { children: renderTreeNodes(kids, onTreeSelect) })
+  ] }) });
+}
 function renderTreeNodes(nodes, onTreeSelect) {
   return nodes.map((node) => {
-    const kids = explorerTreeChildren(node);
     const canExpand = isExplorerTreeExpandable(node);
-    const label = /* @__PURE__ */ jsxs16("span", { className: cn("explorer-tree-node", node.disabled && "is-disabled"), children: [
-      /* @__PURE__ */ jsx36("span", { className: cn("explorer-glyph", treeGlyphKind(node, kids.length > 0)), "aria-hidden": true }),
-      " ",
-      node.label
-    ] });
     if (canExpand) {
-      return /* @__PURE__ */ jsx36("li", { children: /* @__PURE__ */ jsxs16("details", { open: node.role === "site", children: [
-        /* @__PURE__ */ jsx36(
-          "summary",
-          {
-            onClick: () => {
-              if (!node.disabled) {
-                onTreeSelect?.(node);
-              }
-            },
-            children: label
-          }
-        ),
-        /* @__PURE__ */ jsx36("ul", { children: renderTreeNodes(kids, onTreeSelect) })
-      ] }) }, node.id);
+      return /* @__PURE__ */ jsx36(ExplorerTreeBranch, { node, onTreeSelect }, node.id);
     }
-    return /* @__PURE__ */ jsx36("li", { className: cn(node.disabled && "is-disabled"), children: node.disabled ? /* @__PURE__ */ jsx36("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: label }) : /* @__PURE__ */ jsx36(
+    return /* @__PURE__ */ jsx36("li", { className: cn(node.disabled && "is-disabled"), children: node.disabled ? /* @__PURE__ */ jsx36("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: /* @__PURE__ */ jsx36(TreeNodeLabel, { node }) }) : /* @__PURE__ */ jsx36(
       "a",
       {
         href: "#",
@@ -1377,7 +1431,7 @@ function renderTreeNodes(nodes, onTreeSelect) {
           event.preventDefault();
           onTreeSelect?.(node);
         },
-        children: label
+        children: /* @__PURE__ */ jsx36(TreeNodeLabel, { node })
       }
     ) }, node.id);
   });
@@ -1954,7 +2008,7 @@ function LoginForm({
 }
 
 // src/admin/components/ControlPanel/ControlPanel.tsx
-import { useState } from "react";
+import { useState as useState2 } from "react";
 import { jsx as jsx46, jsxs as jsxs25 } from "react/jsx-runtime";
 var ICONS = [
   { kind: "sites", label: "Sites", description: "Manage sites and their contents." },
@@ -1975,7 +2029,7 @@ function ControlPanel({
   width = 600,
   paneHeight = 300
 }) {
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState2(null);
   return /* @__PURE__ */ jsx46(
     IconPanelWindow,
     {
@@ -2233,15 +2287,15 @@ function LoginPage({
 }
 
 // src/admin/pages/AdminDesktop.tsx
-import { useRef as useRef3, useState as useState2 } from "react";
+import { useRef as useRef3, useState as useState3 } from "react";
 import { jsx as jsx52, jsxs as jsxs30 } from "react/jsx-runtime";
 var CASCADE_ORIGIN = { left: 120, top: 32 };
 var CASCADE_STEP = 28;
 function AdminDesktop({ sites = [], className }) {
   const nextZRef = useRef3(10);
   const cascadeRef = useRef3(0);
-  const [controlPanel, setControlPanel] = useState2(null);
-  const [openSites, setOpenSites] = useState2([]);
+  const [controlPanel, setControlPanel] = useState3(null);
+  const [openSites, setOpenSites] = useState3([]);
   const allocatePlacement = () => {
     const index = cascadeRef.current;
     cascadeRef.current += 1;
@@ -2565,6 +2619,7 @@ export {
   TitleBarControls,
   TitleBarText,
   TopBar,
+  TreeToggle,
   TreeView,
   UserListView,
   VerticalBar,
