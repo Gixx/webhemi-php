@@ -985,7 +985,6 @@ function SystemIcon({
   label,
   labelTone = "light",
   href = "#",
-  description,
   draggable = false,
   onActivate,
   onOpen,
@@ -1019,16 +1018,7 @@ function SystemIcon({
       draggable,
       onDoubleClick: handleDoubleClick,
       ...rest,
-      children: /* @__PURE__ */ jsx28(
-        "a",
-        {
-          href,
-          "data-description": description,
-          ...linkProps,
-          onClick: handleClick,
-          children: /* @__PURE__ */ jsx28("span", { children: label })
-        }
-      )
+      children: /* @__PURE__ */ jsx28("a", { href, ...linkProps, onClick: handleClick, children: /* @__PURE__ */ jsx28("span", { children: label }) })
     }
   );
 }
@@ -1555,7 +1545,6 @@ function ControlPanel({
           kind: icon.kind,
           label: icon.label,
           labelTone: "dark",
-          description: icon.description,
           onActivate: () => setSelected(icon)
         },
         icon.kind
@@ -1845,7 +1834,6 @@ function AdminDesktop({ sites = [], className }) {
           kind: "site",
           label: site.name,
           labelTone: "light",
-          description: site.slug ? `Site: ${site.slug}` : void 0,
           onOpen: () => openSite(site)
         },
         site.id
@@ -1856,7 +1844,6 @@ function AdminDesktop({ sites = [], className }) {
           kind: "control-panel",
           label: "Control Panel",
           labelTone: "light",
-          description: "Configure WebHemi administration.",
           onOpen: openControlPanel
         }
       )
