@@ -1029,14 +1029,14 @@ var TITLE_BAR_ICON_OPTIONS = [
   "none",
   "control-panel",
   "site",
-  "network-neighborhood",
   "users",
   "roles",
   "permissions",
   "hosts",
   "sites",
   "settings",
-  "themes"
+  "themes",
+  "folder"
 ];
 function resolveTitleBarIcon(value) {
   return value && value !== "none" ? value : void 0;
@@ -1147,6 +1147,476 @@ function WizardWindow({
   ] }) });
 }
 
+// src/admin/bricks/FileExplorerWindow/types.ts
+function formatExplorerSize(sizeBytes) {
+  if (sizeBytes === void 0) {
+    return "";
+  }
+  if (sizeBytes < 1024) {
+    return `${sizeBytes}B`;
+  }
+  return `${Math.max(1, Math.round(sizeBytes / 1024))}KB`;
+}
+function isExplorerFolder(item) {
+  if (item.role === "folder") {
+    return true;
+  }
+  return item.kind === "folder" || item.kind === "folder-open" || item.kind === "folder-documents" || item.kind === "folder-gallery";
+}
+function isExplorerDocument(item) {
+  return item.role === "document" || item.kind === "file-document" || item.kind === "file-draft";
+}
+function isExplorerLocation(item) {
+  if (item.disabled) {
+    return false;
+  }
+  if (item.role === "site" || item.role === "media-library" || item.role === "trash") {
+    return true;
+  }
+  return isExplorerFolder(item);
+}
+function isExplorerTreeExpandable(item) {
+  return explorerTreeChildren(item).length > 0;
+}
+function explorerTreeChildren(item) {
+  if (item.expandable === false || item.disabled) {
+    return [];
+  }
+  return (item.children ?? []).filter(isExplorerFolder);
+}
+function explorerContentItems(selected) {
+  if (!selected || selected.disabled) {
+    return [];
+  }
+  return selected.children ?? [];
+}
+function findExplorerItem(roots, id) {
+  if (!id) {
+    return null;
+  }
+  for (const node of roots) {
+    if (node.id === id) {
+      return node;
+    }
+    const nested = findExplorerItem(node.children ?? [], id);
+    if (nested) {
+      return nested;
+    }
+  }
+  return null;
+}
+
+// src/admin/bricks/FileExplorerWindow/ExplorerContent.tsx
+import { jsx as jsx34, jsxs as jsxs14 } from "react/jsx-runtime";
+function Glyph({ kind }) {
+  return /* @__PURE__ */ jsx34("span", { className: cn("explorer-glyph", kind), "aria-hidden": true });
+}
+function ExplorerContent({
+  view,
+  items,
+  selectedId = null,
+  onSelect,
+  onOpen
+}) {
+  const openItem = (item) => {
+    if (isExplorerDocument(item)) {
+      return;
+    }
+    onOpen?.(item);
+  };
+  if (view === "large-icons") {
+    return /* @__PURE__ */ jsx34("div", { className: "explorer-content-inner large-icons", children: items.map((item) => /* @__PURE__ */ jsx34(
+      SystemIcon,
+      {
+        kind: item.kind,
+        label: item.label,
+        labelTone: "dark",
+        className: cn(item.hidden && "is-hidden", selectedId === item.id && "is-selected"),
+        onActivate: () => onSelect?.(item),
+        onOpen: () => openItem(item)
+      },
+      item.id
+    )) });
+  }
+  if (view === "list") {
+    return /* @__PURE__ */ jsx34("div", { className: "explorer-content-inner list", children: items.map((item) => /* @__PURE__ */ jsxs14(
+      "a",
+      {
+        href: "#",
+        className: cn(
+          "explorer-list-item",
+          item.hidden && "is-hidden",
+          selectedId === item.id && "is-selected"
+        ),
+        onClick: (event) => {
+          event.preventDefault();
+          onSelect?.(item);
+        },
+        onDoubleClick: (event) => {
+          event.preventDefault();
+          openItem(item);
+        },
+        children: [
+          /* @__PURE__ */ jsx34(Glyph, { kind: item.kind }),
+          /* @__PURE__ */ jsx34("span", { className: "label", children: item.label })
+        ]
+      },
+      item.id
+    )) });
+  }
+  return /* @__PURE__ */ jsx34("div", { className: "explorer-content-inner details", children: /* @__PURE__ */ jsxs14(Table, { className: "explorer-details", children: [
+    /* @__PURE__ */ jsx34("thead", { children: /* @__PURE__ */ jsxs14("tr", { children: [
+      /* @__PURE__ */ jsx34("th", { children: "Name" }),
+      /* @__PURE__ */ jsx34("th", { children: "Size" }),
+      /* @__PURE__ */ jsx34("th", { children: "Type" }),
+      /* @__PURE__ */ jsx34("th", { children: "Modified" })
+    ] }) }),
+    /* @__PURE__ */ jsx34("tbody", { children: items.map((item) => /* @__PURE__ */ jsxs14(
+      TableRow,
+      {
+        highlighted: selectedId === item.id,
+        className: cn(item.hidden && "is-hidden"),
+        onClick: () => onSelect?.(item),
+        onDoubleClick: () => openItem(item),
+        children: [
+          /* @__PURE__ */ jsxs14("td", { className: "name-cell", children: [
+            /* @__PURE__ */ jsx34(Glyph, { kind: item.kind }),
+            item.label
+          ] }),
+          /* @__PURE__ */ jsx34("td", { children: formatExplorerSize(item.sizeBytes) }),
+          /* @__PURE__ */ jsx34("td", { children: item.typeLabel ?? "" }),
+          /* @__PURE__ */ jsx34("td", { children: item.modifiedAt ?? "" })
+        ]
+      },
+      item.id
+    )) })
+  ] }) });
+}
+
+// src/admin/bricks/FileExplorerWindow/ExplorerToolbar.tsx
+import { jsx as jsx35, jsxs as jsxs15 } from "react/jsx-runtime";
+var VIEW_TOOLS = [
+  { view: "large-icons", label: "Large Icons", className: "large-icons" },
+  { view: "list", label: "List", className: "list" },
+  { view: "details", label: "Details", className: "details" }
+];
+function ExplorerToolbar({
+  view,
+  onViewChange,
+  onLevelUp,
+  onCut,
+  onCopy,
+  onPaste,
+  onUndo,
+  onDelete,
+  onProperties,
+  className
+}) {
+  return /* @__PURE__ */ jsxs15("div", { className: cn("panel explorer-toolbar", className), role: "toolbar", "aria-label": "Explorer", children: [
+    /* @__PURE__ */ jsx35(Button2, { type: "button", className: "tool level-up", "aria-label": "Up one level", onClick: onLevelUp }),
+    /* @__PURE__ */ jsx35(VerticalBar, {}),
+    /* @__PURE__ */ jsx35(Button2, { type: "button", className: "tool cut", "aria-label": "Cut", onClick: onCut }),
+    /* @__PURE__ */ jsx35(Button2, { type: "button", className: "tool copy", "aria-label": "Copy", onClick: onCopy }),
+    /* @__PURE__ */ jsx35(Button2, { type: "button", className: "tool paste", "aria-label": "Paste", onClick: onPaste }),
+    /* @__PURE__ */ jsx35(Button2, { type: "button", className: "tool undo", "aria-label": "Undo", onClick: onUndo }),
+    /* @__PURE__ */ jsx35(Button2, { type: "button", className: "tool delete", "aria-label": "Delete", onClick: onDelete }),
+    /* @__PURE__ */ jsx35(Button2, { type: "button", className: "tool properties", "aria-label": "Properties", onClick: onProperties }),
+    /* @__PURE__ */ jsx35(VerticalBar, {}),
+    VIEW_TOOLS.map((tool) => /* @__PURE__ */ jsx35(
+      Button2,
+      {
+        type: "button",
+        className: cn("tool", tool.className),
+        "aria-label": tool.label,
+        "aria-pressed": view === tool.view,
+        onClick: () => onViewChange?.(tool.view)
+      },
+      tool.view
+    ))
+  ] });
+}
+
+// src/admin/bricks/FileExplorerWindow/FileExplorerWindow.tsx
+import { jsx as jsx36, jsxs as jsxs16 } from "react/jsx-runtime";
+function treeGlyphKind(node, expandableKids) {
+  if ((node.kind === "folder" || node.role === "folder") && expandableKids) {
+    return "folder-open";
+  }
+  return node.kind;
+}
+function renderTreeNodes(nodes, onTreeSelect) {
+  return nodes.map((node) => {
+    const kids = explorerTreeChildren(node);
+    const canExpand = isExplorerTreeExpandable(node);
+    const label = /* @__PURE__ */ jsxs16("span", { className: cn("explorer-tree-node", node.disabled && "is-disabled"), children: [
+      /* @__PURE__ */ jsx36("span", { className: cn("explorer-glyph", treeGlyphKind(node, kids.length > 0)), "aria-hidden": true }),
+      " ",
+      node.label
+    ] });
+    if (canExpand) {
+      return /* @__PURE__ */ jsx36("li", { children: /* @__PURE__ */ jsxs16("details", { open: node.role === "site", children: [
+        /* @__PURE__ */ jsx36(
+          "summary",
+          {
+            onClick: () => {
+              if (!node.disabled) {
+                onTreeSelect?.(node);
+              }
+            },
+            children: label
+          }
+        ),
+        /* @__PURE__ */ jsx36("ul", { children: renderTreeNodes(kids, onTreeSelect) })
+      ] }) }, node.id);
+    }
+    return /* @__PURE__ */ jsx36("li", { className: cn(node.disabled && "is-disabled"), children: node.disabled ? /* @__PURE__ */ jsx36("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: label }) : /* @__PURE__ */ jsx36(
+      "a",
+      {
+        href: "#",
+        onClick: (event) => {
+          event.preventDefault();
+          onTreeSelect?.(node);
+        },
+        children: label
+      }
+    ) }, node.id);
+  });
+}
+function FileExplorerWindow({
+  tree,
+  items,
+  view = "large-icons",
+  onViewChange,
+  selectedId = null,
+  onTreeSelect,
+  onSelect,
+  onOpen,
+  onLevelUp,
+  onCut,
+  onCopy,
+  onPaste,
+  onUndo,
+  onDelete,
+  onProperties,
+  className,
+  paneHeight = 360,
+  treeWidth = 200,
+  resizable = true,
+  ...shell
+}) {
+  const paneStyle = {
+    height: typeof paneHeight === "number" ? `${paneHeight}px` : paneHeight
+  };
+  const treeStyle = {
+    flexBasis: typeof treeWidth === "number" ? `${treeWidth}px` : treeWidth,
+    width: typeof treeWidth === "number" ? `${treeWidth}px` : treeWidth
+  };
+  return /* @__PURE__ */ jsx36(
+    PaneWindowShell,
+    {
+      className: cn("w-window-xl file-explorer-window", className),
+      resizable,
+      ...shell,
+      children: /* @__PURE__ */ jsxs16("div", { className: "window-pane explorer-panel-layout", style: paneStyle, children: [
+        /* @__PURE__ */ jsx36(
+          ExplorerToolbar,
+          {
+            view,
+            onViewChange,
+            onLevelUp,
+            onCut,
+            onCopy,
+            onPaste,
+            onUndo,
+            onDelete,
+            onProperties
+          }
+        ),
+        /* @__PURE__ */ jsxs16("div", { className: "explorer-split", children: [
+          /* @__PURE__ */ jsx36(FieldBorder, { scrollable: true, className: "panel explorer-tree", style: treeStyle, children: /* @__PURE__ */ jsx36("div", { className: "explorer-tree-inner", children: /* @__PURE__ */ jsx36(TreeView, { children: renderTreeNodes(tree, onTreeSelect) }) }) }),
+          /* @__PURE__ */ jsx36(FieldBorder, { scrollable: true, className: "panel explorer-content", children: /* @__PURE__ */ jsx36(
+            ExplorerContent,
+            {
+              view,
+              items,
+              selectedId,
+              onSelect,
+              onOpen
+            }
+          ) })
+        ] })
+      ] })
+    }
+  );
+}
+
+// src/admin/bricks/FileExplorerWindow/FileExplorerWindow.data.ts
+var EXPLORER_FIXTURE_SITE = {
+  id: "site-acme",
+  name: "Acme Website",
+  /** Default site glyph until favicon support exists. */
+  titleIcon: "site"
+};
+var EXPLORER_FIXTURE_TREE = [
+  {
+    id: "site-acme",
+    label: EXPLORER_FIXTURE_SITE.name,
+    kind: "site",
+    role: "site",
+    typeLabel: "Website",
+    children: [
+      {
+        id: "nav-home",
+        label: "Home",
+        kind: "file-document",
+        role: "document",
+        typeLabel: "HTML Document",
+        sizeBytes: 4096,
+        modifiedAt: "7/12/26 9:00 AM"
+      },
+      {
+        id: "nav-about",
+        label: "About",
+        kind: "folder",
+        role: "folder",
+        typeLabel: "Folder",
+        modifiedAt: "7/10/26 2:15 PM",
+        children: [
+          {
+            id: "nav-about-team",
+            label: "Team",
+            kind: "file-document",
+            role: "document",
+            typeLabel: "HTML Document",
+            sizeBytes: 3072,
+            modifiedAt: "7/10/26 2:15 PM"
+          },
+          {
+            id: "nav-about-history",
+            label: "History",
+            kind: "file-document",
+            role: "document",
+            typeLabel: "HTML Document",
+            sizeBytes: 2560,
+            modifiedAt: "6/01/26 11:30 AM"
+          }
+        ]
+      },
+      {
+        id: "nav-blog",
+        label: "Blog",
+        kind: "folder",
+        role: "folder",
+        typeLabel: "Folder",
+        modifiedAt: "7/20/26 4:00 PM",
+        children: [
+          {
+            id: "nav-blog-index",
+            label: "Index",
+            kind: "file-document",
+            role: "document",
+            typeLabel: "HTML Document",
+            sizeBytes: 5120,
+            modifiedAt: "7/20/26 4:00 PM"
+          }
+        ]
+      },
+      {
+        id: "nav-contact",
+        label: "Contact",
+        kind: "file-document",
+        role: "document",
+        typeLabel: "HTML Document",
+        sizeBytes: 2048,
+        modifiedAt: "5/18/26 8:45 AM"
+      }
+    ]
+  },
+  {
+    id: "media-library",
+    label: "Media library",
+    kind: "folder-gallery",
+    role: "media-library",
+    typeLabel: "Media Library",
+    children: [
+      {
+        id: "media-hero",
+        label: "hero.jpg",
+        kind: "file-image",
+        role: "media-asset",
+        typeLabel: "JPEG Image",
+        sizeBytes: 245760,
+        modifiedAt: "7/01/26 10:12 AM"
+      },
+      {
+        id: "media-logo",
+        label: "logo.png",
+        kind: "file-image",
+        role: "media-asset",
+        typeLabel: "PNG Image",
+        sizeBytes: 18432,
+        modifiedAt: "6/15/26 3:20 PM"
+      },
+      {
+        id: "media-gallery",
+        label: "gallery",
+        kind: "folder",
+        role: "folder",
+        typeLabel: "Folder",
+        modifiedAt: "7/08/26 1:00 PM",
+        children: [
+          {
+            id: "media-gallery-1",
+            label: "photo-01.jpg",
+            kind: "file-image",
+            role: "media-asset",
+            typeLabel: "JPEG Image",
+            sizeBytes: 102400,
+            modifiedAt: "7/08/26 1:00 PM"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: "trash",
+    label: "Recycle Bin",
+    kind: "trash",
+    role: "trash",
+    typeLabel: "Recycle Bin",
+    expandable: false,
+    children: [
+      {
+        id: "trash-old-landing",
+        label: "Old landing",
+        kind: "file-document",
+        role: "document",
+        typeLabel: "HTML Document",
+        sizeBytes: 8192,
+        modifiedAt: "4/02/26 5:10 PM"
+      },
+      {
+        id: "trash-drafts",
+        label: "Drafts",
+        kind: "folder",
+        role: "folder",
+        typeLabel: "Folder",
+        modifiedAt: "3/11/26 9:00 AM"
+      }
+    ]
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    kind: "settings",
+    role: "settings",
+    typeLabel: "Settings",
+    expandable: false,
+    disabled: true
+  }
+];
+var EXPLORER_FIXTURE_ITEMS = EXPLORER_FIXTURE_TREE.find((n) => n.id === "site-acme")?.children ?? [];
+
 // src/admin/lib/assetPaths.ts
 var ADMIN_ASSETS_BASE = "/assets/admin";
 function adminAsset(path) {
@@ -1154,11 +1624,12 @@ function adminAsset(path) {
   return `${ADMIN_ASSETS_BASE}/${normalized}`;
 }
 function adminIconAsset(kind) {
-  return adminAsset(`icons/${kind.replace(/-/g, "_")}.svg`);
+  const file = kind.replace(/-/g, "_");
+  return adminAsset(`icons/system/${file}.svg`);
 }
 
 // src/admin/components/FlashList/FlashList.tsx
-import { jsx as jsx34 } from "react/jsx-runtime";
+import { jsx as jsx37 } from "react/jsx-runtime";
 function toneForFlash(key) {
   if (key === "success") {
     return "success";
@@ -1176,12 +1647,12 @@ function FlashList({ flashes }) {
     return null;
   }
   return Object.entries(flashes).flatMap(
-    ([tone, messages]) => messages.map((message, index) => /* @__PURE__ */ jsx34(Alert, { tone: toneForFlash(tone), className: "mb-4", children: message }, `${tone}-${index}`))
+    ([tone, messages]) => messages.map((message, index) => /* @__PURE__ */ jsx37(Alert, { tone: toneForFlash(tone), className: "mb-4", children: message }, `${tone}-${index}`))
   );
 }
 
 // src/admin/components/DataTable/DataTable.tsx
-import { jsx as jsx35, jsxs as jsxs14 } from "react/jsx-runtime";
+import { jsx as jsx38, jsxs as jsxs17 } from "react/jsx-runtime";
 function DataTable({
   columns,
   rows,
@@ -1191,25 +1662,25 @@ function DataTable({
   className
 }) {
   if (loading) {
-    return /* @__PURE__ */ jsx35("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: "Loading\u2026" });
+    return /* @__PURE__ */ jsx38("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: "Loading\u2026" });
   }
   if (rows.length === 0) {
-    return /* @__PURE__ */ jsx35("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-dashed border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: emptyMessage });
+    return /* @__PURE__ */ jsx38("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-dashed border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: emptyMessage });
   }
-  return /* @__PURE__ */ jsx35(
+  return /* @__PURE__ */ jsx38(
     "div",
     {
       className: cn(
         "wh-ui overflow-x-auto rounded-[var(--wh-radius-md)] border border-[var(--wh-color-line)] bg-[var(--wh-color-surface)]",
         className
       ),
-      children: /* @__PURE__ */ jsxs14("table", { className: "w-full border-collapse text-left text-sm", children: [
-        /* @__PURE__ */ jsx35("thead", { className: "bg-[var(--wh-color-canvas)] text-[var(--wh-color-muted)]", children: /* @__PURE__ */ jsx35("tr", { children: columns.map((col) => /* @__PURE__ */ jsx35("th", { className: cn("px-4 py-3 font-semibold", col.className), children: col.header }, col.key)) }) }),
-        /* @__PURE__ */ jsx35("tbody", { children: rows.map((row) => /* @__PURE__ */ jsx35(
+      children: /* @__PURE__ */ jsxs17("table", { className: "w-full border-collapse text-left text-sm", children: [
+        /* @__PURE__ */ jsx38("thead", { className: "bg-[var(--wh-color-canvas)] text-[var(--wh-color-muted)]", children: /* @__PURE__ */ jsx38("tr", { children: columns.map((col) => /* @__PURE__ */ jsx38("th", { className: cn("px-4 py-3 font-semibold", col.className), children: col.header }, col.key)) }) }),
+        /* @__PURE__ */ jsx38("tbody", { children: rows.map((row) => /* @__PURE__ */ jsx38(
           "tr",
           {
             className: "border-t border-[var(--wh-color-line)] hover:bg-[color-mix(in_srgb,var(--wh-color-accent)_6%,white)]",
-            children: columns.map((col) => /* @__PURE__ */ jsx35("td", { className: cn("px-4 py-3", col.className), children: col.render(row) }, col.key))
+            children: columns.map((col) => /* @__PURE__ */ jsx38("td", { className: cn("px-4 py-3", col.className), children: col.render(row) }, col.key))
           },
           rowKey(row)
         )) })
@@ -1219,18 +1690,18 @@ function DataTable({
 }
 
 // src/admin/components/Pagination/Pagination.tsx
-import { jsx as jsx36, jsxs as jsxs15 } from "react/jsx-runtime";
+import { jsx as jsx39, jsxs as jsxs18 } from "react/jsx-runtime";
 function Pagination({ page, pageCount, onPageChange, className }) {
   if (pageCount <= 1) {
     return null;
   }
-  return /* @__PURE__ */ jsxs15(
+  return /* @__PURE__ */ jsxs18(
     "nav",
     {
       className: cn("wh-ui mt-4 flex items-center justify-between gap-3", className),
       "aria-label": "Pagination",
       children: [
-        /* @__PURE__ */ jsx36(
+        /* @__PURE__ */ jsx39(
           Button,
           {
             variant: "secondary",
@@ -1240,13 +1711,13 @@ function Pagination({ page, pageCount, onPageChange, className }) {
             children: "Previous"
           }
         ),
-        /* @__PURE__ */ jsxs15("span", { className: "text-sm text-[var(--wh-color-muted)]", children: [
+        /* @__PURE__ */ jsxs18("span", { className: "text-sm text-[var(--wh-color-muted)]", children: [
           "Page ",
           page,
           " of ",
           pageCount
         ] }),
-        /* @__PURE__ */ jsx36(
+        /* @__PURE__ */ jsx39(
           Button,
           {
             variant: "secondary",
@@ -1263,7 +1734,7 @@ function Pagination({ page, pageCount, onPageChange, className }) {
 
 // src/admin/components/Modal/Modal.tsx
 import { useEffect as useEffect3 } from "react";
-import { jsx as jsx37, jsxs as jsxs16 } from "react/jsx-runtime";
+import { jsx as jsx40, jsxs as jsxs19 } from "react/jsx-runtime";
 function Modal({ open, title, children, onClose, footer, className }) {
   useEffect3(() => {
     if (!open) {
@@ -1280,8 +1751,8 @@ function Modal({ open, title, children, onClose, footer, className }) {
   if (!open) {
     return null;
   }
-  return /* @__PURE__ */ jsxs16("div", { className: "wh-ui fixed inset-0 z-50 flex items-center justify-center p-4", children: [
-    /* @__PURE__ */ jsx37(
+  return /* @__PURE__ */ jsxs19("div", { className: "wh-ui fixed inset-0 z-50 flex items-center justify-center p-4", children: [
+    /* @__PURE__ */ jsx40(
       "button",
       {
         type: "button",
@@ -1290,7 +1761,7 @@ function Modal({ open, title, children, onClose, footer, className }) {
         onClick: onClose
       }
     ),
-    /* @__PURE__ */ jsxs16(
+    /* @__PURE__ */ jsxs19(
       "div",
       {
         role: "dialog",
@@ -1301,12 +1772,12 @@ function Modal({ open, title, children, onClose, footer, className }) {
           className
         ),
         children: [
-          /* @__PURE__ */ jsxs16("div", { className: "flex items-center justify-between border-b border-[var(--wh-color-line)] px-4 py-3", children: [
-            /* @__PURE__ */ jsx37("h2", { id: "wh-modal-title", className: "font-[family-name:var(--wh-font-display)] text-lg", children: title }),
-            /* @__PURE__ */ jsx37(Button, { variant: "ghost", size: "sm", onClick: onClose, "aria-label": "Close", children: "\xD7" })
+          /* @__PURE__ */ jsxs19("div", { className: "flex items-center justify-between border-b border-[var(--wh-color-line)] px-4 py-3", children: [
+            /* @__PURE__ */ jsx40("h2", { id: "wh-modal-title", className: "font-[family-name:var(--wh-font-display)] text-lg", children: title }),
+            /* @__PURE__ */ jsx40(Button, { variant: "ghost", size: "sm", onClick: onClose, "aria-label": "Close", children: "\xD7" })
           ] }),
-          /* @__PURE__ */ jsx37("div", { className: "px-4 py-4", children }),
-          footer ? /* @__PURE__ */ jsx37("div", { className: "flex justify-end gap-2 border-t border-[var(--wh-color-line)] px-4 py-3", children: footer }) : null
+          /* @__PURE__ */ jsx40("div", { className: "px-4 py-4", children }),
+          footer ? /* @__PURE__ */ jsx40("div", { className: "flex justify-end gap-2 border-t border-[var(--wh-color-line)] px-4 py-3", children: footer }) : null
         ]
       }
     )
@@ -1314,9 +1785,9 @@ function Modal({ open, title, children, onClose, footer, className }) {
 }
 
 // src/admin/components/PageHeader/PageHeader.tsx
-import { jsx as jsx38, jsxs as jsxs17 } from "react/jsx-runtime";
+import { jsx as jsx41, jsxs as jsxs20 } from "react/jsx-runtime";
 function PageHeader({ title, description, actions, className }) {
-  return /* @__PURE__ */ jsxs17(
+  return /* @__PURE__ */ jsxs20(
     "header",
     {
       className: cn(
@@ -1324,20 +1795,20 @@ function PageHeader({ title, description, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsxs17("div", { children: [
-          /* @__PURE__ */ jsx38("h1", { className: "font-[family-name:var(--wh-font-display)] text-3xl tracking-tight text-[var(--wh-color-ink)]", children: title }),
-          description ? /* @__PURE__ */ jsx38("p", { className: "mt-1 max-w-2xl text-[var(--wh-color-muted)]", children: description }) : null
+        /* @__PURE__ */ jsxs20("div", { children: [
+          /* @__PURE__ */ jsx41("h1", { className: "font-[family-name:var(--wh-font-display)] text-3xl tracking-tight text-[var(--wh-color-ink)]", children: title }),
+          description ? /* @__PURE__ */ jsx41("p", { className: "mt-1 max-w-2xl text-[var(--wh-color-muted)]", children: description }) : null
         ] }),
-        actions ? /* @__PURE__ */ jsx38("div", { className: "flex flex-wrap gap-2", children: actions }) : null
+        actions ? /* @__PURE__ */ jsx41("div", { className: "flex flex-wrap gap-2", children: actions }) : null
       ]
     }
   );
 }
 
 // src/admin/components/Sidebar/Sidebar.tsx
-import { jsx as jsx39, jsxs as jsxs18 } from "react/jsx-runtime";
+import { jsx as jsx42, jsxs as jsxs21 } from "react/jsx-runtime";
 function Sidebar({ brand = "WebHemi", items, className }) {
-  return /* @__PURE__ */ jsxs18(
+  return /* @__PURE__ */ jsxs21(
     "aside",
     {
       className: cn(
@@ -1345,11 +1816,11 @@ function Sidebar({ brand = "WebHemi", items, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsxs18("div", { className: "border-b border-white/10 px-5 py-5", children: [
-          /* @__PURE__ */ jsx39("p", { className: "font-[family-name:var(--wh-font-display)] text-2xl tracking-tight", children: brand }),
-          /* @__PURE__ */ jsx39("p", { className: "text-xs uppercase tracking-[0.2em] text-white/60", children: "Admin" })
+        /* @__PURE__ */ jsxs21("div", { className: "border-b border-white/10 px-5 py-5", children: [
+          /* @__PURE__ */ jsx42("p", { className: "font-[family-name:var(--wh-font-display)] text-2xl tracking-tight", children: brand }),
+          /* @__PURE__ */ jsx42("p", { className: "text-xs uppercase tracking-[0.2em] text-white/60", children: "Admin" })
         ] }),
-        /* @__PURE__ */ jsx39("nav", { className: "flex flex-1 flex-col gap-1 p-3", "aria-label": "Admin", children: items.map((item) => /* @__PURE__ */ jsxs18(
+        /* @__PURE__ */ jsx42("nav", { className: "flex flex-1 flex-col gap-1 p-3", "aria-label": "Admin", children: items.map((item) => /* @__PURE__ */ jsxs21(
           "a",
           {
             href: item.href,
@@ -1359,7 +1830,7 @@ function Sidebar({ brand = "WebHemi", items, className }) {
             ),
             "aria-current": item.active ? "page" : void 0,
             children: [
-              item.icon ? /* @__PURE__ */ jsx39(Icon, { name: item.icon }) : null,
+              item.icon ? /* @__PURE__ */ jsx42(Icon, { name: item.icon }) : null,
               item.label
             ]
           },
@@ -1371,9 +1842,9 @@ function Sidebar({ brand = "WebHemi", items, className }) {
 }
 
 // src/admin/components/TopBar/TopBar.tsx
-import { jsx as jsx40, jsxs as jsxs19 } from "react/jsx-runtime";
+import { jsx as jsx43, jsxs as jsxs22 } from "react/jsx-runtime";
 function TopBar({ title, userLabel, actions, className }) {
-  return /* @__PURE__ */ jsxs19(
+  return /* @__PURE__ */ jsxs22(
     "div",
     {
       className: cn(
@@ -1381,10 +1852,10 @@ function TopBar({ title, userLabel, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsx40("p", { className: "text-sm font-medium text-[var(--wh-color-muted)]", children: title ?? "Control panel" }),
-        /* @__PURE__ */ jsxs19("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsx43("p", { className: "text-sm font-medium text-[var(--wh-color-muted)]", children: title ?? "Control panel" }),
+        /* @__PURE__ */ jsxs22("div", { className: "flex items-center gap-3", children: [
           actions,
-          userLabel ? /* @__PURE__ */ jsx40("span", { className: "rounded-[var(--wh-radius-sm)] bg-[var(--wh-color-canvas)] px-3 py-1 text-sm", children: userLabel }) : null
+          userLabel ? /* @__PURE__ */ jsx43("span", { className: "rounded-[var(--wh-radius-sm)] bg-[var(--wh-color-canvas)] px-3 py-1 text-sm", children: userLabel }) : null
         ] })
       ]
     }
@@ -1392,7 +1863,7 @@ function TopBar({ title, userLabel, actions, className }) {
 }
 
 // src/admin/components/AdminLayout/AdminLayout.tsx
-import { jsx as jsx41, jsxs as jsxs20 } from "react/jsx-runtime";
+import { jsx as jsx44, jsxs as jsxs23 } from "react/jsx-runtime";
 function AdminLayout({
   brand,
   navItems,
@@ -1402,17 +1873,17 @@ function AdminLayout({
   children,
   className
 }) {
-  return /* @__PURE__ */ jsxs20("div", { className: cn("wh-ui flex min-h-screen bg-[var(--wh-color-canvas)]", className), children: [
-    /* @__PURE__ */ jsx41(Sidebar, { brand, items: navItems }),
-    /* @__PURE__ */ jsxs20("div", { className: "flex min-w-0 flex-1 flex-col", children: [
-      /* @__PURE__ */ jsx41(TopBar, { title: topBarTitle, userLabel, actions: topBarActions }),
-      /* @__PURE__ */ jsx41("main", { className: "flex-1 p-6", children })
+  return /* @__PURE__ */ jsxs23("div", { className: cn("wh-ui flex min-h-screen bg-[var(--wh-color-canvas)]", className), children: [
+    /* @__PURE__ */ jsx44(Sidebar, { brand, items: navItems }),
+    /* @__PURE__ */ jsxs23("div", { className: "flex min-w-0 flex-1 flex-col", children: [
+      /* @__PURE__ */ jsx44(TopBar, { title: topBarTitle, userLabel, actions: topBarActions }),
+      /* @__PURE__ */ jsx44("main", { className: "flex-1 p-6", children })
     ] })
   ] });
 }
 
 // src/admin/components/LoginForm/LoginForm.tsx
-import { jsx as jsx42, jsxs as jsxs21 } from "react/jsx-runtime";
+import { jsx as jsx45, jsxs as jsxs24 } from "react/jsx-runtime";
 function LoginForm({
   action = "/login",
   method = "post",
@@ -1438,18 +1909,18 @@ function LoginForm({
     });
   };
   const bannerSrc = bannerUrl || adminAsset("system/banner-dialog-login.gif");
-  return /* @__PURE__ */ jsxs21("form", { action, method, onSubmit: handleSubmit, className: cn(className), children: [
-    csrfToken ? /* @__PURE__ */ jsx42("input", { type: "hidden", name: csrfFieldName, value: csrfToken }) : null,
-    /* @__PURE__ */ jsxs21(
+  return /* @__PURE__ */ jsxs24("form", { action, method, onSubmit: handleSubmit, className: cn(className), children: [
+    csrfToken ? /* @__PURE__ */ jsx45("input", { type: "hidden", name: csrfFieldName, value: csrfToken }) : null,
+    /* @__PURE__ */ jsxs24(
       DialogWindow,
       {
         title: "Sign in \u2014 WebHemi CMS Admin",
         titleBarControls: null,
-        banner: /* @__PURE__ */ jsx42("img", { alt: "", className: "dialog-banner", src: bannerSrc }),
-        actions: /* @__PURE__ */ jsx42(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx42(Button2, { type: "submit", isDefault: true, loading, children: "OK" }) }),
+        banner: /* @__PURE__ */ jsx45("img", { alt: "", className: "dialog-banner", src: bannerSrc }),
+        actions: /* @__PURE__ */ jsx45(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx45(Button2, { type: "submit", isDefault: true, loading, children: "OK" }) }),
         children: [
-          error ? /* @__PURE__ */ jsx42("p", { role: "alert", style: { marginTop: 0, marginBottom: 10, color: "#800000" }, children: error }) : null,
-          /* @__PURE__ */ jsx42(FieldRow, { children: /* @__PURE__ */ jsx42(
+          error ? /* @__PURE__ */ jsx45("p", { role: "alert", style: { marginTop: 0, marginBottom: 10, color: "#800000" }, children: error }) : null,
+          /* @__PURE__ */ jsx45(FieldRow, { children: /* @__PURE__ */ jsx45(
             TextBox,
             {
               id: "email",
@@ -1463,7 +1934,7 @@ function LoginForm({
               className: "w-window-xs"
             }
           ) }),
-          /* @__PURE__ */ jsx42(FieldRow, { children: /* @__PURE__ */ jsx42(
+          /* @__PURE__ */ jsx45(FieldRow, { children: /* @__PURE__ */ jsx45(
             TextBox,
             {
               id: "password",
@@ -1484,7 +1955,7 @@ function LoginForm({
 
 // src/admin/components/ControlPanel/ControlPanel.tsx
 import { useState } from "react";
-import { jsx as jsx43, jsxs as jsxs22 } from "react/jsx-runtime";
+import { jsx as jsx46, jsxs as jsxs25 } from "react/jsx-runtime";
 var ICONS = [
   { kind: "sites", label: "Sites", description: "Manage sites and their contents." },
   { kind: "hosts", label: "Hosts", description: "Add, remove and verify domains." },
@@ -1505,7 +1976,7 @@ function ControlPanel({
   paneHeight = 300
 }) {
   const [selected, setSelected] = useState(null);
-  return /* @__PURE__ */ jsx43(
+  return /* @__PURE__ */ jsx46(
     IconPanelWindow,
     {
       className,
@@ -1516,14 +1987,14 @@ function ControlPanel({
       paneHeight,
       title: "Control Panel",
       titleIcon: "control-panel",
-      titleBarControls: /* @__PURE__ */ jsxs22(TitleBarControls, { children: [
-        /* @__PURE__ */ jsx43(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-        /* @__PURE__ */ jsx43(TitleBarControl, { action: "Maximize", onClick: onMaximize }),
-        /* @__PURE__ */ jsx43(TitleBarControl, { action: "Close", onClick: onClose })
+      titleBarControls: /* @__PURE__ */ jsxs25(TitleBarControls, { children: [
+        /* @__PURE__ */ jsx46(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+        /* @__PURE__ */ jsx46(TitleBarControl, { action: "Maximize", onClick: onMaximize }),
+        /* @__PURE__ */ jsx46(TitleBarControl, { action: "Close", onClick: onClose })
       ] }),
       onMouseDown: onActivate,
       infoUnselected: !selected,
-      info: selected ? /* @__PURE__ */ jsx43(
+      info: selected ? /* @__PURE__ */ jsx46(
         IconPanelSelectionInfo,
         {
           kind: selected.kind,
@@ -1531,15 +2002,15 @@ function ControlPanel({
           description: selected.description
         }
       ) : null,
-      statusBar: /* @__PURE__ */ jsxs22(StatusBar, { children: [
-        /* @__PURE__ */ jsxs22(StatusBarField, { children: [
+      statusBar: /* @__PURE__ */ jsxs25(StatusBar, { children: [
+        /* @__PURE__ */ jsxs25(StatusBarField, { children: [
           ICONS.length,
           " items"
         ] }),
-        /* @__PURE__ */ jsx43(StatusBarField, { className: "description", children: selected?.description ?? "" }),
-        /* @__PURE__ */ jsx43(StatusBarField, {})
+        /* @__PURE__ */ jsx46(StatusBarField, { className: "description", children: selected?.description ?? "" }),
+        /* @__PURE__ */ jsx46(StatusBarField, {})
       ] }),
-      children: ICONS.map((icon) => /* @__PURE__ */ jsx43(
+      children: ICONS.map((icon) => /* @__PURE__ */ jsx46(
         SystemIcon,
         {
           kind: icon.kind,
@@ -1554,23 +2025,23 @@ function ControlPanel({
 }
 
 // src/admin/views/SiteListView.tsx
-import { jsx as jsx44, jsxs as jsxs23 } from "react/jsx-runtime";
+import { jsx as jsx47, jsxs as jsxs26 } from "react/jsx-runtime";
 function SiteListView({
   sites,
   loading = false,
   createHref = "/admin/sites/new",
   editHref = (site) => `/admin/sites/${site.id}`
 }) {
-  return /* @__PURE__ */ jsxs23("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx44(
+  return /* @__PURE__ */ jsxs26("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx47(
       PageHeader,
       {
         title: "Sites",
         description: "Multi-tenant sites bound to one or more hostnames.",
-        actions: /* @__PURE__ */ jsx44("a", { href: createHref, children: /* @__PURE__ */ jsx44(Button, { children: "New site" }) })
+        actions: /* @__PURE__ */ jsx47("a", { href: createHref, children: /* @__PURE__ */ jsx47(Button, { children: "New site" }) })
       }
     ),
-    /* @__PURE__ */ jsx44(
+    /* @__PURE__ */ jsx47(
       DataTable,
       {
         loading,
@@ -1579,7 +2050,7 @@ function SiteListView({
         emptyMessage: "No sites yet. Create the first tenant.",
         columns: [
           { key: "name", header: "Name", render: (row) => row.name },
-          { key: "slug", header: "Slug", render: (row) => /* @__PURE__ */ jsx44("code", { children: row.slug }) },
+          { key: "slug", header: "Slug", render: (row) => /* @__PURE__ */ jsx47("code", { children: row.slug }) },
           {
             key: "hosts",
             header: "Hosts",
@@ -1588,144 +2059,7 @@ function SiteListView({
           {
             key: "status",
             header: "Status",
-            render: (row) => /* @__PURE__ */ jsx44(Badge, { tone: row.enabled ? "success" : "neutral", children: row.enabled ? "Enabled" : "Disabled" })
-          },
-          {
-            key: "actions",
-            header: "",
-            render: (row) => /* @__PURE__ */ jsx44("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
-          }
-        ]
-      }
-    )
-  ] });
-}
-
-// src/admin/views/SiteHostListView.tsx
-import { jsx as jsx45, jsxs as jsxs24 } from "react/jsx-runtime";
-var statusTone = {
-  pending: "warning",
-  verified: "accent",
-  active: "success"
-};
-function SiteHostListView({
-  hosts,
-  loading = false,
-  createHref = "/admin/hosts/new",
-  verifyHref = (host) => `/admin/hosts/${host.id}/verify`
-}) {
-  return /* @__PURE__ */ jsxs24("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx45(
-      PageHeader,
-      {
-        title: "Hosts",
-        description: "Domain names mapped to sites and surfaces (admin, site, api).",
-        actions: /* @__PURE__ */ jsx45("a", { href: createHref, children: /* @__PURE__ */ jsx45(Button, { children: "Add host" }) })
-      }
-    ),
-    /* @__PURE__ */ jsx45(
-      DataTable,
-      {
-        loading,
-        rows: hosts,
-        rowKey: (row) => row.id,
-        emptyMessage: "No hosts configured.",
-        columns: [
-          { key: "host", header: "Hostname", render: (row) => /* @__PURE__ */ jsx45("code", { children: row.host }) },
-          { key: "site", header: "Site", render: (row) => row.siteName },
-          {
-            key: "surface",
-            header: "Surface",
-            render: (row) => /* @__PURE__ */ jsx45(Badge, { tone: "accent", children: row.surface })
-          },
-          {
-            key: "status",
-            header: "Status",
-            render: (row) => /* @__PURE__ */ jsx45(Badge, { tone: statusTone[row.status], children: row.status })
-          },
-          {
-            key: "actions",
-            header: "",
-            render: (row) => row.status === "pending" ? /* @__PURE__ */ jsx45("a", { href: verifyHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Verify" }) : "\u2014"
-          }
-        ]
-      }
-    )
-  ] });
-}
-
-// src/admin/views/UserListView.tsx
-import { jsx as jsx46, jsxs as jsxs25 } from "react/jsx-runtime";
-function UserListView({
-  users,
-  loading = false,
-  createHref = "/admin/users/new",
-  editHref = (user) => `/admin/users/${user.id}`
-}) {
-  return /* @__PURE__ */ jsxs25("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx46(
-      PageHeader,
-      {
-        title: "Users",
-        description: "Accounts with global roles and optional per-site assignments.",
-        actions: /* @__PURE__ */ jsx46("a", { href: createHref, children: /* @__PURE__ */ jsx46(Button, { children: "New user" }) })
-      }
-    ),
-    /* @__PURE__ */ jsx46(
-      DataTable,
-      {
-        loading,
-        rows: users,
-        rowKey: (row) => row.id,
-        emptyMessage: "No users yet.",
-        columns: [
-          { key: "email", header: "Email", render: (row) => row.email },
-          {
-            key: "roles",
-            header: "Roles",
-            render: (row) => /* @__PURE__ */ jsx46("div", { className: "flex flex-wrap gap-1", children: row.roles.map((role) => /* @__PURE__ */ jsx46(Badge, { children: role }, role)) })
-          },
-          {
-            key: "actions",
-            header: "",
-            render: (row) => /* @__PURE__ */ jsx46("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
-          }
-        ]
-      }
-    )
-  ] });
-}
-
-// src/admin/views/RoleListView.tsx
-import { jsx as jsx47, jsxs as jsxs26 } from "react/jsx-runtime";
-function RoleListView({
-  roles,
-  loading = false,
-  createHref = "/admin/roles/new",
-  editHref = (role) => `/admin/roles/${role.id}`
-}) {
-  return /* @__PURE__ */ jsxs26("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx47(
-      PageHeader,
-      {
-        title: "Roles & permissions",
-        description: "RBAC roles with permission strings such as site.list.",
-        actions: /* @__PURE__ */ jsx47("a", { href: createHref, children: /* @__PURE__ */ jsx47(Button, { children: "New role" }) })
-      }
-    ),
-    /* @__PURE__ */ jsx47(
-      DataTable,
-      {
-        loading,
-        rows: roles,
-        rowKey: (row) => row.id,
-        emptyMessage: "No roles defined.",
-        columns: [
-          { key: "name", header: "Role", render: (row) => row.name },
-          {
-            key: "permissions",
-            header: "Permissions",
-            render: (row) => /* @__PURE__ */ jsx47("div", { className: "flex flex-wrap gap-1", children: row.permissions.map((permission) => /* @__PURE__ */ jsx47(Badge, { tone: "accent", children: permission }, permission)) })
+            render: (row) => /* @__PURE__ */ jsx47(Badge, { tone: row.enabled ? "success" : "neutral", children: row.enabled ? "Enabled" : "Disabled" })
           },
           {
             key: "actions",
@@ -1738,8 +2072,145 @@ function RoleListView({
   ] });
 }
 
+// src/admin/views/SiteHostListView.tsx
+import { jsx as jsx48, jsxs as jsxs27 } from "react/jsx-runtime";
+var statusTone = {
+  pending: "warning",
+  verified: "accent",
+  active: "success"
+};
+function SiteHostListView({
+  hosts,
+  loading = false,
+  createHref = "/admin/hosts/new",
+  verifyHref = (host) => `/admin/hosts/${host.id}/verify`
+}) {
+  return /* @__PURE__ */ jsxs27("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx48(
+      PageHeader,
+      {
+        title: "Hosts",
+        description: "Domain names mapped to sites and surfaces (admin, site, api).",
+        actions: /* @__PURE__ */ jsx48("a", { href: createHref, children: /* @__PURE__ */ jsx48(Button, { children: "Add host" }) })
+      }
+    ),
+    /* @__PURE__ */ jsx48(
+      DataTable,
+      {
+        loading,
+        rows: hosts,
+        rowKey: (row) => row.id,
+        emptyMessage: "No hosts configured.",
+        columns: [
+          { key: "host", header: "Hostname", render: (row) => /* @__PURE__ */ jsx48("code", { children: row.host }) },
+          { key: "site", header: "Site", render: (row) => row.siteName },
+          {
+            key: "surface",
+            header: "Surface",
+            render: (row) => /* @__PURE__ */ jsx48(Badge, { tone: "accent", children: row.surface })
+          },
+          {
+            key: "status",
+            header: "Status",
+            render: (row) => /* @__PURE__ */ jsx48(Badge, { tone: statusTone[row.status], children: row.status })
+          },
+          {
+            key: "actions",
+            header: "",
+            render: (row) => row.status === "pending" ? /* @__PURE__ */ jsx48("a", { href: verifyHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Verify" }) : "\u2014"
+          }
+        ]
+      }
+    )
+  ] });
+}
+
+// src/admin/views/UserListView.tsx
+import { jsx as jsx49, jsxs as jsxs28 } from "react/jsx-runtime";
+function UserListView({
+  users,
+  loading = false,
+  createHref = "/admin/users/new",
+  editHref = (user) => `/admin/users/${user.id}`
+}) {
+  return /* @__PURE__ */ jsxs28("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx49(
+      PageHeader,
+      {
+        title: "Users",
+        description: "Accounts with global roles and optional per-site assignments.",
+        actions: /* @__PURE__ */ jsx49("a", { href: createHref, children: /* @__PURE__ */ jsx49(Button, { children: "New user" }) })
+      }
+    ),
+    /* @__PURE__ */ jsx49(
+      DataTable,
+      {
+        loading,
+        rows: users,
+        rowKey: (row) => row.id,
+        emptyMessage: "No users yet.",
+        columns: [
+          { key: "email", header: "Email", render: (row) => row.email },
+          {
+            key: "roles",
+            header: "Roles",
+            render: (row) => /* @__PURE__ */ jsx49("div", { className: "flex flex-wrap gap-1", children: row.roles.map((role) => /* @__PURE__ */ jsx49(Badge, { children: role }, role)) })
+          },
+          {
+            key: "actions",
+            header: "",
+            render: (row) => /* @__PURE__ */ jsx49("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
+          }
+        ]
+      }
+    )
+  ] });
+}
+
+// src/admin/views/RoleListView.tsx
+import { jsx as jsx50, jsxs as jsxs29 } from "react/jsx-runtime";
+function RoleListView({
+  roles,
+  loading = false,
+  createHref = "/admin/roles/new",
+  editHref = (role) => `/admin/roles/${role.id}`
+}) {
+  return /* @__PURE__ */ jsxs29("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx50(
+      PageHeader,
+      {
+        title: "Roles & permissions",
+        description: "RBAC roles with permission strings such as site.list.",
+        actions: /* @__PURE__ */ jsx50("a", { href: createHref, children: /* @__PURE__ */ jsx50(Button, { children: "New role" }) })
+      }
+    ),
+    /* @__PURE__ */ jsx50(
+      DataTable,
+      {
+        loading,
+        rows: roles,
+        rowKey: (row) => row.id,
+        emptyMessage: "No roles defined.",
+        columns: [
+          { key: "name", header: "Role", render: (row) => row.name },
+          {
+            key: "permissions",
+            header: "Permissions",
+            render: (row) => /* @__PURE__ */ jsx50("div", { className: "flex flex-wrap gap-1", children: row.permissions.map((permission) => /* @__PURE__ */ jsx50(Badge, { tone: "accent", children: permission }, permission)) })
+          },
+          {
+            key: "actions",
+            header: "",
+            render: (row) => /* @__PURE__ */ jsx50("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
+          }
+        ]
+      }
+    )
+  ] });
+}
+
 // src/admin/pages/LoginPage.tsx
-import { jsx as jsx48 } from "react/jsx-runtime";
+import { jsx as jsx51 } from "react/jsx-runtime";
 function LoginPage({
   action,
   csrfToken,
@@ -1748,7 +2219,7 @@ function LoginPage({
   error,
   bannerUrl
 }) {
-  return /* @__PURE__ */ jsx48(
+  return /* @__PURE__ */ jsx51(
     LoginForm,
     {
       action,
@@ -1763,7 +2234,7 @@ function LoginPage({
 
 // src/admin/pages/AdminDesktop.tsx
 import { useRef as useRef3, useState as useState2 } from "react";
-import { jsx as jsx49, jsxs as jsxs27 } from "react/jsx-runtime";
+import { jsx as jsx52, jsxs as jsxs30 } from "react/jsx-runtime";
 var CASCADE_ORIGIN = { left: 120, top: 32 };
 var CASCADE_STEP = 28;
 function AdminDesktop({ sites = [], className }) {
@@ -1826,9 +2297,9 @@ function AdminDesktop({ sites = [], className }) {
       return { ...prev, z: raiseZ() };
     });
   };
-  return /* @__PURE__ */ jsxs27("div", { className: cn("dashboard", className), children: [
-    /* @__PURE__ */ jsxs27("div", { className: "icon-list", children: [
-      sites.map((site) => /* @__PURE__ */ jsx49(
+  return /* @__PURE__ */ jsxs30("div", { className: cn("dashboard", className), children: [
+    /* @__PURE__ */ jsxs30("div", { className: "icon-list", children: [
+      sites.map((site) => /* @__PURE__ */ jsx52(
         SystemIcon,
         {
           kind: "site",
@@ -1838,7 +2309,7 @@ function AdminDesktop({ sites = [], className }) {
         },
         site.id
       )),
-      /* @__PURE__ */ jsx49(
+      /* @__PURE__ */ jsx52(
         SystemIcon,
         {
           kind: "control-panel",
@@ -1848,31 +2319,31 @@ function AdminDesktop({ sites = [], className }) {
         }
       )
     ] }),
-    controlPanel ? /* @__PURE__ */ jsx49(
+    controlPanel ? /* @__PURE__ */ jsx52(
       "div",
       {
         className: "desktop-window",
         style: { left: controlPanel.left, top: controlPanel.top, zIndex: controlPanel.z },
-        children: /* @__PURE__ */ jsx49(ControlPanel, { onClose: closeControlPanel, onActivate: activateControlPanel })
+        children: /* @__PURE__ */ jsx52(ControlPanel, { onClose: closeControlPanel, onActivate: activateControlPanel })
       }
     ) : null,
-    openSites.map((win) => /* @__PURE__ */ jsx49(
+    openSites.map((win) => /* @__PURE__ */ jsx52(
       "div",
       {
         className: "desktop-window",
         style: { left: win.left, top: win.top, zIndex: win.z },
         onMouseDown: () => activateSite(win.id),
-        children: /* @__PURE__ */ jsx49(
+        children: /* @__PURE__ */ jsx52(
           DialogWindow,
           {
             title: win.name,
             titleIcon: "site",
             type: "info",
-            titleBarControls: /* @__PURE__ */ jsx49(TitleBarControls, { children: /* @__PURE__ */ jsx49(TitleBarControl, { action: "Close", onClick: () => closeSite(win.id) }) }),
-            actions: /* @__PURE__ */ jsx49(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx49(Button2, { type: "button", isDefault: true, accessKey: "o", onClick: () => closeSite(win.id), children: "OK" }) }),
-            children: /* @__PURE__ */ jsxs27("p", { style: { margin: 0 }, children: [
+            titleBarControls: /* @__PURE__ */ jsx52(TitleBarControls, { children: /* @__PURE__ */ jsx52(TitleBarControl, { action: "Close", onClick: () => closeSite(win.id) }) }),
+            actions: /* @__PURE__ */ jsx52(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx52(Button2, { type: "button", isDefault: true, accessKey: "o", onClick: () => closeSite(win.id), children: "OK" }) }),
+            children: /* @__PURE__ */ jsxs30("p", { style: { margin: 0 }, children: [
               "Site administration for ",
-              /* @__PURE__ */ jsx49("strong", { children: win.name }),
+              /* @__PURE__ */ jsx52("strong", { children: win.name }),
               " will appear here in a later release."
             ] })
           }
@@ -1884,7 +2355,7 @@ function AdminDesktop({ sites = [], className }) {
 }
 
 // src/admin/pages/AdminDashboard.tsx
-import { jsx as jsx50, jsxs as jsxs28 } from "react/jsx-runtime";
+import { jsx as jsx53, jsxs as jsxs31 } from "react/jsx-runtime";
 function AdminDashboard({
   userLabel,
   navItems,
@@ -1892,21 +2363,21 @@ function AdminDashboard({
   hostCount = 0,
   flashes
 }) {
-  return /* @__PURE__ */ jsxs28(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Dashboard", children: [
-    /* @__PURE__ */ jsx50(FlashList, { flashes }),
-    /* @__PURE__ */ jsx50(
+  return /* @__PURE__ */ jsxs31(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Dashboard", children: [
+    /* @__PURE__ */ jsx53(FlashList, { flashes }),
+    /* @__PURE__ */ jsx53(
       PageHeader,
       {
         title: "Dashboard",
         description: "Multi-tenant control panel powered by @webhemi/ui."
       }
     ),
-    /* @__PURE__ */ jsxs28("div", { style: { display: "flex", gap: "1.5rem", flexWrap: "wrap" }, children: [
-      /* @__PURE__ */ jsxs28(Alert, { tone: "info", title: "Sites", children: [
+    /* @__PURE__ */ jsxs31("div", { style: { display: "flex", gap: "1.5rem", flexWrap: "wrap" }, children: [
+      /* @__PURE__ */ jsxs31(Alert, { tone: "info", title: "Sites", children: [
         siteCount,
         " configured"
       ] }),
-      /* @__PURE__ */ jsxs28(Alert, { tone: "info", title: "Hosts", children: [
+      /* @__PURE__ */ jsxs31(Alert, { tone: "info", title: "Hosts", children: [
         hostCount,
         " configured"
       ] })
@@ -1915,7 +2386,7 @@ function AdminDashboard({
 }
 
 // src/admin/pages/SitesPage.tsx
-import { jsx as jsx51, jsxs as jsxs29 } from "react/jsx-runtime";
+import { jsx as jsx54, jsxs as jsxs32 } from "react/jsx-runtime";
 function SitesPage({
   userLabel,
   navItems,
@@ -1924,19 +2395,19 @@ function SitesPage({
   createAction,
   flashes
 }) {
-  return /* @__PURE__ */ jsxs29(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Sites", children: [
-    /* @__PURE__ */ jsx51(FlashList, { flashes }),
-    /* @__PURE__ */ jsx51(SiteListView, { sites: sites || [], createHref: "#create-site" }),
-    canEdit ? /* @__PURE__ */ jsxs29("form", { id: "create-site", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
-      /* @__PURE__ */ jsx51(FormField, { label: "Name", htmlFor: "name", required: true, children: /* @__PURE__ */ jsx51(Input, { id: "name", name: "name", required: true }) }),
-      /* @__PURE__ */ jsx51(FormField, { label: "Slug", htmlFor: "slug", required: true, hint: "Lowercase identifier", children: /* @__PURE__ */ jsx51(Input, { id: "slug", name: "slug", required: true }) }),
-      /* @__PURE__ */ jsx51(Button, { type: "submit", children: "Create site" })
+  return /* @__PURE__ */ jsxs32(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Sites", children: [
+    /* @__PURE__ */ jsx54(FlashList, { flashes }),
+    /* @__PURE__ */ jsx54(SiteListView, { sites: sites || [], createHref: "#create-site" }),
+    canEdit ? /* @__PURE__ */ jsxs32("form", { id: "create-site", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
+      /* @__PURE__ */ jsx54(FormField, { label: "Name", htmlFor: "name", required: true, children: /* @__PURE__ */ jsx54(Input, { id: "name", name: "name", required: true }) }),
+      /* @__PURE__ */ jsx54(FormField, { label: "Slug", htmlFor: "slug", required: true, hint: "Lowercase identifier", children: /* @__PURE__ */ jsx54(Input, { id: "slug", name: "slug", required: true }) }),
+      /* @__PURE__ */ jsx54(Button, { type: "submit", children: "Create site" })
     ] }) : null
   ] });
 }
 
 // src/admin/pages/HostsPage.tsx
-import { jsx as jsx52, jsxs as jsxs30 } from "react/jsx-runtime";
+import { jsx as jsx55, jsxs as jsxs33 } from "react/jsx-runtime";
 function HostsPage({
   userLabel,
   navItems,
@@ -1946,34 +2417,34 @@ function HostsPage({
   createAction,
   flashes
 }) {
-  return /* @__PURE__ */ jsxs30(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Hosts", children: [
-    /* @__PURE__ */ jsx52(FlashList, { flashes }),
-    /* @__PURE__ */ jsx52(SiteHostListView, { hosts: hosts || [], createHref: "#create-host" }),
-    canEdit ? /* @__PURE__ */ jsxs30("form", { id: "create-host", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
-      /* @__PURE__ */ jsx52(FormField, { label: "Hostname", htmlFor: "host", required: true, children: /* @__PURE__ */ jsx52(Input, { id: "host", name: "host", placeholder: "www.example.com", required: true }) }),
-      /* @__PURE__ */ jsx52(FormField, { label: "Site", htmlFor: "site_id", required: true, children: /* @__PURE__ */ jsx52(Select, { id: "site_id", name: "site_id", required: true, children: (sites || []).map((site) => /* @__PURE__ */ jsx52("option", { value: site.id, children: site.name }, site.id)) }) }),
-      /* @__PURE__ */ jsx52(FormField, { label: "Surface", htmlFor: "surface", children: /* @__PURE__ */ jsxs30(Select, { id: "surface", name: "surface", defaultValue: "site", children: [
-        /* @__PURE__ */ jsx52("option", { value: "admin", children: "admin" }),
-        /* @__PURE__ */ jsx52("option", { value: "site", children: "site" }),
-        /* @__PURE__ */ jsx52("option", { value: "api", children: "api" })
+  return /* @__PURE__ */ jsxs33(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Hosts", children: [
+    /* @__PURE__ */ jsx55(FlashList, { flashes }),
+    /* @__PURE__ */ jsx55(SiteHostListView, { hosts: hosts || [], createHref: "#create-host" }),
+    canEdit ? /* @__PURE__ */ jsxs33("form", { id: "create-host", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
+      /* @__PURE__ */ jsx55(FormField, { label: "Hostname", htmlFor: "host", required: true, children: /* @__PURE__ */ jsx55(Input, { id: "host", name: "host", placeholder: "www.example.com", required: true }) }),
+      /* @__PURE__ */ jsx55(FormField, { label: "Site", htmlFor: "site_id", required: true, children: /* @__PURE__ */ jsx55(Select, { id: "site_id", name: "site_id", required: true, children: (sites || []).map((site) => /* @__PURE__ */ jsx55("option", { value: site.id, children: site.name }, site.id)) }) }),
+      /* @__PURE__ */ jsx55(FormField, { label: "Surface", htmlFor: "surface", children: /* @__PURE__ */ jsxs33(Select, { id: "surface", name: "surface", defaultValue: "site", children: [
+        /* @__PURE__ */ jsx55("option", { value: "admin", children: "admin" }),
+        /* @__PURE__ */ jsx55("option", { value: "site", children: "site" }),
+        /* @__PURE__ */ jsx55("option", { value: "api", children: "api" })
       ] }) }),
-      /* @__PURE__ */ jsx52(Button, { type: "submit", children: "Add host" })
+      /* @__PURE__ */ jsx55(Button, { type: "submit", children: "Add host" })
     ] }) : null
   ] });
 }
 
 // src/themes/default/components/SiteHeader/SiteHeader.tsx
-import { jsx as jsx53, jsxs as jsxs31 } from "react/jsx-runtime";
+import { jsx as jsx56, jsxs as jsxs34 } from "react/jsx-runtime";
 function SiteHeader({ siteName, navItems = [], actions, className }) {
-  return /* @__PURE__ */ jsx53(
+  return /* @__PURE__ */ jsx56(
     "header",
     {
       className: cn(
         "wh-ui border-b border-[var(--wh-color-line)] bg-[var(--wh-color-surface)]",
         className
       ),
-      children: /* @__PURE__ */ jsxs31("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
-        /* @__PURE__ */ jsx53(
+      children: /* @__PURE__ */ jsxs34("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
+        /* @__PURE__ */ jsx56(
           "a",
           {
             href: "/",
@@ -1981,7 +2452,7 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
             children: siteName
           }
         ),
-        /* @__PURE__ */ jsx53("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx53(
+        /* @__PURE__ */ jsx56("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx56(
           "a",
           {
             href: item.href,
@@ -1993,16 +2464,16 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
           },
           item.href
         )) }),
-        actions ? /* @__PURE__ */ jsx53("div", { className: "flex items-center gap-2", children: actions }) : null
+        actions ? /* @__PURE__ */ jsx56("div", { className: "flex items-center gap-2", children: actions }) : null
       ] })
     }
   );
 }
 
 // src/themes/default/components/Hero/Hero.tsx
-import { jsx as jsx54, jsxs as jsxs32 } from "react/jsx-runtime";
+import { jsx as jsx57, jsxs as jsxs35 } from "react/jsx-runtime";
 function Hero({ title, subtitle, actions, className }) {
-  return /* @__PURE__ */ jsxs32(
+  return /* @__PURE__ */ jsxs35(
     "section",
     {
       className: cn(
@@ -2010,7 +2481,7 @@ function Hero({ title, subtitle, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsx54(
+        /* @__PURE__ */ jsx57(
           "div",
           {
             className: "pointer-events-none absolute inset-0 opacity-40",
@@ -2020,10 +2491,10 @@ function Hero({ title, subtitle, actions, className }) {
             "aria-hidden": true
           }
         ),
-        /* @__PURE__ */ jsxs32("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
-          /* @__PURE__ */ jsx54("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
-          subtitle ? /* @__PURE__ */ jsx54("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
-          actions ? /* @__PURE__ */ jsx54("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
+        /* @__PURE__ */ jsxs35("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
+          /* @__PURE__ */ jsx57("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
+          subtitle ? /* @__PURE__ */ jsx57("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
+          actions ? /* @__PURE__ */ jsx57("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
         ] })
       ]
     }
@@ -2041,8 +2512,14 @@ export {
   ControlPanel,
   DataTable,
   DialogWindow,
+  EXPLORER_FIXTURE_ITEMS,
+  EXPLORER_FIXTURE_SITE,
+  EXPLORER_FIXTURE_TREE,
+  ExplorerContent,
+  ExplorerToolbar,
   FieldBorder,
   FieldRow,
+  FileExplorerWindow,
   FlashList,
   FormField,
   GroupBox,
@@ -2097,6 +2574,14 @@ export {
   adminAsset,
   adminIconAsset,
   attachCustomScrollbar,
+  explorerContentItems,
+  explorerTreeChildren,
+  findExplorerItem,
+  formatExplorerSize,
+  isExplorerDocument,
+  isExplorerFolder,
+  isExplorerLocation,
+  isExplorerTreeExpandable,
   promoteTabRow,
   resolveTitleBarIcon,
   useCustomScrollbar,
