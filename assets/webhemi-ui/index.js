@@ -1018,14 +1018,14 @@ function SystemIcon({
     if (href === "#") {
       event.preventDefault();
     }
-    onActivate?.();
+    onActivate?.(event);
   };
   const handleDoubleClick = (event) => {
     onDoubleClick?.(event);
     if (event.defaultPrevented) {
       return;
     }
-    onActivate?.();
+    onActivate?.(event);
     onOpen?.();
   };
   return /* @__PURE__ */ jsx28(
@@ -1165,7 +1165,58 @@ function WizardWindow({
 }
 
 // src/admin/bricks/FileExplorerWindow/FileExplorerWindow.tsx
+import { useEffect as useEffect4, useMemo, useState as useState4 } from "react";
+
+// src/admin/bricks/FileExplorerWindow/ExplorerContent.tsx
 import { useState } from "react";
+
+// src/admin/bricks/FileExplorerWindow/explorerDnd.ts
+var EXPLORER_DND_MIME = "application/x-webhemi-explorer-ids";
+var activeDragIds = [];
+function beginExplorerDrag(ids, dataTransfer) {
+  activeDragIds = [...ids];
+  if (!dataTransfer) {
+    return;
+  }
+  try {
+    dataTransfer.effectAllowed = "move";
+    dataTransfer.setData(EXPLORER_DND_MIME, JSON.stringify(ids));
+    dataTransfer.setData("text/plain", ids.join("\n"));
+  } catch {
+  }
+}
+function endExplorerDrag() {
+  activeDragIds = [];
+}
+function readExplorerDragIds(event) {
+  const data = event.dataTransfer;
+  if (!data) {
+    return [...activeDragIds];
+  }
+  try {
+    const fromMime = parseJsonIds(data.getData(EXPLORER_DND_MIME));
+    if (fromMime.length > 0) {
+      return fromMime;
+    }
+    const fromText = data.getData("text/plain").split("\n").map((id) => id.trim()).filter(Boolean);
+    if (fromText.length > 0) {
+      return fromText;
+    }
+  } catch {
+  }
+  return [...activeDragIds];
+}
+function parseJsonIds(raw) {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 // src/admin/bricks/FileExplorerWindow/types.ts
 function formatExplorerSize(sizeBytes) {
@@ -1225,25 +1276,126 @@ function findExplorerItem(roots, id) {
   }
   return null;
 }
+function findExplorerParent(roots, id) {
+  if (!id) {
+    return null;
+  }
+  for (const node of roots) {
+    if (node.id === id) {
+      return null;
+    }
+    const kids = node.children ?? [];
+    if (kids.some((child) => child.id === id)) {
+      return node;
+    }
+    const nested = findExplorerParent(kids, id);
+    if (nested) {
+      return nested;
+    }
+  }
+  return null;
+}
+function findExplorerAncestorIds(roots, id) {
+  if (!id) {
+    return [];
+  }
+  const walk = (nodes, path) => {
+    for (const node of nodes) {
+      if (node.id === id) {
+        return path;
+      }
+      const found = walk(node.children ?? [], [...path, node.id]);
+      if (found) {
+        return found;
+      }
+    }
+    return null;
+  };
+  return walk(roots, []) ?? [];
+}
 
 // src/admin/bricks/FileExplorerWindow/ExplorerContent.tsx
 import { jsx as jsx34, jsxs as jsxs14 } from "react/jsx-runtime";
 function Glyph({ kind }) {
   return /* @__PURE__ */ jsx34("span", { className: cn("explorer-glyph", kind), "aria-hidden": true });
 }
+function modifiersFromEvent(event) {
+  return {
+    ctrlKey: event.ctrlKey,
+    metaKey: event.metaKey,
+    shiftKey: event.shiftKey
+  };
+}
 function ExplorerContent({
   view,
   items,
-  selectedId = null,
+  selectedIds = [],
+  cutItemIds = [],
   onSelect,
-  onOpen
+  onOpen,
+  onItemsDrop
 }) {
+  const selected = new Set(selectedIds);
+  const cut = new Set(cutItemIds);
+  const [dragOverId, setDragOverId] = useState(null);
   const openItem = (item) => {
     if (isExplorerDocument(item)) {
       return;
     }
     onOpen?.(item);
   };
+  const selectFromMouse = (item, event) => {
+    onSelect?.(item, modifiersFromEvent(event));
+  };
+  const onDragStartItem = (item, event) => {
+    if (!onItemsDrop) {
+      event.preventDefault();
+      return;
+    }
+    const ids = selected.has(item.id) ? selectedIds : [item.id];
+    beginExplorerDrag(ids, event.dataTransfer);
+    if (!selected.has(item.id)) {
+      onSelect?.(item, { ctrlKey: false, metaKey: false, shiftKey: false });
+    }
+  };
+  const canDropOn = (item) => isExplorerLocation(item) && !item.disabled;
+  const onDragOverItem = (item, event) => {
+    if (!onItemsDrop || !canDropOn(item)) {
+      return;
+    }
+    event.preventDefault();
+    try {
+      event.dataTransfer.dropEffect = "move";
+    } catch {
+    }
+    if (dragOverId !== item.id) {
+      setDragOverId(item.id);
+    }
+  };
+  const onDragLeaveItem = (item) => {
+    if (dragOverId === item.id) {
+      setDragOverId(null);
+    }
+  };
+  const onDropItem = (item, event) => {
+    if (!onItemsDrop || !canDropOn(item)) {
+      return;
+    }
+    event.preventDefault();
+    setDragOverId(null);
+    const ids = readExplorerDragIds(event).filter((id) => id !== item.id);
+    endExplorerDrag();
+    if (ids.length === 0) {
+      return;
+    }
+    onItemsDrop(ids, item.id);
+  };
+  const itemClass = (item) => cn(
+    item.hidden && "is-hidden",
+    selected.has(item.id) && "is-selected",
+    cut.has(item.id) && "is-cut",
+    dragOverId === item.id && "is-drag-over"
+  );
   if (view === "large-icons") {
     return /* @__PURE__ */ jsx34("div", { className: "explorer-content-inner large-icons", children: items.map((item) => /* @__PURE__ */ jsx34(
       SystemIcon,
@@ -1251,9 +1403,14 @@ function ExplorerContent({
         kind: item.kind,
         label: item.label,
         labelTone: "dark",
-        className: cn(item.hidden && "is-hidden", selectedId === item.id && "is-selected"),
-        onActivate: () => onSelect?.(item),
-        onOpen: () => openItem(item)
+        draggable: Boolean(onItemsDrop),
+        className: itemClass(item),
+        onActivate: (event) => selectFromMouse(item, event),
+        onOpen: () => openItem(item),
+        onDragStart: (event) => onDragStartItem(item, event),
+        onDragOver: (event) => onDragOverItem(item, event),
+        onDragLeave: () => onDragLeaveItem(item),
+        onDrop: (event) => onDropItem(item, event)
       },
       item.id
     )) });
@@ -1263,19 +1420,20 @@ function ExplorerContent({
       "a",
       {
         href: "#",
-        className: cn(
-          "explorer-list-item",
-          item.hidden && "is-hidden",
-          selectedId === item.id && "is-selected"
-        ),
+        draggable: Boolean(onItemsDrop),
+        className: cn("explorer-list-item", itemClass(item)),
         onClick: (event) => {
           event.preventDefault();
-          onSelect?.(item);
+          selectFromMouse(item, event);
         },
         onDoubleClick: (event) => {
           event.preventDefault();
           openItem(item);
         },
+        onDragStart: (event) => onDragStartItem(item, event),
+        onDragOver: (event) => onDragOverItem(item, event),
+        onDragLeave: () => onDragLeaveItem(item),
+        onDrop: (event) => onDropItem(item, event),
         children: [
           /* @__PURE__ */ jsx34(Glyph, { kind: item.kind }),
           /* @__PURE__ */ jsx34("span", { className: "label", children: item.label })
@@ -1294,10 +1452,15 @@ function ExplorerContent({
     /* @__PURE__ */ jsx34("tbody", { children: items.map((item) => /* @__PURE__ */ jsxs14(
       TableRow,
       {
-        highlighted: selectedId === item.id,
-        className: cn(item.hidden && "is-hidden"),
-        onClick: () => onSelect?.(item),
+        draggable: Boolean(onItemsDrop),
+        highlighted: selected.has(item.id),
+        className: itemClass(item),
+        onClick: (event) => selectFromMouse(item, event),
         onDoubleClick: () => openItem(item),
+        onDragStart: (event) => onDragStartItem(item, event),
+        onDragOver: (event) => onDragOverItem(item, event),
+        onDragLeave: () => onDragLeaveItem(item),
+        onDrop: (event) => onDropItem(item, event),
         children: [
           /* @__PURE__ */ jsxs14("td", { className: "name-cell", children: [
             /* @__PURE__ */ jsx34(Glyph, { kind: item.kind }),
@@ -1313,8 +1476,430 @@ function ExplorerContent({
   ] }) });
 }
 
+// src/admin/bricks/FileExplorerWindow/ExplorerMenuBar.tsx
+import {
+  useEffect as useEffect3,
+  useId,
+  useRef as useRef3,
+  useState as useState2
+} from "react";
+import { Fragment as Fragment5, jsx as jsx35, jsxs as jsxs15 } from "react/jsx-runtime";
+function MenuLabel({ text, accessKey }) {
+  return /* @__PURE__ */ jsx35(Fragment5, { children: underlineAccessKey(text, accessKey) });
+}
+function buildMenus(props) {
+  const {
+    view,
+    onViewChange,
+    onFileOpen,
+    fileOpenDisabled = false,
+    onNewFolder,
+    onNewPage,
+    onRename,
+    onDelete,
+    onProperties,
+    onClose,
+    onUndo,
+    onCut,
+    onCopy,
+    onPaste,
+    onSelectAll,
+    onRefresh,
+    statusBarVisible = true,
+    onStatusBarToggle,
+    onAbout
+  } = props;
+  return {
+    file: [
+      {
+        kind: "item",
+        id: "new-folder",
+        label: "New Folder",
+        accessKey: "F",
+        disabled: !onNewFolder,
+        onSelect: onNewFolder
+      },
+      {
+        kind: "item",
+        id: "new-page",
+        label: "New Page",
+        accessKey: "N",
+        disabled: !onNewPage,
+        onSelect: onNewPage
+      },
+      { kind: "separator", id: "file-sep-1" },
+      {
+        kind: "item",
+        id: "open",
+        label: "Open",
+        accessKey: "O",
+        disabled: !onFileOpen || fileOpenDisabled,
+        onSelect: onFileOpen
+      },
+      {
+        kind: "item",
+        id: "rename",
+        label: "Rename",
+        accessKey: "M",
+        disabled: !onRename,
+        onSelect: onRename
+      },
+      {
+        kind: "item",
+        id: "delete",
+        label: "Delete",
+        accessKey: "D",
+        disabled: !onDelete,
+        onSelect: onDelete
+      },
+      {
+        kind: "item",
+        id: "properties",
+        label: "Properties",
+        accessKey: "R",
+        disabled: !onProperties,
+        onSelect: onProperties
+      },
+      { kind: "separator", id: "file-sep-2" },
+      {
+        kind: "item",
+        id: "close",
+        label: "Close",
+        accessKey: "C",
+        disabled: !onClose,
+        onSelect: onClose
+      }
+    ],
+    edit: [
+      {
+        kind: "item",
+        id: "undo",
+        label: "Undo",
+        accessKey: "U",
+        disabled: !onUndo,
+        onSelect: onUndo
+      },
+      { kind: "separator", id: "edit-sep-1" },
+      {
+        kind: "item",
+        id: "cut",
+        label: "Cut",
+        accessKey: "T",
+        disabled: !onCut,
+        onSelect: onCut
+      },
+      {
+        kind: "item",
+        id: "copy",
+        label: "Copy",
+        accessKey: "C",
+        disabled: !onCopy,
+        onSelect: onCopy
+      },
+      {
+        kind: "item",
+        id: "paste",
+        label: "Paste",
+        accessKey: "P",
+        disabled: !onPaste,
+        onSelect: onPaste
+      },
+      { kind: "separator", id: "edit-sep-2" },
+      {
+        kind: "item",
+        id: "select-all",
+        label: "Select All",
+        accessKey: "A",
+        disabled: !onSelectAll,
+        onSelect: onSelectAll
+      }
+    ],
+    view: [
+      {
+        kind: "item",
+        id: "large-icons",
+        label: "Large Icons",
+        accessKey: "G",
+        role: "menuitemradio",
+        checked: view === "large-icons",
+        disabled: !onViewChange,
+        onSelect: () => onViewChange?.("large-icons")
+      },
+      {
+        kind: "item",
+        id: "list",
+        label: "List",
+        accessKey: "L",
+        role: "menuitemradio",
+        checked: view === "list",
+        disabled: !onViewChange,
+        onSelect: () => onViewChange?.("list")
+      },
+      {
+        kind: "item",
+        id: "details",
+        label: "Details",
+        accessKey: "D",
+        role: "menuitemradio",
+        checked: view === "details",
+        disabled: !onViewChange,
+        onSelect: () => onViewChange?.("details")
+      },
+      { kind: "separator", id: "view-sep-1" },
+      {
+        kind: "item",
+        id: "refresh",
+        label: "Refresh",
+        accessKey: "R",
+        disabled: !onRefresh,
+        onSelect: onRefresh
+      },
+      {
+        kind: "item",
+        id: "status-bar",
+        label: "Status Bar",
+        accessKey: "B",
+        role: "menuitemcheckbox",
+        checked: statusBarVisible,
+        disabled: !onStatusBarToggle,
+        onSelect: onStatusBarToggle
+      }
+    ],
+    help: [
+      {
+        kind: "item",
+        id: "about",
+        label: "About File Explorer\u2026",
+        accessKey: "A",
+        disabled: !onAbout,
+        onSelect: onAbout
+      }
+    ]
+  };
+}
+var TOP_LEVEL = [
+  { id: "file", label: "File", accessKey: "F" },
+  { id: "edit", label: "Edit", accessKey: "E" },
+  { id: "view", label: "View", accessKey: "V" },
+  { id: "help", label: "Help", accessKey: "H" }
+];
+function ExplorerMenuBar(props) {
+  const { className } = props;
+  const menus = buildMenus(props);
+  const rootRef = useRef3(null);
+  const [openMenu, setOpenMenu] = useState2(null);
+  const baseId = useId();
+  useEffect3(() => {
+    if (!openMenu) {
+      return;
+    }
+    const onPointerDown = (event) => {
+      if (!rootRef.current?.contains(event.target)) {
+        setOpenMenu(null);
+      }
+    };
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setOpenMenu(null);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [openMenu]);
+  const activateItem = (item) => {
+    if (item.disabled || !item.onSelect) {
+      return;
+    }
+    item.onSelect();
+    setOpenMenu(null);
+  };
+  const onMenuKeyDown = (event, menuId) => {
+    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      const index = TOP_LEVEL.findIndex((entry) => entry.id === menuId);
+      const delta = event.key === "ArrowRight" ? 1 : -1;
+      const next = TOP_LEVEL[(index + delta + TOP_LEVEL.length) % TOP_LEVEL.length];
+      setOpenMenu(next.id);
+    }
+  };
+  return /* @__PURE__ */ jsx35(
+    "div",
+    {
+      ref: rootRef,
+      className: cn("panel explorer-menubar", className),
+      role: "menubar",
+      "aria-label": "Explorer",
+      children: TOP_LEVEL.map((top) => {
+        const menuId = `${baseId}-${top.id}`;
+        const expanded = openMenu === top.id;
+        const items = menus[top.id];
+        return /* @__PURE__ */ jsxs15(
+          "div",
+          {
+            className: "explorer-menu-root",
+            onKeyDown: (event) => onMenuKeyDown(event, top.id),
+            onMouseEnter: () => {
+              if (openMenu !== null) {
+                setOpenMenu(top.id);
+              }
+            },
+            children: [
+              /* @__PURE__ */ jsx35(
+                "button",
+                {
+                  type: "button",
+                  className: "explorer-menu-button",
+                  role: "menuitem",
+                  "aria-haspopup": "true",
+                  "aria-expanded": expanded,
+                  "aria-controls": menuId,
+                  onClick: () => {
+                    setOpenMenu((current) => current === top.id ? null : top.id);
+                  },
+                  children: /* @__PURE__ */ jsx35(MenuLabel, { text: top.label, accessKey: top.accessKey })
+                }
+              ),
+              expanded ? /* @__PURE__ */ jsx35("div", { id: menuId, className: "explorer-menu", role: "menu", "aria-label": top.label, children: items.map((item) => {
+                if (item.kind === "separator") {
+                  return /* @__PURE__ */ jsx35("div", { className: "explorer-menu-separator", role: "separator" }, item.id);
+                }
+                const role = item.role ?? "menuitem";
+                return /* @__PURE__ */ jsxs15(
+                  "button",
+                  {
+                    type: "button",
+                    role,
+                    className: cn(
+                      "explorer-menu-item",
+                      item.checked && "is-checked",
+                      item.disabled && "is-disabled"
+                    ),
+                    disabled: item.disabled,
+                    "aria-checked": role === "menuitemradio" || role === "menuitemcheckbox" ? item.checked : void 0,
+                    onClick: () => activateItem(item),
+                    children: [
+                      /* @__PURE__ */ jsx35("span", { className: "explorer-menu-check", "aria-hidden": true, children: item.checked ? "\u2713" : "" }),
+                      /* @__PURE__ */ jsx35("span", { className: "explorer-menu-label", children: /* @__PURE__ */ jsx35(MenuLabel, { text: item.label, accessKey: item.accessKey }) })
+                    ]
+                  },
+                  item.id
+                );
+              }) }) : null
+            ]
+          },
+          top.id
+        );
+      })
+    }
+  );
+}
+
+// src/admin/bricks/FileExplorerWindow/ExplorerSplitter.tsx
+import {
+  useCallback,
+  useRef as useRef4,
+  useState as useState3
+} from "react";
+import { jsx as jsx36 } from "react/jsx-runtime";
+function ExplorerSplitter({
+  value,
+  onChange,
+  min = 120,
+  max = 480,
+  disabled = false,
+  className,
+  keyboardStep = 8
+}) {
+  const [dragging, setDragging] = useState3(false);
+  const dragRef = useRef4(
+    null
+  );
+  const clamp = useCallback(
+    (width) => Math.min(max, Math.max(min, Math.round(width))),
+    [min, max]
+  );
+  const endDrag = (event) => {
+    const drag = dragRef.current;
+    if (!drag || event.pointerId !== drag.pointerId) {
+      return;
+    }
+    dragRef.current = null;
+    setDragging(false);
+    try {
+      if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    } catch {
+    }
+  };
+  const onPointerDown = (event) => {
+    if (disabled || event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startWidth: value
+    };
+    setDragging(true);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+    }
+  };
+  const onPointerMove = (event) => {
+    const drag = dragRef.current;
+    if (!drag || event.pointerId !== drag.pointerId) {
+      return;
+    }
+    onChange(clamp(drag.startWidth + (event.clientX - drag.startX)));
+  };
+  const onKeyDown = (event) => {
+    if (disabled) {
+      return;
+    }
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      onChange(clamp(value - keyboardStep));
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      onChange(clamp(value + keyboardStep));
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      onChange(min);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      onChange(max);
+    }
+  };
+  return /* @__PURE__ */ jsx36(
+    "div",
+    {
+      className: cn("explorer-splitter", dragging && "is-dragging", className),
+      role: "separator",
+      "aria-orientation": "vertical",
+      "aria-label": "Resize tree pane",
+      "aria-valuenow": value,
+      "aria-valuemin": min,
+      "aria-valuemax": max,
+      "aria-disabled": disabled || void 0,
+      tabIndex: disabled ? -1 : 0,
+      onPointerDown,
+      onPointerMove,
+      onPointerUp: endDrag,
+      onPointerCancel: endDrag,
+      onKeyDown
+    }
+  );
+}
+
 // src/admin/bricks/FileExplorerWindow/ExplorerToolbar.tsx
-import { jsx as jsx35, jsxs as jsxs15 } from "react/jsx-runtime";
+import { jsx as jsx37, jsxs as jsxs16 } from "react/jsx-runtime";
 var VIEW_TOOLS = [
   { view: "large-icons", label: "Large Icons", className: "large-icons" },
   { view: "list", label: "List", className: "list" },
@@ -1324,6 +1909,7 @@ function ExplorerToolbar({
   view,
   onViewChange,
   onLevelUp,
+  levelUpDisabled = false,
   onCut,
   onCopy,
   onPaste,
@@ -1332,17 +1918,71 @@ function ExplorerToolbar({
   onProperties,
   className
 }) {
-  return /* @__PURE__ */ jsxs15("div", { className: cn("panel explorer-toolbar", className), role: "toolbar", "aria-label": "Explorer", children: [
-    /* @__PURE__ */ jsx35(Button2, { type: "button", className: "tool level-up", "aria-label": "Up one level", onClick: onLevelUp }),
-    /* @__PURE__ */ jsx35(VerticalBar, {}),
-    /* @__PURE__ */ jsx35(Button2, { type: "button", className: "tool cut", "aria-label": "Cut", onClick: onCut }),
-    /* @__PURE__ */ jsx35(Button2, { type: "button", className: "tool copy", "aria-label": "Copy", onClick: onCopy }),
-    /* @__PURE__ */ jsx35(Button2, { type: "button", className: "tool paste", "aria-label": "Paste", onClick: onPaste }),
-    /* @__PURE__ */ jsx35(Button2, { type: "button", className: "tool undo", "aria-label": "Undo", onClick: onUndo }),
-    /* @__PURE__ */ jsx35(Button2, { type: "button", className: "tool delete", "aria-label": "Delete", onClick: onDelete }),
-    /* @__PURE__ */ jsx35(Button2, { type: "button", className: "tool properties", "aria-label": "Properties", onClick: onProperties }),
-    /* @__PURE__ */ jsx35(VerticalBar, {}),
-    VIEW_TOOLS.map((tool) => /* @__PURE__ */ jsx35(
+  return /* @__PURE__ */ jsxs16("div", { className: cn("panel explorer-toolbar", className), role: "toolbar", "aria-label": "Explorer", children: [
+    /* @__PURE__ */ jsx37(
+      Button2,
+      {
+        type: "button",
+        className: "tool level-up",
+        "aria-label": "Up one level",
+        disabled: levelUpDisabled,
+        onClick: onLevelUp
+      }
+    ),
+    /* @__PURE__ */ jsx37(VerticalBar, {}),
+    /* @__PURE__ */ jsx37(Button2, { type: "button", className: "tool cut", "aria-label": "Cut", disabled: !onCut, onClick: onCut }),
+    /* @__PURE__ */ jsx37(
+      Button2,
+      {
+        type: "button",
+        className: "tool copy",
+        "aria-label": "Copy",
+        disabled: !onCopy,
+        onClick: onCopy
+      }
+    ),
+    /* @__PURE__ */ jsx37(
+      Button2,
+      {
+        type: "button",
+        className: "tool paste",
+        "aria-label": "Paste",
+        disabled: !onPaste,
+        onClick: onPaste
+      }
+    ),
+    /* @__PURE__ */ jsx37(
+      Button2,
+      {
+        type: "button",
+        className: "tool undo",
+        "aria-label": "Undo",
+        disabled: !onUndo,
+        onClick: onUndo
+      }
+    ),
+    /* @__PURE__ */ jsx37(
+      Button2,
+      {
+        type: "button",
+        className: "tool delete",
+        "aria-label": "Delete",
+        disabled: !onDelete,
+        onClick: onDelete
+      }
+    ),
+    /* @__PURE__ */ jsx37(
+      Button2,
+      {
+        type: "button",
+        className: "tool properties",
+        "aria-label": "Properties",
+        disabled: !onProperties,
+        onClick: onProperties
+      }
+    ),
+    /* @__PURE__ */ jsx37(VerticalBar, {}),
+    VIEW_TOOLS.map((tool) => /* @__PURE__ */ jsx37(
       Button2,
       {
         type: "button",
@@ -1357,7 +1997,10 @@ function ExplorerToolbar({
 }
 
 // src/admin/bricks/FileExplorerWindow/FileExplorerWindow.tsx
-import { jsx as jsx36, jsxs as jsxs16 } from "react/jsx-runtime";
+import { jsx as jsx38, jsxs as jsxs17 } from "react/jsx-runtime";
+var DEFAULT_TREE_WIDTH = 200;
+var MIN_TREE_WIDTH = 120;
+var MAX_TREE_WIDTH = 480;
 function treeGlyphKind(node, expanded) {
   if ((node.kind === "folder" || node.role === "folder") && expanded) {
     return "folder-open";
@@ -1368,19 +2011,79 @@ function TreeNodeLabel({
   node,
   expanded = false
 }) {
-  return /* @__PURE__ */ jsxs16("span", { className: cn("explorer-tree-node", node.disabled && "is-disabled"), children: [
-    /* @__PURE__ */ jsx36("span", { className: cn("explorer-glyph", treeGlyphKind(node, expanded)), "aria-hidden": true }),
-    /* @__PURE__ */ jsx36("span", { className: "tree-view-label", children: node.label })
+  return /* @__PURE__ */ jsxs17("span", { className: cn("explorer-tree-node", node.disabled && "is-disabled"), children: [
+    /* @__PURE__ */ jsx38("span", { className: cn("explorer-glyph", treeGlyphKind(node, expanded)), "aria-hidden": true }),
+    /* @__PURE__ */ jsx38("span", { className: "tree-view-label", children: node.label })
   ] });
+}
+function readDraggedIds(event) {
+  return readExplorerDragIds(event);
+}
+function TreeDropLink({
+  node,
+  isCurrent,
+  onTreeSelect,
+  onItemsDrop,
+  children
+}) {
+  const droppable = Boolean(onItemsDrop) && isExplorerLocation(node) && !node.disabled;
+  const [dragOver, setDragOver] = useState4(false);
+  return /* @__PURE__ */ jsx38(
+    "a",
+    {
+      href: "#",
+      "aria-current": isCurrent ? "true" : void 0,
+      className: cn(droppable && dragOver && "is-drag-over"),
+      onClick: (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onTreeSelect?.(node);
+      },
+      onDragEnter: droppable ? (event) => {
+        event.preventDefault();
+        setDragOver(true);
+      } : void 0,
+      onDragLeave: droppable ? () => {
+        setDragOver(false);
+      } : void 0,
+      onDragOver: droppable ? (event) => {
+        event.preventDefault();
+        try {
+          event.dataTransfer.dropEffect = "move";
+        } catch {
+        }
+      } : void 0,
+      onDrop: droppable ? (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setDragOver(false);
+        const ids = readDraggedIds(event).filter((id) => id !== node.id);
+        endExplorerDrag();
+        if (ids.length > 0) {
+          onItemsDrop?.(ids, node.id);
+        }
+      } : void 0,
+      children
+    }
+  );
 }
 function ExplorerTreeBranch({
   node,
-  onTreeSelect
+  locationId,
+  ancestorIds,
+  onTreeSelect,
+  onItemsDrop
 }) {
   const kids = explorerTreeChildren(node);
-  const [open, setOpen] = useState(node.role === "site");
-  return /* @__PURE__ */ jsx36("li", { children: /* @__PURE__ */ jsxs16("details", { open, children: [
-    /* @__PURE__ */ jsxs16(
+  const [open, setOpen] = useState4(node.role === "site" || ancestorIds.has(node.id));
+  useEffect4(() => {
+    if (ancestorIds.has(node.id)) {
+      setOpen(true);
+    }
+  }, [ancestorIds, node.id]);
+  const isCurrent = locationId === node.id;
+  return /* @__PURE__ */ jsx38("li", { children: /* @__PURE__ */ jsxs17("details", { open, children: [
+    /* @__PURE__ */ jsxs17(
       "summary",
       {
         tabIndex: -1,
@@ -1388,7 +2091,7 @@ function ExplorerTreeBranch({
           event.preventDefault();
         },
         children: [
-          /* @__PURE__ */ jsx36(
+          /* @__PURE__ */ jsx38(
             TreeToggle,
             {
               expanded: open,
@@ -1399,39 +2102,47 @@ function ExplorerTreeBranch({
               }
             }
           ),
-          node.disabled ? /* @__PURE__ */ jsx36("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: /* @__PURE__ */ jsx36(TreeNodeLabel, { node, expanded: open }) }) : /* @__PURE__ */ jsx36(
-            "a",
+          node.disabled ? /* @__PURE__ */ jsx38("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: /* @__PURE__ */ jsx38(TreeNodeLabel, { node, expanded: open }) }) : /* @__PURE__ */ jsx38(
+            TreeDropLink,
             {
-              href: "#",
-              onClick: (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                onTreeSelect?.(node);
-              },
-              children: /* @__PURE__ */ jsx36(TreeNodeLabel, { node, expanded: open })
+              node,
+              isCurrent,
+              onTreeSelect,
+              onItemsDrop,
+              children: /* @__PURE__ */ jsx38(TreeNodeLabel, { node, expanded: open })
             }
           )
         ]
       }
     ),
-    /* @__PURE__ */ jsx36("ul", { children: renderTreeNodes(kids, onTreeSelect) })
+    /* @__PURE__ */ jsx38("ul", { children: renderTreeNodes(kids, locationId, ancestorIds, onTreeSelect, onItemsDrop) })
   ] }) });
 }
-function renderTreeNodes(nodes, onTreeSelect) {
+function renderTreeNodes(nodes, locationId, ancestorIds, onTreeSelect, onItemsDrop) {
   return nodes.map((node) => {
     const canExpand = isExplorerTreeExpandable(node);
+    const isCurrent = locationId === node.id;
     if (canExpand) {
-      return /* @__PURE__ */ jsx36(ExplorerTreeBranch, { node, onTreeSelect }, node.id);
-    }
-    return /* @__PURE__ */ jsx36("li", { className: cn(node.disabled && "is-disabled"), children: node.disabled ? /* @__PURE__ */ jsx36("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: /* @__PURE__ */ jsx36(TreeNodeLabel, { node }) }) : /* @__PURE__ */ jsx36(
-      "a",
-      {
-        href: "#",
-        onClick: (event) => {
-          event.preventDefault();
-          onTreeSelect?.(node);
+      return /* @__PURE__ */ jsx38(
+        ExplorerTreeBranch,
+        {
+          node,
+          locationId,
+          ancestorIds,
+          onTreeSelect,
+          onItemsDrop
         },
-        children: /* @__PURE__ */ jsx36(TreeNodeLabel, { node })
+        node.id
+      );
+    }
+    return /* @__PURE__ */ jsx38("li", { className: cn(node.disabled && "is-disabled"), children: node.disabled ? /* @__PURE__ */ jsx38("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: /* @__PURE__ */ jsx38(TreeNodeLabel, { node }) }) : /* @__PURE__ */ jsx38(
+      TreeDropLink,
+      {
+        node,
+        isCurrent,
+        onTreeSelect,
+        onItemsDrop,
+        children: /* @__PURE__ */ jsx38(TreeNodeLabel, { node })
       }
     ) }, node.id);
   });
@@ -1441,43 +2152,111 @@ function FileExplorerWindow({
   items,
   view = "large-icons",
   onViewChange,
-  selectedId = null,
+  locationId = null,
+  selectedIds = [],
+  cutItemIds = [],
   onTreeSelect,
   onSelect,
   onOpen,
+  onItemsDrop,
   onLevelUp,
+  levelUpDisabled = false,
   onCut,
   onCopy,
   onPaste,
   onUndo,
   onDelete,
   onProperties,
+  onClose,
+  onNewFolder,
+  onNewPage,
+  onRename,
+  onSelectAll,
+  onRefresh,
+  statusBarVisible = true,
+  onStatusBarToggle,
+  onAbout,
   className,
   paneHeight = 360,
-  treeWidth = 200,
+  treeWidth = DEFAULT_TREE_WIDTH,
+  onTreeWidthChange,
+  minTreeWidth = MIN_TREE_WIDTH,
+  maxTreeWidth = MAX_TREE_WIDTH,
+  treePaneResizable = true,
   resizable = true,
   ...shell
 }) {
+  const [uncontrolledTreeWidth, setUncontrolledTreeWidth] = useState4(treeWidth);
+  const isTreeWidthControlled = onTreeWidthChange !== void 0;
+  const resolvedTreeWidth = isTreeWidthControlled ? treeWidth : uncontrolledTreeWidth;
+  useEffect4(() => {
+    if (!isTreeWidthControlled) {
+      setUncontrolledTreeWidth(treeWidth);
+    }
+  }, [treeWidth, isTreeWidthControlled]);
+  const setTreeWidth = (width) => {
+    if (isTreeWidthControlled) {
+      onTreeWidthChange(width);
+    } else {
+      setUncontrolledTreeWidth(width);
+    }
+  };
   const paneStyle = {
     height: typeof paneHeight === "number" ? `${paneHeight}px` : paneHeight
   };
   const treeStyle = {
-    flexBasis: typeof treeWidth === "number" ? `${treeWidth}px` : treeWidth,
-    width: typeof treeWidth === "number" ? `${treeWidth}px` : treeWidth
+    flexBasis: `${resolvedTreeWidth}px`,
+    width: `${resolvedTreeWidth}px`
   };
-  return /* @__PURE__ */ jsx36(
+  const ancestorIds = useMemo(
+    () => new Set(findExplorerAncestorIds(tree, locationId)),
+    [tree, locationId]
+  );
+  const primarySelectedId = selectedIds.length > 0 ? selectedIds[selectedIds.length - 1] : null;
+  const selectedItem = findExplorerItem(tree, primarySelectedId) ?? items.find((item) => item.id === primarySelectedId) ?? null;
+  return /* @__PURE__ */ jsx38(
     PaneWindowShell,
     {
       className: cn("w-window-xl file-explorer-window", className),
       resizable,
       ...shell,
-      children: /* @__PURE__ */ jsxs16("div", { className: "window-pane explorer-panel-layout", style: paneStyle, children: [
-        /* @__PURE__ */ jsx36(
+      children: /* @__PURE__ */ jsxs17("div", { className: "window-pane explorer-panel-layout", style: paneStyle, children: [
+        /* @__PURE__ */ jsx38(
+          ExplorerMenuBar,
+          {
+            view,
+            onViewChange,
+            onFileOpen: onOpen ? () => {
+              if (selectedItem) {
+                onOpen(selectedItem);
+              }
+            } : void 0,
+            fileOpenDisabled: !selectedItem,
+            onNewFolder,
+            onNewPage,
+            onRename,
+            onDelete,
+            onProperties,
+            onClose,
+            onUndo,
+            onCut,
+            onCopy,
+            onPaste,
+            onSelectAll,
+            onRefresh,
+            statusBarVisible,
+            onStatusBarToggle,
+            onAbout
+          }
+        ),
+        /* @__PURE__ */ jsx38("div", { className: "explorer-chrome-separator", role: "separator" }),
+        /* @__PURE__ */ jsx38(
           ExplorerToolbar,
           {
             view,
             onViewChange,
             onLevelUp,
+            levelUpDisabled,
             onCut,
             onCopy,
             onPaste,
@@ -1486,22 +2265,639 @@ function FileExplorerWindow({
             onProperties
           }
         ),
-        /* @__PURE__ */ jsxs16("div", { className: "explorer-split", children: [
-          /* @__PURE__ */ jsx36(FieldBorder, { scrollable: true, className: "panel explorer-tree", style: treeStyle, children: /* @__PURE__ */ jsx36("div", { className: "explorer-tree-inner", children: /* @__PURE__ */ jsx36(TreeView, { children: renderTreeNodes(tree, onTreeSelect) }) }) }),
-          /* @__PURE__ */ jsx36(FieldBorder, { scrollable: true, className: "panel explorer-content", children: /* @__PURE__ */ jsx36(
+        /* @__PURE__ */ jsxs17("div", { className: "explorer-split", children: [
+          /* @__PURE__ */ jsx38(FieldBorder, { scrollable: true, className: "panel explorer-tree", style: treeStyle, children: /* @__PURE__ */ jsx38("div", { className: "explorer-tree-inner", children: /* @__PURE__ */ jsx38(TreeView, { children: renderTreeNodes(tree, locationId, ancestorIds, onTreeSelect, onItemsDrop) }) }) }),
+          treePaneResizable ? /* @__PURE__ */ jsx38(
+            ExplorerSplitter,
+            {
+              value: resolvedTreeWidth,
+              onChange: setTreeWidth,
+              min: minTreeWidth,
+              max: maxTreeWidth
+            }
+          ) : /* @__PURE__ */ jsx38("div", { className: "explorer-splitter is-static", "aria-hidden": true }),
+          /* @__PURE__ */ jsx38(FieldBorder, { scrollable: true, className: "panel explorer-content", children: /* @__PURE__ */ jsx38(
             ExplorerContent,
             {
               view,
               items,
-              selectedId,
+              selectedIds,
+              cutItemIds,
               onSelect,
-              onOpen
+              onOpen,
+              onItemsDrop
             }
           ) })
         ] })
       ] })
     }
   );
+}
+
+// src/admin/bricks/FileExplorerWindow/ExplorerPropertiesDialog.tsx
+import { jsx as jsx39, jsxs as jsxs18 } from "react/jsx-runtime";
+function ExplorerPropertiesDialog({
+  item,
+  parentLabel = null,
+  onClose,
+  className
+}) {
+  const sizeLabel = formatExplorerSize(item.sizeBytes) || "\u2014";
+  return /* @__PURE__ */ jsx39(
+    DialogWindow,
+    {
+      className: cn("explorer-properties-dialog", className),
+      title: `${item.label} Properties`,
+      titleBarControls: /* @__PURE__ */ jsx39(TitleBarControls, { children: /* @__PURE__ */ jsx39(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      actions: /* @__PURE__ */ jsxs18(FieldRow, { className: "justify-end", children: [
+        /* @__PURE__ */ jsx39(Button2, { type: "button", isDefault: true, accessKey: "o", onClick: onClose, children: "OK" }),
+        /* @__PURE__ */ jsx39(Button2, { type: "button", accessKey: "c", onClick: onClose, children: "Cancel" })
+      ] }),
+      children: /* @__PURE__ */ jsxs18("div", { className: "explorer-properties", children: [
+        /* @__PURE__ */ jsxs18("div", { className: "explorer-properties-identity", children: [
+          /* @__PURE__ */ jsx39("span", { className: cn("explorer-glyph", item.kind), "aria-hidden": true }),
+          /* @__PURE__ */ jsx39("span", { className: "explorer-properties-name", children: item.label })
+        ] }),
+        /* @__PURE__ */ jsxs18("dl", { className: "explorer-properties-list", children: [
+          /* @__PURE__ */ jsxs18("div", { children: [
+            /* @__PURE__ */ jsx39("dt", { children: "Type:" }),
+            /* @__PURE__ */ jsx39("dd", { children: item.typeLabel ?? "\u2014" })
+          ] }),
+          /* @__PURE__ */ jsxs18("div", { children: [
+            /* @__PURE__ */ jsx39("dt", { children: "Location:" }),
+            /* @__PURE__ */ jsx39("dd", { children: parentLabel ?? "\u2014" })
+          ] }),
+          /* @__PURE__ */ jsxs18("div", { children: [
+            /* @__PURE__ */ jsx39("dt", { children: "Size:" }),
+            /* @__PURE__ */ jsx39("dd", { children: sizeLabel })
+          ] }),
+          /* @__PURE__ */ jsxs18("div", { children: [
+            /* @__PURE__ */ jsx39("dt", { children: "Modified:" }),
+            /* @__PURE__ */ jsx39("dd", { children: item.modifiedAt ?? "\u2014" })
+          ] })
+        ] })
+      ] })
+    }
+  );
+}
+
+// src/admin/bricks/FileExplorerWindow/SiteFileExplorer.tsx
+import { useMemo as useMemo2, useState as useState5 } from "react";
+
+// src/admin/bricks/FileExplorerWindow/explorerTreeOps.ts
+function cloneExplorerForest(nodes) {
+  return nodes.map((node) => ({
+    ...node,
+    children: node.children ? cloneExplorerForest(node.children) : void 0
+  }));
+}
+function findExplorerTrashRoot(roots) {
+  return roots.find((node) => node.role === "trash") ?? null;
+}
+function isUnderExplorerTrash(roots, id) {
+  if (!id) {
+    return false;
+  }
+  const trash = findExplorerTrashRoot(roots);
+  if (!trash) {
+    return false;
+  }
+  if (id === trash.id) {
+    return true;
+  }
+  return findExplorerAncestorIds(roots, id).includes(trash.id);
+}
+function canDeleteExplorerItem(roots, item) {
+  if (!item) {
+    return false;
+  }
+  if (roots.some((root) => root.id === item.id)) {
+    return false;
+  }
+  if (item.role === "site" || item.role === "media-library" || item.role === "trash" || item.role === "settings") {
+    return false;
+  }
+  return findExplorerItem(roots, item.id) !== null;
+}
+function mapForest(nodes, mapNode) {
+  const result = [];
+  for (const node of nodes) {
+    const mapped = mapNode(node);
+    if (!mapped) {
+      continue;
+    }
+    result.push(mapped);
+  }
+  return result;
+}
+function removeExplorerItem(roots, id) {
+  const parent = findExplorerParent(roots, id);
+  let removed = null;
+  const walk = (nodes) => mapForest(nodes, (node) => {
+    if (node.id === id) {
+      removed = node;
+      return null;
+    }
+    if (!node.children?.length) {
+      return node;
+    }
+    return { ...node, children: walk(node.children) };
+  });
+  const tree = walk(roots);
+  return { tree, removed, parentId: parent?.id ?? null };
+}
+function appendExplorerChild(roots, parentId, child) {
+  const walk = (nodes) => nodes.map((node) => {
+    if (node.id === parentId) {
+      return {
+        ...node,
+        children: [...node.children ?? [], child]
+      };
+    }
+    if (!node.children?.length) {
+      return node;
+    }
+    return { ...node, children: walk(node.children) };
+  });
+  return walk(roots);
+}
+function canCutOrCopyExplorerItem(roots, item) {
+  return canDeleteExplorerItem(roots, item);
+}
+function canCutOrCopyExplorerItems(roots, items) {
+  return items.length > 0 && items.every((item) => canCutOrCopyExplorerItem(roots, item));
+}
+function canPasteIntoExplorerLocation(roots, locationId, clipboard) {
+  if (!clipboard?.items.length || !locationId) {
+    return false;
+  }
+  const location = findExplorerItem(roots, locationId);
+  if (!location || location.disabled) {
+    return false;
+  }
+  if (location.role === "trash" || location.role === "settings") {
+    return false;
+  }
+  if (location.role !== "site" && location.role !== "media-library" && location.role !== "folder" && !isExplorerFolder(location)) {
+    return false;
+  }
+  if (clipboard.mode === "cut") {
+    for (const item of clipboard.items) {
+      if (!findExplorerItem(roots, item.id)) {
+        return false;
+      }
+      if (locationId === item.id) {
+        return false;
+      }
+      if (findExplorerAncestorIds(roots, locationId).includes(item.id)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+function deleteExplorerItem(roots, itemId) {
+  const item = findExplorerItem(roots, itemId);
+  if (!canDeleteExplorerItem(roots, item) || !item) {
+    return null;
+  }
+  const parent = findExplorerParent(roots, itemId);
+  if (!parent) {
+    return null;
+  }
+  if (isUnderExplorerTrash(roots, itemId)) {
+    const { tree, removed: removed2, parentId: parentId2 } = removeExplorerItem(roots, itemId);
+    if (!removed2 || !parentId2) {
+      return null;
+    }
+    return {
+      tree,
+      undo: { type: "permanent", item: removed2, parentId: parentId2 }
+    };
+  }
+  const trash = findExplorerTrashRoot(roots);
+  if (!trash) {
+    return null;
+  }
+  const { tree: without, removed, parentId } = removeExplorerItem(roots, itemId);
+  if (!removed || !parentId) {
+    return null;
+  }
+  return {
+    tree: appendExplorerChild(without, trash.id, removed),
+    undo: { type: "to-trash", item: removed, parentId }
+  };
+}
+function cloneExplorerItemWithNewIds(roots, item) {
+  const used = /* @__PURE__ */ new Set();
+  const nextId = (oldId) => {
+    let candidate = `${oldId}-copy`;
+    let n = 1;
+    while (findExplorerItem(roots, candidate) || used.has(candidate)) {
+      n += 1;
+      candidate = `${oldId}-copy-${n}`;
+    }
+    used.add(candidate);
+    return candidate;
+  };
+  const walk = (node) => ({
+    ...node,
+    id: nextId(node.id),
+    children: node.children?.map(walk)
+  });
+  return walk(cloneExplorerForest([item])[0]);
+}
+function moveExplorerItems(roots, itemIds, targetId) {
+  const items = itemIds.map((id) => findExplorerItem(roots, id)).filter((item) => item !== null);
+  if (!canCutOrCopyExplorerItems(roots, items)) {
+    return null;
+  }
+  const sourceParent = findExplorerParent(roots, items[0].id);
+  if (!sourceParent) {
+    return null;
+  }
+  if (items.some((item) => findExplorerParent(roots, item.id)?.id !== sourceParent.id)) {
+    return null;
+  }
+  const result = pasteExplorerClipboard(roots, targetId, {
+    mode: "cut",
+    items: cloneExplorerForest(items),
+    sourceParentId: sourceParent.id
+  });
+  if (!result) {
+    return null;
+  }
+  return { tree: result.tree, moved: result.pasted, undo: result.undo };
+}
+function pasteExplorerClipboard(roots, locationId, clipboard) {
+  if (!canPasteIntoExplorerLocation(roots, locationId, clipboard)) {
+    return null;
+  }
+  if (clipboard.mode === "copy") {
+    let tree2 = roots;
+    const pasted2 = [];
+    for (const item of clipboard.items) {
+      const clone = cloneExplorerItemWithNewIds(tree2, item);
+      tree2 = appendExplorerChild(tree2, locationId, clone);
+      pasted2.push(clone);
+    }
+    return {
+      tree: tree2,
+      pasted: pasted2,
+      undo: {
+        type: "paste-copy",
+        itemIds: pasted2.map((item) => item.id),
+        parentId: locationId
+      }
+    };
+  }
+  const firstParent = findExplorerParent(roots, clipboard.items[0]?.id ?? "");
+  if (!firstParent || firstParent.id === locationId) {
+    return null;
+  }
+  let tree = roots;
+  const pasted = [];
+  for (const item of clipboard.items) {
+    const parent = findExplorerParent(tree, item.id);
+    if (!parent || parent.id !== firstParent.id) {
+      return null;
+    }
+    const { tree: without, removed } = removeExplorerItem(tree, item.id);
+    if (!removed) {
+      return null;
+    }
+    tree = appendExplorerChild(without, locationId, removed);
+    pasted.push(removed);
+  }
+  return {
+    tree,
+    pasted,
+    undo: {
+      type: "paste-cut",
+      itemIds: pasted.map((item) => item.id),
+      fromParentId: firstParent.id,
+      toParentId: locationId
+    }
+  };
+}
+function deleteExplorerItems(roots, itemIds) {
+  let tree = roots;
+  const undos = [];
+  for (const id of itemIds) {
+    const result = deleteExplorerItem(tree, id);
+    if (!result) {
+      continue;
+    }
+    tree = result.tree;
+    undos.push(result.undo);
+  }
+  if (undos.length === 0) {
+    return null;
+  }
+  return { tree, undo: { type: "delete-many", undos } };
+}
+function undoExplorerDelete(roots, entry) {
+  if (entry.type === "to-trash") {
+    const trash = findExplorerTrashRoot(roots);
+    if (!trash) {
+      return null;
+    }
+    const { tree: without, removed } = removeExplorerItem(roots, entry.item.id);
+    if (!removed) {
+      return null;
+    }
+    if (!findExplorerItem(without, entry.parentId)) {
+      return null;
+    }
+    return appendExplorerChild(without, entry.parentId, removed);
+  }
+  if (!findExplorerItem(roots, entry.parentId)) {
+    return null;
+  }
+  return appendExplorerChild(roots, entry.parentId, entry.item);
+}
+function undoExplorerPaste(roots, entry) {
+  if (entry.type === "paste-copy") {
+    let tree2 = roots;
+    for (const id of [...entry.itemIds].reverse()) {
+      const { tree: next, removed } = removeExplorerItem(tree2, id);
+      if (!removed) {
+        return null;
+      }
+      tree2 = next;
+    }
+    return tree2;
+  }
+  let tree = roots;
+  for (const id of [...entry.itemIds].reverse()) {
+    const { tree: without, removed } = removeExplorerItem(tree, id);
+    if (!removed || !findExplorerItem(without, entry.fromParentId)) {
+      return null;
+    }
+    tree = appendExplorerChild(without, entry.fromParentId, removed);
+  }
+  return tree;
+}
+function undoExplorerAction(roots, entry) {
+  if (entry.type === "to-trash" || entry.type === "permanent") {
+    return undoExplorerDelete(roots, entry);
+  }
+  if (entry.type === "delete-many") {
+    let tree = roots;
+    for (const undo of [...entry.undos].reverse()) {
+      const next = undoExplorerDelete(tree, undo);
+      if (!next) {
+        return null;
+      }
+      tree = next;
+    }
+    return tree;
+  }
+  return undoExplorerPaste(roots, entry);
+}
+
+// src/admin/bricks/FileExplorerWindow/SiteFileExplorer.tsx
+import { jsx as jsx40, jsxs as jsxs19 } from "react/jsx-runtime";
+function SiteFileExplorer({
+  tree,
+  initialLocationId,
+  onClose,
+  onMinimize,
+  onMaximize,
+  maximizeAction = "Maximize",
+  title,
+  titleIcon = "site",
+  ...rest
+}) {
+  const rootId = initialLocationId ?? tree[0]?.id ?? "";
+  const [forest, setForest] = useState5(() => cloneExplorerForest(tree));
+  const [view, setView] = useState5("large-icons");
+  const [locationId, setLocationId] = useState5(rootId);
+  const [selectedIds, setSelectedIds] = useState5([]);
+  const [selectionAnchorId, setSelectionAnchorId] = useState5(null);
+  const [statusBarVisible, setStatusBarVisible] = useState5(true);
+  const [clipboard, setClipboard] = useState5(null);
+  const [undoEntry, setUndoEntry] = useState5(null);
+  const [propertiesItem, setPropertiesItem] = useState5(null);
+  const location = useMemo2(() => findExplorerItem(forest, locationId), [forest, locationId]);
+  const items = useMemo2(() => explorerContentItems(location), [location]);
+  const parent = useMemo2(() => findExplorerParent(forest, locationId), [forest, locationId]);
+  const selectedItems = useMemo2(
+    () => selectedIds.map((id) => findExplorerItem(forest, id) ?? items.find((item) => item.id === id) ?? null).filter((item) => item !== null),
+    [forest, items, selectedIds]
+  );
+  const primarySelected = selectedItems[selectedItems.length - 1] ?? null;
+  const hiddenCount = items.filter((item) => item.hidden).length;
+  const statusItem = primarySelected ?? location;
+  const canDelete = selectedItems.length > 0 && selectedItems.every((item) => canDeleteExplorerItem(forest, item));
+  const canCutCopy = canCutOrCopyExplorerItems(forest, selectedItems);
+  const canPaste = canPasteIntoExplorerLocation(forest, locationId, clipboard);
+  const canProperties = selectedItems.length === 1;
+  const canSelectAll = items.length > 0;
+  const clearSelection = () => {
+    setSelectedIds([]);
+    setSelectionAnchorId(null);
+  };
+  const goToLocation = (item) => {
+    if (item.disabled || !isExplorerLocation(item)) {
+      return;
+    }
+    setLocationId(item.id);
+    clearSelection();
+  };
+  const handleSelect = (item, modifiers) => {
+    const additive = modifiers.ctrlKey || modifiers.metaKey;
+    if (modifiers.shiftKey && selectionAnchorId) {
+      const anchorIndex = items.findIndex((entry) => entry.id === selectionAnchorId);
+      const targetIndex = items.findIndex((entry) => entry.id === item.id);
+      if (anchorIndex >= 0 && targetIndex >= 0) {
+        const [from, to] = anchorIndex < targetIndex ? [anchorIndex, targetIndex] : [targetIndex, anchorIndex];
+        const rangeIds = items.slice(from, to + 1).map((entry) => entry.id);
+        if (additive) {
+          setSelectedIds((prev) => Array.from(/* @__PURE__ */ new Set([...prev, ...rangeIds])));
+        } else {
+          setSelectedIds(rangeIds);
+        }
+        return;
+      }
+    }
+    if (additive) {
+      setSelectedIds(
+        (prev) => prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]
+      );
+      setSelectionAnchorId(item.id);
+      return;
+    }
+    setSelectedIds([item.id]);
+    setSelectionAnchorId(item.id);
+  };
+  const handleSelectAll = () => {
+    if (!canSelectAll) {
+      return;
+    }
+    setSelectedIds(items.map((item) => item.id));
+    setSelectionAnchorId(items[0]?.id ?? null);
+  };
+  const handleCut = () => {
+    if (!canCutCopy || selectedItems.length === 0) {
+      return;
+    }
+    const sourceParent = findExplorerParent(forest, selectedItems[0].id);
+    if (!sourceParent) {
+      return;
+    }
+    if (selectedItems.some((item) => findExplorerParent(forest, item.id)?.id !== sourceParent.id)) {
+      return;
+    }
+    setClipboard({
+      mode: "cut",
+      items: cloneExplorerForest(selectedItems),
+      sourceParentId: sourceParent.id
+    });
+  };
+  const handleCopy = () => {
+    if (!canCutCopy || selectedItems.length === 0) {
+      return;
+    }
+    setClipboard({
+      mode: "copy",
+      items: cloneExplorerForest(selectedItems),
+      sourceParentId: null
+    });
+  };
+  const handlePaste = () => {
+    if (!clipboard || !locationId) {
+      return;
+    }
+    const result = pasteExplorerClipboard(forest, locationId, clipboard);
+    if (!result) {
+      return;
+    }
+    setForest(result.tree);
+    setUndoEntry(result.undo);
+    setSelectedIds(result.pasted.map((item) => item.id));
+    setSelectionAnchorId(result.pasted[0]?.id ?? null);
+    if (clipboard.mode === "cut") {
+      setClipboard(null);
+    }
+  };
+  const handleDelete = () => {
+    if (selectedIds.length === 0) {
+      return;
+    }
+    const result = deleteExplorerItems(forest, selectedIds);
+    if (!result) {
+      return;
+    }
+    if (clipboard?.items.some((item) => selectedIds.includes(item.id))) {
+      setClipboard(null);
+    }
+    if (propertiesItem && selectedIds.includes(propertiesItem.id)) {
+      setPropertiesItem(null);
+    }
+    setForest(result.tree);
+    setUndoEntry(result.undo);
+    clearSelection();
+  };
+  const handleItemsDrop = (itemIds, targetId) => {
+    const result = moveExplorerItems(forest, itemIds, targetId);
+    if (!result) {
+      return;
+    }
+    if (clipboard?.items.some((item) => itemIds.includes(item.id))) {
+      setClipboard(null);
+    }
+    setForest(result.tree);
+    setUndoEntry(result.undo);
+    setSelectedIds(result.moved.map((item) => item.id));
+    setSelectionAnchorId(result.moved[0]?.id ?? null);
+  };
+  const handleUndo = () => {
+    if (!undoEntry) {
+      return;
+    }
+    const next = undoExplorerAction(forest, undoEntry);
+    if (!next) {
+      setUndoEntry(null);
+      return;
+    }
+    setForest(next);
+    if (undoEntry.type === "to-trash" || undoEntry.type === "permanent") {
+      setSelectedIds([undoEntry.item.id]);
+      setSelectionAnchorId(undoEntry.item.id);
+    } else if (undoEntry.type === "delete-many") {
+      const ids = undoEntry.undos.map((entry) => entry.item.id);
+      setSelectedIds(ids);
+      setSelectionAnchorId(ids[0] ?? null);
+    } else {
+      setSelectedIds(undoEntry.itemIds);
+      setSelectionAnchorId(undoEntry.itemIds[0] ?? null);
+    }
+    setUndoEntry(null);
+  };
+  const propertiesParentLabel = propertiesItem ? findExplorerParent(forest, propertiesItem.id)?.label ?? null : null;
+  const statusCountLabel = selectedIds.length > 0 ? `${selectedIds.length} object(s) selected` : `${items.length} object(s)${hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}`;
+  return /* @__PURE__ */ jsxs19("div", { className: "site-file-explorer", children: [
+    /* @__PURE__ */ jsx40(
+      FileExplorerWindow,
+      {
+        title,
+        titleIcon,
+        ...rest,
+        tree: forest,
+        items,
+        view,
+        onViewChange: setView,
+        locationId,
+        selectedIds,
+        cutItemIds: clipboard?.mode === "cut" ? clipboard.items.map((item) => item.id) : [],
+        onTreeSelect: goToLocation,
+        onSelect: handleSelect,
+        onOpen: goToLocation,
+        onItemsDrop: handleItemsDrop,
+        onLevelUp: () => {
+          if (!parent) {
+            return;
+          }
+          setLocationId(parent.id);
+          clearSelection();
+        },
+        levelUpDisabled: !parent,
+        onClose,
+        onCut: canCutCopy ? handleCut : void 0,
+        onCopy: canCutCopy ? handleCopy : void 0,
+        onPaste: canPaste ? handlePaste : void 0,
+        onDelete: canDelete ? handleDelete : void 0,
+        onUndo: undoEntry ? handleUndo : void 0,
+        onSelectAll: canSelectAll ? handleSelectAll : void 0,
+        onProperties: canProperties ? () => {
+          if (primarySelected) {
+            setPropertiesItem(primarySelected);
+          }
+        } : void 0,
+        statusBarVisible,
+        onStatusBarToggle: () => setStatusBarVisible((value) => !value),
+        titleBarControls: /* @__PURE__ */ jsxs19(TitleBarControls, { children: [
+          /* @__PURE__ */ jsx40(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+          /* @__PURE__ */ jsx40(TitleBarControl, { action: maximizeAction, onClick: onMaximize }),
+          /* @__PURE__ */ jsx40(TitleBarControl, { action: "Close", onClick: onClose })
+        ] }),
+        statusBar: statusBarVisible ? /* @__PURE__ */ jsxs19(StatusBar, { children: [
+          /* @__PURE__ */ jsx40(StatusBarField, { children: statusCountLabel }),
+          /* @__PURE__ */ jsx40(StatusBarField, { className: "description", children: statusItem?.typeLabel ?? "" }),
+          /* @__PURE__ */ jsx40(StatusBarField, {})
+        ] }) : void 0
+      }
+    ),
+    propertiesItem ? /* @__PURE__ */ jsx40("div", { className: "explorer-properties-overlay", children: /* @__PURE__ */ jsx40(
+      ExplorerPropertiesDialog,
+      {
+        item: propertiesItem,
+        parentLabel: propertiesParentLabel,
+        onClose: () => setPropertiesItem(null)
+      }
+    ) }) : null
+  ] });
 }
 
 // src/admin/bricks/FileExplorerWindow/FileExplorerWindow.data.ts
@@ -1670,6 +3066,76 @@ var EXPLORER_FIXTURE_TREE = [
   }
 ];
 var EXPLORER_FIXTURE_ITEMS = EXPLORER_FIXTURE_TREE.find((n) => n.id === "site-acme")?.children ?? [];
+function buildEmptySiteExplorerTree(site) {
+  const prefix = `site-${site.id}`;
+  return [
+    {
+      id: prefix,
+      label: site.name,
+      kind: "site",
+      role: "site",
+      typeLabel: "Website",
+      children: []
+    },
+    {
+      id: `${prefix}-media`,
+      label: "Media library",
+      kind: "folder-gallery",
+      role: "media-library",
+      typeLabel: "Media Library",
+      children: []
+    },
+    {
+      id: `${prefix}-trash`,
+      label: "Recycle Bin",
+      kind: "trash",
+      role: "trash",
+      typeLabel: "Recycle Bin",
+      expandable: false,
+      children: []
+    },
+    {
+      id: `${prefix}-settings`,
+      label: "Settings",
+      kind: "settings",
+      role: "settings",
+      typeLabel: "Settings",
+      expandable: false,
+      disabled: true
+    }
+  ];
+}
+function buildDemoSiteExplorerTree(site) {
+  const prefix = `site-${site.id}`;
+  const remap = (nodes, path) => nodes.map((node) => ({
+    ...node,
+    id: `${path}/${node.id}`,
+    children: node.children ? remap(node.children, `${path}/${node.id}`) : void 0
+  }));
+  const [siteRoot, media, trash, settings] = EXPLORER_FIXTURE_TREE;
+  return [
+    {
+      ...siteRoot,
+      id: prefix,
+      label: site.name,
+      children: siteRoot.children ? remap(siteRoot.children, prefix) : []
+    },
+    {
+      ...media,
+      id: `${prefix}-media`,
+      children: media.children ? remap(media.children, `${prefix}-media`) : []
+    },
+    {
+      ...trash,
+      id: `${prefix}-trash`,
+      children: trash.children ? remap(trash.children, `${prefix}-trash`) : []
+    },
+    {
+      ...settings,
+      id: `${prefix}-settings`
+    }
+  ];
+}
 
 // src/admin/lib/assetPaths.ts
 var ADMIN_ASSETS_BASE = "/assets/admin";
@@ -1683,7 +3149,7 @@ function adminIconAsset(kind) {
 }
 
 // src/admin/components/FlashList/FlashList.tsx
-import { jsx as jsx37 } from "react/jsx-runtime";
+import { jsx as jsx41 } from "react/jsx-runtime";
 function toneForFlash(key) {
   if (key === "success") {
     return "success";
@@ -1701,12 +3167,12 @@ function FlashList({ flashes }) {
     return null;
   }
   return Object.entries(flashes).flatMap(
-    ([tone, messages]) => messages.map((message, index) => /* @__PURE__ */ jsx37(Alert, { tone: toneForFlash(tone), className: "mb-4", children: message }, `${tone}-${index}`))
+    ([tone, messages]) => messages.map((message, index) => /* @__PURE__ */ jsx41(Alert, { tone: toneForFlash(tone), className: "mb-4", children: message }, `${tone}-${index}`))
   );
 }
 
 // src/admin/components/DataTable/DataTable.tsx
-import { jsx as jsx38, jsxs as jsxs17 } from "react/jsx-runtime";
+import { jsx as jsx42, jsxs as jsxs20 } from "react/jsx-runtime";
 function DataTable({
   columns,
   rows,
@@ -1716,25 +3182,25 @@ function DataTable({
   className
 }) {
   if (loading) {
-    return /* @__PURE__ */ jsx38("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: "Loading\u2026" });
+    return /* @__PURE__ */ jsx42("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: "Loading\u2026" });
   }
   if (rows.length === 0) {
-    return /* @__PURE__ */ jsx38("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-dashed border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: emptyMessage });
+    return /* @__PURE__ */ jsx42("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-dashed border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: emptyMessage });
   }
-  return /* @__PURE__ */ jsx38(
+  return /* @__PURE__ */ jsx42(
     "div",
     {
       className: cn(
         "wh-ui overflow-x-auto rounded-[var(--wh-radius-md)] border border-[var(--wh-color-line)] bg-[var(--wh-color-surface)]",
         className
       ),
-      children: /* @__PURE__ */ jsxs17("table", { className: "w-full border-collapse text-left text-sm", children: [
-        /* @__PURE__ */ jsx38("thead", { className: "bg-[var(--wh-color-canvas)] text-[var(--wh-color-muted)]", children: /* @__PURE__ */ jsx38("tr", { children: columns.map((col) => /* @__PURE__ */ jsx38("th", { className: cn("px-4 py-3 font-semibold", col.className), children: col.header }, col.key)) }) }),
-        /* @__PURE__ */ jsx38("tbody", { children: rows.map((row) => /* @__PURE__ */ jsx38(
+      children: /* @__PURE__ */ jsxs20("table", { className: "w-full border-collapse text-left text-sm", children: [
+        /* @__PURE__ */ jsx42("thead", { className: "bg-[var(--wh-color-canvas)] text-[var(--wh-color-muted)]", children: /* @__PURE__ */ jsx42("tr", { children: columns.map((col) => /* @__PURE__ */ jsx42("th", { className: cn("px-4 py-3 font-semibold", col.className), children: col.header }, col.key)) }) }),
+        /* @__PURE__ */ jsx42("tbody", { children: rows.map((row) => /* @__PURE__ */ jsx42(
           "tr",
           {
             className: "border-t border-[var(--wh-color-line)] hover:bg-[color-mix(in_srgb,var(--wh-color-accent)_6%,white)]",
-            children: columns.map((col) => /* @__PURE__ */ jsx38("td", { className: cn("px-4 py-3", col.className), children: col.render(row) }, col.key))
+            children: columns.map((col) => /* @__PURE__ */ jsx42("td", { className: cn("px-4 py-3", col.className), children: col.render(row) }, col.key))
           },
           rowKey(row)
         )) })
@@ -1744,18 +3210,18 @@ function DataTable({
 }
 
 // src/admin/components/Pagination/Pagination.tsx
-import { jsx as jsx39, jsxs as jsxs18 } from "react/jsx-runtime";
+import { jsx as jsx43, jsxs as jsxs21 } from "react/jsx-runtime";
 function Pagination({ page, pageCount, onPageChange, className }) {
   if (pageCount <= 1) {
     return null;
   }
-  return /* @__PURE__ */ jsxs18(
+  return /* @__PURE__ */ jsxs21(
     "nav",
     {
       className: cn("wh-ui mt-4 flex items-center justify-between gap-3", className),
       "aria-label": "Pagination",
       children: [
-        /* @__PURE__ */ jsx39(
+        /* @__PURE__ */ jsx43(
           Button,
           {
             variant: "secondary",
@@ -1765,13 +3231,13 @@ function Pagination({ page, pageCount, onPageChange, className }) {
             children: "Previous"
           }
         ),
-        /* @__PURE__ */ jsxs18("span", { className: "text-sm text-[var(--wh-color-muted)]", children: [
+        /* @__PURE__ */ jsxs21("span", { className: "text-sm text-[var(--wh-color-muted)]", children: [
           "Page ",
           page,
           " of ",
           pageCount
         ] }),
-        /* @__PURE__ */ jsx39(
+        /* @__PURE__ */ jsx43(
           Button,
           {
             variant: "secondary",
@@ -1787,10 +3253,10 @@ function Pagination({ page, pageCount, onPageChange, className }) {
 }
 
 // src/admin/components/Modal/Modal.tsx
-import { useEffect as useEffect3 } from "react";
-import { jsx as jsx40, jsxs as jsxs19 } from "react/jsx-runtime";
+import { useEffect as useEffect5 } from "react";
+import { jsx as jsx44, jsxs as jsxs22 } from "react/jsx-runtime";
 function Modal({ open, title, children, onClose, footer, className }) {
-  useEffect3(() => {
+  useEffect5(() => {
     if (!open) {
       return;
     }
@@ -1805,8 +3271,8 @@ function Modal({ open, title, children, onClose, footer, className }) {
   if (!open) {
     return null;
   }
-  return /* @__PURE__ */ jsxs19("div", { className: "wh-ui fixed inset-0 z-50 flex items-center justify-center p-4", children: [
-    /* @__PURE__ */ jsx40(
+  return /* @__PURE__ */ jsxs22("div", { className: "wh-ui fixed inset-0 z-50 flex items-center justify-center p-4", children: [
+    /* @__PURE__ */ jsx44(
       "button",
       {
         type: "button",
@@ -1815,7 +3281,7 @@ function Modal({ open, title, children, onClose, footer, className }) {
         onClick: onClose
       }
     ),
-    /* @__PURE__ */ jsxs19(
+    /* @__PURE__ */ jsxs22(
       "div",
       {
         role: "dialog",
@@ -1826,12 +3292,12 @@ function Modal({ open, title, children, onClose, footer, className }) {
           className
         ),
         children: [
-          /* @__PURE__ */ jsxs19("div", { className: "flex items-center justify-between border-b border-[var(--wh-color-line)] px-4 py-3", children: [
-            /* @__PURE__ */ jsx40("h2", { id: "wh-modal-title", className: "font-[family-name:var(--wh-font-display)] text-lg", children: title }),
-            /* @__PURE__ */ jsx40(Button, { variant: "ghost", size: "sm", onClick: onClose, "aria-label": "Close", children: "\xD7" })
+          /* @__PURE__ */ jsxs22("div", { className: "flex items-center justify-between border-b border-[var(--wh-color-line)] px-4 py-3", children: [
+            /* @__PURE__ */ jsx44("h2", { id: "wh-modal-title", className: "font-[family-name:var(--wh-font-display)] text-lg", children: title }),
+            /* @__PURE__ */ jsx44(Button, { variant: "ghost", size: "sm", onClick: onClose, "aria-label": "Close", children: "\xD7" })
           ] }),
-          /* @__PURE__ */ jsx40("div", { className: "px-4 py-4", children }),
-          footer ? /* @__PURE__ */ jsx40("div", { className: "flex justify-end gap-2 border-t border-[var(--wh-color-line)] px-4 py-3", children: footer }) : null
+          /* @__PURE__ */ jsx44("div", { className: "px-4 py-4", children }),
+          footer ? /* @__PURE__ */ jsx44("div", { className: "flex justify-end gap-2 border-t border-[var(--wh-color-line)] px-4 py-3", children: footer }) : null
         ]
       }
     )
@@ -1839,9 +3305,9 @@ function Modal({ open, title, children, onClose, footer, className }) {
 }
 
 // src/admin/components/PageHeader/PageHeader.tsx
-import { jsx as jsx41, jsxs as jsxs20 } from "react/jsx-runtime";
+import { jsx as jsx45, jsxs as jsxs23 } from "react/jsx-runtime";
 function PageHeader({ title, description, actions, className }) {
-  return /* @__PURE__ */ jsxs20(
+  return /* @__PURE__ */ jsxs23(
     "header",
     {
       className: cn(
@@ -1849,20 +3315,20 @@ function PageHeader({ title, description, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsxs20("div", { children: [
-          /* @__PURE__ */ jsx41("h1", { className: "font-[family-name:var(--wh-font-display)] text-3xl tracking-tight text-[var(--wh-color-ink)]", children: title }),
-          description ? /* @__PURE__ */ jsx41("p", { className: "mt-1 max-w-2xl text-[var(--wh-color-muted)]", children: description }) : null
+        /* @__PURE__ */ jsxs23("div", { children: [
+          /* @__PURE__ */ jsx45("h1", { className: "font-[family-name:var(--wh-font-display)] text-3xl tracking-tight text-[var(--wh-color-ink)]", children: title }),
+          description ? /* @__PURE__ */ jsx45("p", { className: "mt-1 max-w-2xl text-[var(--wh-color-muted)]", children: description }) : null
         ] }),
-        actions ? /* @__PURE__ */ jsx41("div", { className: "flex flex-wrap gap-2", children: actions }) : null
+        actions ? /* @__PURE__ */ jsx45("div", { className: "flex flex-wrap gap-2", children: actions }) : null
       ]
     }
   );
 }
 
 // src/admin/components/Sidebar/Sidebar.tsx
-import { jsx as jsx42, jsxs as jsxs21 } from "react/jsx-runtime";
+import { jsx as jsx46, jsxs as jsxs24 } from "react/jsx-runtime";
 function Sidebar({ brand = "WebHemi", items, className }) {
-  return /* @__PURE__ */ jsxs21(
+  return /* @__PURE__ */ jsxs24(
     "aside",
     {
       className: cn(
@@ -1870,11 +3336,11 @@ function Sidebar({ brand = "WebHemi", items, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsxs21("div", { className: "border-b border-white/10 px-5 py-5", children: [
-          /* @__PURE__ */ jsx42("p", { className: "font-[family-name:var(--wh-font-display)] text-2xl tracking-tight", children: brand }),
-          /* @__PURE__ */ jsx42("p", { className: "text-xs uppercase tracking-[0.2em] text-white/60", children: "Admin" })
+        /* @__PURE__ */ jsxs24("div", { className: "border-b border-white/10 px-5 py-5", children: [
+          /* @__PURE__ */ jsx46("p", { className: "font-[family-name:var(--wh-font-display)] text-2xl tracking-tight", children: brand }),
+          /* @__PURE__ */ jsx46("p", { className: "text-xs uppercase tracking-[0.2em] text-white/60", children: "Admin" })
         ] }),
-        /* @__PURE__ */ jsx42("nav", { className: "flex flex-1 flex-col gap-1 p-3", "aria-label": "Admin", children: items.map((item) => /* @__PURE__ */ jsxs21(
+        /* @__PURE__ */ jsx46("nav", { className: "flex flex-1 flex-col gap-1 p-3", "aria-label": "Admin", children: items.map((item) => /* @__PURE__ */ jsxs24(
           "a",
           {
             href: item.href,
@@ -1884,7 +3350,7 @@ function Sidebar({ brand = "WebHemi", items, className }) {
             ),
             "aria-current": item.active ? "page" : void 0,
             children: [
-              item.icon ? /* @__PURE__ */ jsx42(Icon, { name: item.icon }) : null,
+              item.icon ? /* @__PURE__ */ jsx46(Icon, { name: item.icon }) : null,
               item.label
             ]
           },
@@ -1896,9 +3362,9 @@ function Sidebar({ brand = "WebHemi", items, className }) {
 }
 
 // src/admin/components/TopBar/TopBar.tsx
-import { jsx as jsx43, jsxs as jsxs22 } from "react/jsx-runtime";
+import { jsx as jsx47, jsxs as jsxs25 } from "react/jsx-runtime";
 function TopBar({ title, userLabel, actions, className }) {
-  return /* @__PURE__ */ jsxs22(
+  return /* @__PURE__ */ jsxs25(
     "div",
     {
       className: cn(
@@ -1906,10 +3372,10 @@ function TopBar({ title, userLabel, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsx43("p", { className: "text-sm font-medium text-[var(--wh-color-muted)]", children: title ?? "Control panel" }),
-        /* @__PURE__ */ jsxs22("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsx47("p", { className: "text-sm font-medium text-[var(--wh-color-muted)]", children: title ?? "Control panel" }),
+        /* @__PURE__ */ jsxs25("div", { className: "flex items-center gap-3", children: [
           actions,
-          userLabel ? /* @__PURE__ */ jsx43("span", { className: "rounded-[var(--wh-radius-sm)] bg-[var(--wh-color-canvas)] px-3 py-1 text-sm", children: userLabel }) : null
+          userLabel ? /* @__PURE__ */ jsx47("span", { className: "rounded-[var(--wh-radius-sm)] bg-[var(--wh-color-canvas)] px-3 py-1 text-sm", children: userLabel }) : null
         ] })
       ]
     }
@@ -1917,7 +3383,7 @@ function TopBar({ title, userLabel, actions, className }) {
 }
 
 // src/admin/components/AdminLayout/AdminLayout.tsx
-import { jsx as jsx44, jsxs as jsxs23 } from "react/jsx-runtime";
+import { jsx as jsx48, jsxs as jsxs26 } from "react/jsx-runtime";
 function AdminLayout({
   brand,
   navItems,
@@ -1927,17 +3393,17 @@ function AdminLayout({
   children,
   className
 }) {
-  return /* @__PURE__ */ jsxs23("div", { className: cn("wh-ui flex min-h-screen bg-[var(--wh-color-canvas)]", className), children: [
-    /* @__PURE__ */ jsx44(Sidebar, { brand, items: navItems }),
-    /* @__PURE__ */ jsxs23("div", { className: "flex min-w-0 flex-1 flex-col", children: [
-      /* @__PURE__ */ jsx44(TopBar, { title: topBarTitle, userLabel, actions: topBarActions }),
-      /* @__PURE__ */ jsx44("main", { className: "flex-1 p-6", children })
+  return /* @__PURE__ */ jsxs26("div", { className: cn("wh-ui flex min-h-screen bg-[var(--wh-color-canvas)]", className), children: [
+    /* @__PURE__ */ jsx48(Sidebar, { brand, items: navItems }),
+    /* @__PURE__ */ jsxs26("div", { className: "flex min-w-0 flex-1 flex-col", children: [
+      /* @__PURE__ */ jsx48(TopBar, { title: topBarTitle, userLabel, actions: topBarActions }),
+      /* @__PURE__ */ jsx48("main", { className: "flex-1 p-6", children })
     ] })
   ] });
 }
 
 // src/admin/components/LoginForm/LoginForm.tsx
-import { jsx as jsx45, jsxs as jsxs24 } from "react/jsx-runtime";
+import { jsx as jsx49, jsxs as jsxs27 } from "react/jsx-runtime";
 function LoginForm({
   action = "/login",
   method = "post",
@@ -1963,18 +3429,18 @@ function LoginForm({
     });
   };
   const bannerSrc = bannerUrl || adminAsset("system/banner-dialog-login.gif");
-  return /* @__PURE__ */ jsxs24("form", { action, method, onSubmit: handleSubmit, className: cn(className), children: [
-    csrfToken ? /* @__PURE__ */ jsx45("input", { type: "hidden", name: csrfFieldName, value: csrfToken }) : null,
-    /* @__PURE__ */ jsxs24(
+  return /* @__PURE__ */ jsxs27("form", { action, method, onSubmit: handleSubmit, className: cn(className), children: [
+    csrfToken ? /* @__PURE__ */ jsx49("input", { type: "hidden", name: csrfFieldName, value: csrfToken }) : null,
+    /* @__PURE__ */ jsxs27(
       DialogWindow,
       {
         title: "Sign in \u2014 WebHemi CMS Admin",
         titleBarControls: null,
-        banner: /* @__PURE__ */ jsx45("img", { alt: "", className: "dialog-banner", src: bannerSrc }),
-        actions: /* @__PURE__ */ jsx45(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx45(Button2, { type: "submit", isDefault: true, loading, children: "OK" }) }),
+        banner: /* @__PURE__ */ jsx49("img", { alt: "", className: "dialog-banner", src: bannerSrc }),
+        actions: /* @__PURE__ */ jsx49(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx49(Button2, { type: "submit", isDefault: true, loading, children: "OK" }) }),
         children: [
-          error ? /* @__PURE__ */ jsx45("p", { role: "alert", style: { marginTop: 0, marginBottom: 10, color: "#800000" }, children: error }) : null,
-          /* @__PURE__ */ jsx45(FieldRow, { children: /* @__PURE__ */ jsx45(
+          error ? /* @__PURE__ */ jsx49("p", { role: "alert", style: { marginTop: 0, marginBottom: 10, color: "#800000" }, children: error }) : null,
+          /* @__PURE__ */ jsx49(FieldRow, { children: /* @__PURE__ */ jsx49(
             TextBox,
             {
               id: "email",
@@ -1988,7 +3454,7 @@ function LoginForm({
               className: "w-window-xs"
             }
           ) }),
-          /* @__PURE__ */ jsx45(FieldRow, { children: /* @__PURE__ */ jsx45(
+          /* @__PURE__ */ jsx49(FieldRow, { children: /* @__PURE__ */ jsx49(
             TextBox,
             {
               id: "password",
@@ -2008,8 +3474,8 @@ function LoginForm({
 }
 
 // src/admin/components/ControlPanel/ControlPanel.tsx
-import { useState as useState2 } from "react";
-import { jsx as jsx46, jsxs as jsxs25 } from "react/jsx-runtime";
+import { useState as useState6 } from "react";
+import { jsx as jsx50, jsxs as jsxs28 } from "react/jsx-runtime";
 var ICONS = [
   { kind: "sites", label: "Sites", description: "Manage sites and their contents." },
   { kind: "hosts", label: "Hosts", description: "Add, remove and verify domains." },
@@ -2024,31 +3490,39 @@ function ControlPanel({
   onMinimize,
   onMaximize,
   onActivate,
+  inactive = false,
+  maximized = false,
   className,
   style,
   width = 600,
   paneHeight = 300
 }) {
-  const [selected, setSelected] = useState2(null);
-  return /* @__PURE__ */ jsx46(
+  const [selected, setSelected] = useState6(null);
+  return /* @__PURE__ */ jsx50(
     IconPanelWindow,
     {
       className,
       style,
       width,
-      draggable: true,
+      inactive,
       resizable: true,
       paneHeight,
       title: "Control Panel",
       titleIcon: "control-panel",
-      titleBarControls: /* @__PURE__ */ jsxs25(TitleBarControls, { children: [
-        /* @__PURE__ */ jsx46(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-        /* @__PURE__ */ jsx46(TitleBarControl, { action: "Maximize", onClick: onMaximize }),
-        /* @__PURE__ */ jsx46(TitleBarControl, { action: "Close", onClick: onClose })
+      titleBarControls: /* @__PURE__ */ jsxs28(TitleBarControls, { children: [
+        /* @__PURE__ */ jsx50(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+        /* @__PURE__ */ jsx50(
+          TitleBarControl,
+          {
+            action: maximized ? "Restore" : "Maximize",
+            onClick: onMaximize
+          }
+        ),
+        /* @__PURE__ */ jsx50(TitleBarControl, { action: "Close", onClick: onClose })
       ] }),
       onMouseDown: onActivate,
       infoUnselected: !selected,
-      info: selected ? /* @__PURE__ */ jsx46(
+      info: selected ? /* @__PURE__ */ jsx50(
         IconPanelSelectionInfo,
         {
           kind: selected.kind,
@@ -2056,15 +3530,15 @@ function ControlPanel({
           description: selected.description
         }
       ) : null,
-      statusBar: /* @__PURE__ */ jsxs25(StatusBar, { children: [
-        /* @__PURE__ */ jsxs25(StatusBarField, { children: [
+      statusBar: /* @__PURE__ */ jsxs28(StatusBar, { children: [
+        /* @__PURE__ */ jsxs28(StatusBarField, { children: [
           ICONS.length,
           " items"
         ] }),
-        /* @__PURE__ */ jsx46(StatusBarField, { className: "description", children: selected?.description ?? "" }),
-        /* @__PURE__ */ jsx46(StatusBarField, {})
+        /* @__PURE__ */ jsx50(StatusBarField, { className: "description", children: selected?.description ?? "" }),
+        /* @__PURE__ */ jsx50(StatusBarField, {})
       ] }),
-      children: ICONS.map((icon) => /* @__PURE__ */ jsx46(
+      children: ICONS.map((icon) => /* @__PURE__ */ jsx50(
         SystemIcon,
         {
           kind: icon.kind,
@@ -2079,23 +3553,23 @@ function ControlPanel({
 }
 
 // src/admin/views/SiteListView.tsx
-import { jsx as jsx47, jsxs as jsxs26 } from "react/jsx-runtime";
+import { jsx as jsx51, jsxs as jsxs29 } from "react/jsx-runtime";
 function SiteListView({
   sites,
   loading = false,
   createHref = "/admin/sites/new",
   editHref = (site) => `/admin/sites/${site.id}`
 }) {
-  return /* @__PURE__ */ jsxs26("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx47(
+  return /* @__PURE__ */ jsxs29("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx51(
       PageHeader,
       {
         title: "Sites",
         description: "Multi-tenant sites bound to one or more hostnames.",
-        actions: /* @__PURE__ */ jsx47("a", { href: createHref, children: /* @__PURE__ */ jsx47(Button, { children: "New site" }) })
+        actions: /* @__PURE__ */ jsx51("a", { href: createHref, children: /* @__PURE__ */ jsx51(Button, { children: "New site" }) })
       }
     ),
-    /* @__PURE__ */ jsx47(
+    /* @__PURE__ */ jsx51(
       DataTable,
       {
         loading,
@@ -2104,7 +3578,7 @@ function SiteListView({
         emptyMessage: "No sites yet. Create the first tenant.",
         columns: [
           { key: "name", header: "Name", render: (row) => row.name },
-          { key: "slug", header: "Slug", render: (row) => /* @__PURE__ */ jsx47("code", { children: row.slug }) },
+          { key: "slug", header: "Slug", render: (row) => /* @__PURE__ */ jsx51("code", { children: row.slug }) },
           {
             key: "hosts",
             header: "Hosts",
@@ -2113,12 +3587,12 @@ function SiteListView({
           {
             key: "status",
             header: "Status",
-            render: (row) => /* @__PURE__ */ jsx47(Badge, { tone: row.enabled ? "success" : "neutral", children: row.enabled ? "Enabled" : "Disabled" })
+            render: (row) => /* @__PURE__ */ jsx51(Badge, { tone: row.enabled ? "success" : "neutral", children: row.enabled ? "Enabled" : "Disabled" })
           },
           {
             key: "actions",
             header: "",
-            render: (row) => /* @__PURE__ */ jsx47("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
+            render: (row) => /* @__PURE__ */ jsx51("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
           }
         ]
       }
@@ -2127,7 +3601,7 @@ function SiteListView({
 }
 
 // src/admin/views/SiteHostListView.tsx
-import { jsx as jsx48, jsxs as jsxs27 } from "react/jsx-runtime";
+import { jsx as jsx52, jsxs as jsxs30 } from "react/jsx-runtime";
 var statusTone = {
   pending: "warning",
   verified: "accent",
@@ -2139,16 +3613,16 @@ function SiteHostListView({
   createHref = "/admin/hosts/new",
   verifyHref = (host) => `/admin/hosts/${host.id}/verify`
 }) {
-  return /* @__PURE__ */ jsxs27("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx48(
+  return /* @__PURE__ */ jsxs30("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx52(
       PageHeader,
       {
         title: "Hosts",
         description: "Domain names mapped to sites and surfaces (admin, site, api).",
-        actions: /* @__PURE__ */ jsx48("a", { href: createHref, children: /* @__PURE__ */ jsx48(Button, { children: "Add host" }) })
+        actions: /* @__PURE__ */ jsx52("a", { href: createHref, children: /* @__PURE__ */ jsx52(Button, { children: "Add host" }) })
       }
     ),
-    /* @__PURE__ */ jsx48(
+    /* @__PURE__ */ jsx52(
       DataTable,
       {
         loading,
@@ -2156,22 +3630,22 @@ function SiteHostListView({
         rowKey: (row) => row.id,
         emptyMessage: "No hosts configured.",
         columns: [
-          { key: "host", header: "Hostname", render: (row) => /* @__PURE__ */ jsx48("code", { children: row.host }) },
+          { key: "host", header: "Hostname", render: (row) => /* @__PURE__ */ jsx52("code", { children: row.host }) },
           { key: "site", header: "Site", render: (row) => row.siteName },
           {
             key: "surface",
             header: "Surface",
-            render: (row) => /* @__PURE__ */ jsx48(Badge, { tone: "accent", children: row.surface })
+            render: (row) => /* @__PURE__ */ jsx52(Badge, { tone: "accent", children: row.surface })
           },
           {
             key: "status",
             header: "Status",
-            render: (row) => /* @__PURE__ */ jsx48(Badge, { tone: statusTone[row.status], children: row.status })
+            render: (row) => /* @__PURE__ */ jsx52(Badge, { tone: statusTone[row.status], children: row.status })
           },
           {
             key: "actions",
             header: "",
-            render: (row) => row.status === "pending" ? /* @__PURE__ */ jsx48("a", { href: verifyHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Verify" }) : "\u2014"
+            render: (row) => row.status === "pending" ? /* @__PURE__ */ jsx52("a", { href: verifyHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Verify" }) : "\u2014"
           }
         ]
       }
@@ -2180,23 +3654,23 @@ function SiteHostListView({
 }
 
 // src/admin/views/UserListView.tsx
-import { jsx as jsx49, jsxs as jsxs28 } from "react/jsx-runtime";
+import { jsx as jsx53, jsxs as jsxs31 } from "react/jsx-runtime";
 function UserListView({
   users,
   loading = false,
   createHref = "/admin/users/new",
   editHref = (user) => `/admin/users/${user.id}`
 }) {
-  return /* @__PURE__ */ jsxs28("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx49(
+  return /* @__PURE__ */ jsxs31("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx53(
       PageHeader,
       {
         title: "Users",
         description: "Accounts with global roles and optional per-site assignments.",
-        actions: /* @__PURE__ */ jsx49("a", { href: createHref, children: /* @__PURE__ */ jsx49(Button, { children: "New user" }) })
+        actions: /* @__PURE__ */ jsx53("a", { href: createHref, children: /* @__PURE__ */ jsx53(Button, { children: "New user" }) })
       }
     ),
-    /* @__PURE__ */ jsx49(
+    /* @__PURE__ */ jsx53(
       DataTable,
       {
         loading,
@@ -2208,12 +3682,12 @@ function UserListView({
           {
             key: "roles",
             header: "Roles",
-            render: (row) => /* @__PURE__ */ jsx49("div", { className: "flex flex-wrap gap-1", children: row.roles.map((role) => /* @__PURE__ */ jsx49(Badge, { children: role }, role)) })
+            render: (row) => /* @__PURE__ */ jsx53("div", { className: "flex flex-wrap gap-1", children: row.roles.map((role) => /* @__PURE__ */ jsx53(Badge, { children: role }, role)) })
           },
           {
             key: "actions",
             header: "",
-            render: (row) => /* @__PURE__ */ jsx49("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
+            render: (row) => /* @__PURE__ */ jsx53("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
           }
         ]
       }
@@ -2222,23 +3696,23 @@ function UserListView({
 }
 
 // src/admin/views/RoleListView.tsx
-import { jsx as jsx50, jsxs as jsxs29 } from "react/jsx-runtime";
+import { jsx as jsx54, jsxs as jsxs32 } from "react/jsx-runtime";
 function RoleListView({
   roles,
   loading = false,
   createHref = "/admin/roles/new",
   editHref = (role) => `/admin/roles/${role.id}`
 }) {
-  return /* @__PURE__ */ jsxs29("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx50(
+  return /* @__PURE__ */ jsxs32("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx54(
       PageHeader,
       {
         title: "Roles & permissions",
         description: "RBAC roles with permission strings such as site.list.",
-        actions: /* @__PURE__ */ jsx50("a", { href: createHref, children: /* @__PURE__ */ jsx50(Button, { children: "New role" }) })
+        actions: /* @__PURE__ */ jsx54("a", { href: createHref, children: /* @__PURE__ */ jsx54(Button, { children: "New role" }) })
       }
     ),
-    /* @__PURE__ */ jsx50(
+    /* @__PURE__ */ jsx54(
       DataTable,
       {
         loading,
@@ -2250,12 +3724,12 @@ function RoleListView({
           {
             key: "permissions",
             header: "Permissions",
-            render: (row) => /* @__PURE__ */ jsx50("div", { className: "flex flex-wrap gap-1", children: row.permissions.map((permission) => /* @__PURE__ */ jsx50(Badge, { tone: "accent", children: permission }, permission)) })
+            render: (row) => /* @__PURE__ */ jsx54("div", { className: "flex flex-wrap gap-1", children: row.permissions.map((permission) => /* @__PURE__ */ jsx54(Badge, { tone: "accent", children: permission }, permission)) })
           },
           {
             key: "actions",
             header: "",
-            render: (row) => /* @__PURE__ */ jsx50("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
+            render: (row) => /* @__PURE__ */ jsx54("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
           }
         ]
       }
@@ -2264,7 +3738,7 @@ function RoleListView({
 }
 
 // src/admin/pages/LoginPage.tsx
-import { jsx as jsx51 } from "react/jsx-runtime";
+import { jsx as jsx55 } from "react/jsx-runtime";
 function LoginPage({
   action,
   csrfToken,
@@ -2273,7 +3747,7 @@ function LoginPage({
   error,
   bannerUrl
 }) {
-  return /* @__PURE__ */ jsx51(
+  return /* @__PURE__ */ jsx55(
     LoginForm,
     {
       action,
@@ -2287,15 +3761,814 @@ function LoginPage({
 }
 
 // src/admin/pages/AdminDesktop.tsx
-import { useRef as useRef3, useState as useState3 } from "react";
-import { jsx as jsx52, jsxs as jsxs30 } from "react/jsx-runtime";
-var CASCADE_ORIGIN = { left: 120, top: 32 };
+import { useCallback as useCallback2, useEffect as useEffect9, useRef as useRef7, useState as useState8 } from "react";
+
+// src/admin/shell/types.ts
+var CONTROL_PANEL_WINDOW_ID = "control-panel";
+function siteWindowId(siteId) {
+  return `site-${siteId}`;
+}
+function parseSiteWindowId(id) {
+  const match = /^site-(\d+)$/.exec(id);
+  return match ? Number(match[1]) : null;
+}
+
+// src/admin/shell/DesktopWindow.tsx
+import {
+  useEffect as useEffect6,
+  useRef as useRef5
+} from "react";
+
+// src/admin/shell/geometry.ts
+var DRAG_THRESHOLD_PX = 4;
+var TASKBAR_RESERVE_PX = 40;
+function getDesktopWorkSize(dashboard) {
+  const width = dashboard.clientWidth;
+  const toolbar = dashboard.querySelector("#toolbar");
+  if (toolbar instanceof HTMLElement) {
+    const dashboardTop = dashboard.getBoundingClientRect().top;
+    const toolbarTop = toolbar.getBoundingClientRect().top;
+    const height = Math.max(0, Math.floor(toolbarTop - dashboardTop));
+    return { width, height };
+  }
+  return {
+    width,
+    height: Math.max(0, dashboard.clientHeight - TASKBAR_RESERVE_PX)
+  };
+}
+function clampDesktopPosition(dashboard, width, height, left, top) {
+  const work = getDesktopWorkSize(dashboard);
+  const maxLeft = Math.max(0, work.width - width);
+  const maxTop = Math.max(0, work.height - height);
+  return {
+    left: Math.max(0, Math.min(left, maxLeft)),
+    top: Math.max(0, Math.min(top, maxTop))
+  };
+}
+function findShellProductWindow(host) {
+  const direct = host.querySelector(":scope > .window");
+  if (direct instanceof HTMLElement) {
+    return direct;
+  }
+  const nested = host.querySelector(":scope > .site-file-explorer > .window");
+  return nested instanceof HTMLElement ? nested : null;
+}
+function findShellTitleBar(host) {
+  const win = findShellProductWindow(host);
+  const titleBar = win?.querySelector(":scope > .title-bar");
+  return titleBar instanceof HTMLElement ? titleBar : null;
+}
+
+// src/admin/shell/resize.ts
+var RESIZE_EDGES = ["e", "w", "s", "se", "sw"];
+var RESIZE_CURSORS = {
+  e: "ew-resize",
+  w: "ew-resize",
+  s: "ns-resize",
+  se: "nwse-resize",
+  sw: "nesw-resize"
+};
+var SHELL_MIN_WIDTH = 500;
+var SHELL_MIN_HEIGHT = 340;
+var DEFAULT_WINDOW_SIZE = {
+  "control-panel": { width: 600, height: 380 },
+  site: { width: 640, height: 440 }
+};
+function computeResizeBounds(dashboard, edge, start, pointer, minWidth = SHELL_MIN_WIDTH, minHeight = SHELL_MIN_HEIGHT) {
+  const dx = pointer.clientX - pointer.startX;
+  const dy = pointer.clientY - pointer.startY;
+  let nextLeft = start.left;
+  let nextTop = start.top;
+  let nextWidth = start.width;
+  let nextHeight = start.height;
+  if (edge.includes("e")) {
+    nextWidth = start.width + dx;
+  }
+  if (edge.includes("w")) {
+    nextWidth = start.width - dx;
+    nextLeft = start.left + dx;
+  }
+  if (edge.includes("s")) {
+    nextHeight = start.height + dy;
+  }
+  if (nextWidth < minWidth) {
+    if (edge.includes("w")) {
+      nextLeft = start.left + (start.width - minWidth);
+    }
+    nextWidth = minWidth;
+  }
+  if (nextHeight < minHeight) {
+    nextHeight = minHeight;
+  }
+  const work = getDesktopWorkSize(dashboard);
+  const maxWidth = Math.max(minWidth, work.width - nextLeft);
+  const maxHeight = Math.max(minHeight, work.height - nextTop);
+  nextWidth = Math.min(nextWidth, maxWidth);
+  nextHeight = Math.min(nextHeight, maxHeight);
+  if (edge.includes("w")) {
+    const maxLeft = start.left + start.width - minWidth;
+    nextLeft = Math.max(0, Math.min(nextLeft, maxLeft));
+    nextWidth = start.left + start.width - nextLeft;
+    nextWidth = Math.min(nextWidth, work.width - nextLeft);
+  }
+  nextLeft = Math.max(0, Math.min(nextLeft, Math.max(0, work.width - nextWidth)));
+  nextTop = Math.max(0, Math.min(nextTop, Math.max(0, work.height - nextHeight)));
+  return {
+    left: nextLeft,
+    top: nextTop,
+    width: nextWidth,
+    height: nextHeight
+  };
+}
+
+// src/admin/shell/DesktopWindow.tsx
+import { jsx as jsx56, jsxs as jsxs33 } from "react/jsx-runtime";
+function DesktopWindow({
+  windowId,
+  left,
+  top,
+  zIndex,
+  width,
+  height,
+  maximized = false,
+  onPositionChange,
+  onBoundsChange,
+  onActivate,
+  onToggleMaximize,
+  dragDisabled = false,
+  resizable = true,
+  className,
+  children,
+  style,
+  onPointerDown,
+  ...rest
+}) {
+  const rootRef = useRef5(null);
+  const dragRef = useRef5(null);
+  const resizeRef = useRef5(null);
+  const onPositionChangeRef = useRef5(onPositionChange);
+  const onBoundsChangeRef = useRef5(onBoundsChange);
+  const dragDisabledRef = useRef5(dragDisabled);
+  const maximizedRef = useRef5(maximized);
+  useEffect6(() => {
+    onPositionChangeRef.current = onPositionChange;
+  }, [onPositionChange]);
+  useEffect6(() => {
+    onBoundsChangeRef.current = onBoundsChange;
+  }, [onBoundsChange]);
+  useEffect6(() => {
+    dragDisabledRef.current = dragDisabled;
+  }, [dragDisabled]);
+  useEffect6(() => {
+    maximizedRef.current = maximized;
+  }, [maximized]);
+  useEffect6(() => {
+    const onMove = (event) => {
+      const node = rootRef.current;
+      if (!node) {
+        return;
+      }
+      const resize = resizeRef.current;
+      if (resize && event.pointerId === resize.pointerId) {
+        const dashboard2 = node.closest(".dashboard");
+        const change2 = onBoundsChangeRef.current;
+        if (!(dashboard2 instanceof HTMLElement) || !change2) {
+          return;
+        }
+        const next2 = computeResizeBounds(dashboard2, resize.edge, resize.start, {
+          clientX: event.clientX,
+          clientY: event.clientY,
+          startX: resize.startX,
+          startY: resize.startY
+        });
+        change2(next2);
+        event.preventDefault();
+        return;
+      }
+      const session = dragRef.current;
+      if (!session || event.pointerId !== session.pointerId) {
+        return;
+      }
+      if (dragDisabledRef.current || maximizedRef.current) {
+        return;
+      }
+      if (!session.active) {
+        const dx = event.clientX - session.startX;
+        const dy = event.clientY - session.startY;
+        if (dx * dx + dy * dy < DRAG_THRESHOLD_PX * DRAG_THRESHOLD_PX) {
+          return;
+        }
+        session.active = true;
+        node.classList.add("is-dragging");
+        try {
+          if (typeof node.setPointerCapture === "function") {
+            node.setPointerCapture(session.pointerId);
+          }
+        } catch {
+        }
+        event.preventDefault();
+      }
+      const dashboard = node.closest(".dashboard");
+      const change = onPositionChangeRef.current;
+      if (!(dashboard instanceof HTMLElement) || !change) {
+        return;
+      }
+      const origin = dashboard.getBoundingClientRect();
+      const next = clampDesktopPosition(
+        dashboard,
+        node.offsetWidth,
+        node.offsetHeight,
+        event.clientX - origin.left - session.offsetX,
+        event.clientY - origin.top - session.offsetY
+      );
+      change(next.left, next.top);
+    };
+    const onUp = (event) => {
+      const node = rootRef.current;
+      const resize = resizeRef.current;
+      if (resize && event.pointerId === resize.pointerId) {
+        if (node && typeof node.releasePointerCapture === "function" && node.hasPointerCapture?.(resize.pointerId)) {
+          node.releasePointerCapture(resize.pointerId);
+        }
+        node?.classList.remove("is-resizing");
+        document.documentElement.classList.remove("is-window-resizing");
+        document.documentElement.style.removeProperty("cursor");
+        resizeRef.current = null;
+        return;
+      }
+      const session = dragRef.current;
+      if (!session || event.pointerId !== session.pointerId) {
+        return;
+      }
+      if (node && typeof node.releasePointerCapture === "function" && node.hasPointerCapture?.(session.pointerId)) {
+        node.releasePointerCapture(session.pointerId);
+      }
+      node?.classList.remove("is-dragging");
+      dragRef.current = null;
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, []);
+  const startResize = (edge, event) => {
+    if (!onBoundsChange || maximized || event.button !== 0 || !rootRef.current) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    onActivate?.();
+    const node = rootRef.current;
+    resizeRef.current = {
+      pointerId: event.pointerId,
+      edge,
+      startX: event.clientX,
+      startY: event.clientY,
+      start: {
+        left,
+        top,
+        width: width ?? node.offsetWidth,
+        height: height ?? node.offsetHeight
+      }
+    };
+    node.classList.add("is-resizing");
+    document.documentElement.classList.add("is-window-resizing");
+    document.documentElement.style.setProperty(
+      "cursor",
+      RESIZE_CURSORS[edge],
+      "important"
+    );
+    try {
+      if (typeof node.setPointerCapture === "function") {
+        node.setPointerCapture(event.pointerId);
+      }
+    } catch {
+    }
+  };
+  const handlePointerDown = (event) => {
+    onPointerDown?.(event);
+    onActivate?.();
+    if (dragDisabled || maximized || !onPositionChange || event.button !== 0) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element) || !rootRef.current) {
+      return;
+    }
+    if (target.closest(".title-bar-controls") || target.closest(".window-resize-handle")) {
+      return;
+    }
+    const titleBar = findShellTitleBar(rootRef.current);
+    if (!titleBar || !titleBar.contains(target)) {
+      return;
+    }
+    const preventNativeDrag = (dragEvent) => {
+      dragEvent.preventDefault();
+    };
+    titleBar.addEventListener("dragstart", preventNativeDrag, { once: true });
+    const rect = rootRef.current.getBoundingClientRect();
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      active: false
+    };
+  };
+  const handleDoubleClick = (event) => {
+    if (!onToggleMaximize || !rootRef.current) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    if (target.closest(".title-bar-controls")) {
+      return;
+    }
+    const titleBar = findShellTitleBar(rootRef.current);
+    if (!titleBar || !titleBar.contains(target)) {
+      return;
+    }
+    event.preventDefault();
+    onToggleMaximize();
+  };
+  const sized = width !== void 0 && height !== void 0;
+  const mergedStyle = {
+    ...style,
+    left,
+    top,
+    zIndex,
+    ...sized ? { width, height } : null
+  };
+  const showHandles = resizable && !maximized && !dragDisabled;
+  return /* @__PURE__ */ jsxs33(
+    "div",
+    {
+      ref: rootRef,
+      id: windowId,
+      "data-shell-window": windowId,
+      className: cn(
+        "desktop-window",
+        sized && "is-sized",
+        maximized && "is-maximized",
+        className
+      ),
+      style: mergedStyle,
+      onPointerDown: handlePointerDown,
+      onDoubleClick: handleDoubleClick,
+      ...rest,
+      children: [
+        children,
+        showHandles ? RESIZE_EDGES.map((edge) => /* @__PURE__ */ jsx56(
+          "div",
+          {
+            className: "window-resize-handle",
+            "data-edge": edge,
+            "aria-hidden": true,
+            onPointerDown: (event) => startResize(edge, event)
+          },
+          edge
+        )) : null
+      ]
+    }
+  );
+}
+
+// src/admin/shell/TaskbarClock.tsx
+import { useEffect as useEffect7, useState as useState7 } from "react";
+import { jsx as jsx57 } from "react/jsx-runtime";
+function formatClock(date) {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+function TaskbarClock() {
+  const [label, setLabel] = useState7(() => formatClock(/* @__PURE__ */ new Date()));
+  useEffect7(() => {
+    const tick = () => setLabel(formatClock(/* @__PURE__ */ new Date()));
+    tick();
+    const id = window.setInterval(tick, 1e3);
+    return () => window.clearInterval(id);
+  }, []);
+  return /* @__PURE__ */ jsx57("div", { className: "sunken-panel clock", "aria-live": "polite", children: label });
+}
+
+// src/admin/shell/Taskbar.tsx
+import { jsx as jsx58, jsxs as jsxs34 } from "react/jsx-runtime";
+function taskClassName(win, active) {
+  return cn(
+    "task",
+    win.kind === "control-panel" && "control-panel",
+    win.kind === "site" && "site",
+    active && "active"
+  );
+}
+function Taskbar({
+  windows,
+  activeId,
+  onTaskClick,
+  onMenuClick,
+  menuExpanded = false,
+  startMenu,
+  className
+}) {
+  return /* @__PURE__ */ jsxs34("div", { id: "toolbar", className: cn("window", className), children: [
+    startMenu,
+    /* @__PURE__ */ jsxs34("div", { className: "window-body", children: [
+      /* @__PURE__ */ jsx58(
+        "button",
+        {
+          type: "button",
+          className: "menu",
+          "aria-expanded": menuExpanded,
+          "aria-controls": "start-menu",
+          "aria-haspopup": "menu",
+          onClick: onMenuClick,
+          children: "Menu"
+        }
+      ),
+      /* @__PURE__ */ jsx58("div", { className: "task-buttons", children: windows.map((win) => {
+        const pressed = win.id === activeId && !win.minimized;
+        return /* @__PURE__ */ jsx58(
+          "button",
+          {
+            type: "button",
+            className: taskClassName(win, pressed),
+            "data-window": win.id,
+            "aria-pressed": pressed,
+            title: win.title,
+            onClick: () => onTaskClick(win.id),
+            children: /* @__PURE__ */ jsx58("span", { className: "task-title", children: win.title })
+          },
+          win.id
+        );
+      }) }),
+      /* @__PURE__ */ jsx58(TaskbarClock, {})
+    ] })
+  ] });
+}
+
+// src/admin/shell/StartMenu.tsx
+import { useEffect as useEffect8, useRef as useRef6 } from "react";
+import { jsx as jsx59, jsxs as jsxs35 } from "react/jsx-runtime";
+function StartMenu({
+  open,
+  onClose,
+  onOpenControlPanel,
+  logoutHref
+}) {
+  const rootRef = useRef6(null);
+  useEffect8(() => {
+    if (!open) {
+      return;
+    }
+    const onPointerDown = (event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (rootRef.current?.contains(target)) {
+        return;
+      }
+      if (target instanceof Element && target.closest("#toolbar > .window-body > button.menu")) {
+        return;
+      }
+      onClose();
+    };
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("pointerdown", onPointerDown, true);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, onClose]);
+  const items = [
+    { id: "uploads", label: "Uploads", className: "uploads", disabled: true },
+    {
+      id: "control-panel",
+      label: "Control Panel",
+      className: "control-panel",
+      onSelect: () => {
+        onOpenControlPanel();
+        onClose();
+      }
+    },
+    { id: "search", label: "Search", className: "search", disabled: true },
+    { id: "logs", label: "Logs", className: "logs", disabled: true },
+    { id: "about", label: "About", className: "about", disabled: true },
+    {
+      id: "logout",
+      label: "Logout",
+      className: "logout",
+      disabled: !logoutHref,
+      onSelect: logoutHref ? () => {
+        onClose();
+        window.location.assign(logoutHref);
+      } : void 0
+    }
+  ];
+  return /* @__PURE__ */ jsxs35(
+    "div",
+    {
+      ref: rootRef,
+      className: "start-menu",
+      id: "start-menu",
+      hidden: !open,
+      children: [
+        /* @__PURE__ */ jsx59("div", { className: "start-menu-banner", "aria-hidden": "true", children: /* @__PURE__ */ jsx59("span", { children: "WebHemi 1.0" }) }),
+        /* @__PURE__ */ jsxs35("ul", { className: "start-menu-list", role: "menu", "aria-label": "Menu", children: [
+          items.slice(0, 4).map((item) => /* @__PURE__ */ jsx59("li", { role: "none", children: /* @__PURE__ */ jsx59(StartMenuItem, { item }) }, item.id)),
+          /* @__PURE__ */ jsx59("li", { className: "separator", role: "separator" }),
+          items.slice(4).map((item) => /* @__PURE__ */ jsx59("li", { role: "none", children: /* @__PURE__ */ jsx59(StartMenuItem, { item }) }, item.id))
+        ] })
+      ]
+    }
+  );
+}
+function StartMenuItem({ item }) {
+  return /* @__PURE__ */ jsx59(
+    "button",
+    {
+      type: "button",
+      role: "menuitem",
+      className: cn("start-item", item.className),
+      disabled: item.disabled,
+      onClick: () => {
+        if (!item.disabled) {
+          item.onSelect?.();
+        }
+      },
+      children: item.label
+    }
+  );
+}
+
+// src/admin/shell/persistence.ts
+var DESKTOP_WINDOWS_STORAGE_KEY = "webhemi.admin.desktop.windows.v1";
+function isFiniteNumber(value) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+function parseRestore(value) {
+  if (!value || typeof value !== "object") {
+    return void 0;
+  }
+  const restore = value;
+  if (!isFiniteNumber(restore.left) || !isFiniteNumber(restore.top) || !isFiniteNumber(restore.width) || !isFiniteNumber(restore.height)) {
+    return void 0;
+  }
+  return {
+    left: restore.left,
+    top: restore.top,
+    width: restore.width,
+    height: restore.height
+  };
+}
+function parseEntry(id, value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const raw = value;
+  const kind = raw.kind === "site" || raw.kind === "control-panel" ? raw.kind : null;
+  if (!kind) {
+    return null;
+  }
+  if (!isFiniteNumber(raw.left) || !isFiniteNumber(raw.top) || !isFiniteNumber(raw.z) || !isFiniteNumber(raw.width) || !isFiniteNumber(raw.height)) {
+    return null;
+  }
+  const siteId = kind === "site" ? parseSiteWindowId(id) : void 0;
+  if (kind === "site" && siteId === null) {
+    return null;
+  }
+  return {
+    id,
+    kind,
+    title: typeof raw.title === "string" ? raw.title : id,
+    siteId: siteId ?? void 0,
+    left: raw.left,
+    top: raw.top,
+    z: raw.z,
+    width: raw.width,
+    height: raw.height,
+    minimized: Boolean(raw.minimized),
+    maximized: Boolean(raw.maximized),
+    restore: parseRestore(raw.restore),
+    closed: Boolean(raw.closed)
+  };
+}
+function loadPersistedDesktop(storageKey = DESKTOP_WINDOWS_STORAGE_KEY) {
+  if (typeof localStorage === "undefined") {
+    return null;
+  }
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+    const data = parsed;
+    if (data.v !== 1 || !data.entries || typeof data.entries !== "object") {
+      return null;
+    }
+    const entries = {};
+    for (const [id, value] of Object.entries(
+      data.entries
+    )) {
+      const entry = parseEntry(id, value);
+      if (entry) {
+        entries[id] = entry;
+      }
+    }
+    return {
+      v: 1,
+      activeId: typeof data.activeId === "string" ? data.activeId : null,
+      nextZ: isFiniteNumber(data.nextZ) ? data.nextZ : 10,
+      cascade: isFiniteNumber(data.cascade) ? data.cascade : 0,
+      entries
+    };
+  } catch {
+    return null;
+  }
+}
+function savePersistedDesktop(state, storageKey = DESKTOP_WINDOWS_STORAGE_KEY) {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(state));
+  } catch {
+  }
+}
+function entryFromWindow(win, closed = false) {
+  return {
+    id: win.id,
+    kind: win.kind,
+    title: win.title,
+    siteId: win.siteId,
+    left: win.left,
+    top: win.top,
+    z: win.z,
+    width: win.width,
+    height: win.height,
+    minimized: win.minimized,
+    maximized: win.maximized,
+    restore: win.restore,
+    closed
+  };
+}
+function windowFromEntry(entry) {
+  return {
+    id: entry.id,
+    kind: entry.kind,
+    title: entry.title,
+    siteId: entry.siteId,
+    left: entry.left,
+    top: entry.top,
+    z: entry.z,
+    width: entry.width,
+    height: entry.height,
+    minimized: entry.minimized,
+    maximized: entry.maximized,
+    restore: entry.restore
+  };
+}
+function hydrateDesktopFromPersistence(persisted, sites) {
+  if (!persisted) {
+    return { windows: [], activeId: null, nextZ: 10, cascade: 0 };
+  }
+  const siteIds = new Set(sites.map((site) => site.id));
+  const siteName = new Map(sites.map((site) => [site.id, site.name]));
+  const windows = [];
+  for (const entry of Object.values(persisted.entries)) {
+    if (entry.closed) {
+      continue;
+    }
+    if (entry.kind === "control-panel" && entry.id === CONTROL_PANEL_WINDOW_ID) {
+      windows.push(windowFromEntry(entry));
+      continue;
+    }
+    if (entry.kind === "site" && entry.siteId != null && siteIds.has(entry.siteId)) {
+      windows.push({
+        ...windowFromEntry(entry),
+        title: siteName.get(entry.siteId) ?? entry.title
+      });
+    }
+  }
+  windows.sort((a, b) => a.z - b.z);
+  const openIds = new Set(windows.map((win) => win.id));
+  const activeId = persisted.activeId && openIds.has(persisted.activeId) ? persisted.activeId : windows.reduce(
+    (best, win) => !best || win.z > best.z ? win : best,
+    null
+  )?.id ?? null;
+  return {
+    windows,
+    activeId,
+    nextZ: Math.max(persisted.nextZ, ...windows.map((win) => win.z), 10),
+    cascade: persisted.cascade
+  };
+}
+function buildPersistedDesktopState(previous, windows, activeId, nextZ, cascade) {
+  const entries = {
+    ...previous?.entries ?? {}
+  };
+  const openIds = new Set(windows.map((win) => win.id));
+  for (const [id, entry] of Object.entries(entries)) {
+    if (!openIds.has(id)) {
+      entries[id] = { ...entry, closed: true };
+    }
+  }
+  for (const win of windows) {
+    entries[win.id] = entryFromWindow(win, false);
+  }
+  return {
+    v: 1,
+    activeId,
+    nextZ,
+    cascade,
+    entries
+  };
+}
+function geometryFromPersistence(persisted, id, kind) {
+  const entry = persisted?.entries[id];
+  if (!entry || entry.kind !== kind) {
+    return null;
+  }
+  return {
+    left: entry.left,
+    top: entry.top,
+    width: entry.width,
+    height: entry.height,
+    z: entry.z
+  };
+}
+
+// src/admin/pages/AdminDesktop.tsx
+import { jsx as jsx60, jsxs as jsxs36 } from "react/jsx-runtime";
+var CASCADE_ORIGIN = { left: 48, top: 24 };
 var CASCADE_STEP = 28;
-function AdminDesktop({ sites = [], className }) {
-  const nextZRef = useRef3(10);
-  const cascadeRef = useRef3(0);
-  const [controlPanel, setControlPanel] = useState3(null);
-  const [openSites, setOpenSites] = useState3([]);
+var PERSIST_DEBOUNCE_MS = 200;
+function topVisibleWindowId(windows) {
+  return windows.filter((win) => !win.minimized).reduce(
+    (best, win) => !best || win.z > best.z ? win : best,
+    null
+  )?.id ?? null;
+}
+function AdminDesktop({
+  sites = [],
+  explorerTreeForSite = buildEmptySiteExplorerTree,
+  logoutHref,
+  persistenceKey = DESKTOP_WINDOWS_STORAGE_KEY,
+  className
+}) {
+  const storageKey = persistenceKey === false ? null : persistenceKey;
+  const persistedRef = useRef7(
+    storageKey ? loadPersistedDesktop(storageKey) : null
+  );
+  const hydratedRef = useRef7(
+    hydrateDesktopFromPersistence(persistedRef.current, sites)
+  );
+  const nextZRef = useRef7(hydratedRef.current.nextZ);
+  const cascadeRef = useRef7(hydratedRef.current.cascade);
+  const dashboardRef = useRef7(null);
+  const [shell, setShell] = useState8(() => ({
+    windows: hydratedRef.current.windows,
+    activeId: hydratedRef.current.activeId
+  }));
+  const [startMenuOpen, setStartMenuOpen] = useState8(false);
+  useEffect9(() => {
+    if (!storageKey) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const next = buildPersistedDesktopState(
+        persistedRef.current,
+        shell.windows,
+        shell.activeId,
+        nextZRef.current,
+        cascadeRef.current
+      );
+      persistedRef.current = next;
+      savePersistedDesktop(next, storageKey);
+    }, PERSIST_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [shell, storageKey]);
+  const closeStartMenu = useCallback2(() => setStartMenuOpen(false), []);
+  const toggleStartMenu = useCallback2(() => {
+    setStartMenuOpen((open) => !open);
+  }, []);
   const allocatePlacement = () => {
     const index = cascadeRef.current;
     cascadeRef.current += 1;
@@ -2310,50 +4583,225 @@ function AdminDesktop({ sites = [], className }) {
     nextZRef.current += 1;
     return nextZRef.current;
   };
-  const openControlPanel = () => {
-    setControlPanel((prev) => {
-      if (prev) {
-        return { ...prev, z: raiseZ() };
+  const activateWindow = (id) => {
+    setShell((prev) => {
+      const target = prev.windows.find((win) => win.id === id);
+      if (!target || target.minimized) {
+        return prev;
       }
-      return allocatePlacement();
+      if (target.z === nextZRef.current && prev.activeId === id) {
+        return prev;
+      }
+      const z = target.z === nextZRef.current ? target.z : raiseZ();
+      return {
+        activeId: id,
+        windows: prev.windows.map(
+          (win) => win.id === id ? { ...win, z } : win
+        )
+      };
     });
   };
-  const closeControlPanel = () => setControlPanel(null);
-  const openSite = (site) => {
-    setOpenSites((prev) => {
-      const existing = prev.find((w) => w.id === site.id);
-      if (existing) {
+  const closeWindow = (id) => {
+    setShell((prev) => {
+      const windows = prev.windows.filter((win) => win.id !== id);
+      return {
+        windows,
+        activeId: prev.activeId === id ? topVisibleWindowId(windows) : prev.activeId
+      };
+    });
+  };
+  const minimizeWindow = (id) => {
+    setShell((prev) => {
+      let windows = prev.windows.map(
+        (win) => win.id === id ? { ...win, minimized: true } : win
+      );
+      let activeId = prev.activeId === id ? topVisibleWindowId(windows) : prev.activeId;
+      if (activeId && activeId !== prev.activeId) {
         const z = raiseZ();
-        return prev.map((w) => w.id === site.id ? { ...w, z } : w);
+        windows = windows.map(
+          (win) => win.id === activeId ? { ...win, z } : win
+        );
       }
-      const place = allocatePlacement();
-      return [...prev, { id: site.id, name: site.name, ...place }];
+      return { windows, activeId };
     });
   };
-  const closeSite = (id) => {
-    setOpenSites((prev) => prev.filter((w) => w.id !== id));
-  };
-  const activateSite = (id) => {
-    setOpenSites((prev) => {
-      const target = prev.find((w) => w.id === id);
-      if (!target || target.z === nextZRef.current) {
+  const restoreAndActivate = (id) => {
+    setShell((prev) => {
+      const target = prev.windows.find((win) => win.id === id);
+      if (!target) {
         return prev;
       }
-      const z = raiseZ();
-      return prev.map((w) => w.id === id ? { ...w, z } : w);
+      const z = !target.minimized && target.z === nextZRef.current ? target.z : raiseZ();
+      return {
+        activeId: id,
+        windows: prev.windows.map(
+          (win) => win.id === id ? { ...win, minimized: false, z } : win
+        )
+      };
     });
   };
-  const activateControlPanel = () => {
-    setControlPanel((prev) => {
-      if (!prev || prev.z === nextZRef.current) {
+  const handleTaskClick = (id) => {
+    const target = shell.windows.find((win) => win.id === id);
+    if (!target) {
+      return;
+    }
+    if (!target.minimized && shell.activeId === id) {
+      minimizeWindow(id);
+      return;
+    }
+    restoreAndActivate(id);
+  };
+  const toggleMaximize = (id) => {
+    setShell((prev) => {
+      const target = prev.windows.find((win) => win.id === id);
+      if (!target) {
         return prev;
       }
-      return { ...prev, z: raiseZ() };
+      const z = target.z === nextZRef.current ? target.z : raiseZ();
+      if (target.maximized && target.restore) {
+        return {
+          activeId: id,
+          windows: prev.windows.map(
+            (win) => win.id === id ? {
+              ...win,
+              z,
+              maximized: false,
+              left: target.restore.left,
+              top: target.restore.top,
+              width: target.restore.width,
+              height: target.restore.height,
+              restore: void 0
+            } : win
+          )
+        };
+      }
+      const dashboard = dashboardRef.current;
+      const work = dashboard ? getDesktopWorkSize(dashboard) : { width: target.width, height: target.height };
+      return {
+        activeId: id,
+        windows: prev.windows.map(
+          (win) => win.id === id ? {
+            ...win,
+            z,
+            maximized: true,
+            left: 0,
+            top: 0,
+            width: work.width,
+            height: work.height,
+            restore: {
+              left: target.left,
+              top: target.top,
+              width: target.width,
+              height: target.height
+            }
+          } : win
+        )
+      };
     });
   };
-  return /* @__PURE__ */ jsxs30("div", { className: cn("dashboard", className), children: [
-    /* @__PURE__ */ jsxs30("div", { className: "icon-list", children: [
-      sites.map((site) => /* @__PURE__ */ jsx52(
+  const openControlPanel = () => {
+    setShell((prev) => {
+      const existing = prev.windows.find((win) => win.id === CONTROL_PANEL_WINDOW_ID);
+      if (existing) {
+        const z = !existing.minimized && existing.z === nextZRef.current ? existing.z : raiseZ();
+        return {
+          activeId: CONTROL_PANEL_WINDOW_ID,
+          windows: prev.windows.map(
+            (win) => win.id === CONTROL_PANEL_WINDOW_ID ? { ...win, z, minimized: false } : win
+          )
+        };
+      }
+      const saved = geometryFromPersistence(
+        persistedRef.current,
+        CONTROL_PANEL_WINDOW_ID,
+        "control-panel"
+      );
+      const place = saved ? { left: saved.left, top: saved.top, z: raiseZ() } : allocatePlacement();
+      const size = saved ? { width: saved.width, height: saved.height } : DEFAULT_WINDOW_SIZE["control-panel"];
+      return {
+        activeId: CONTROL_PANEL_WINDOW_ID,
+        windows: [
+          ...prev.windows,
+          {
+            id: CONTROL_PANEL_WINDOW_ID,
+            kind: "control-panel",
+            title: "Control Panel",
+            left: place.left,
+            top: place.top,
+            z: place.z,
+            width: size.width,
+            height: size.height,
+            minimized: false,
+            maximized: false
+          }
+        ]
+      };
+    });
+  };
+  const openSite = (site) => {
+    const id = siteWindowId(site.id);
+    setShell((prev) => {
+      const existing = prev.windows.find((win) => win.id === id);
+      if (existing) {
+        const z = !existing.minimized && existing.z === nextZRef.current ? existing.z : raiseZ();
+        return {
+          activeId: id,
+          windows: prev.windows.map(
+            (win) => win.id === id ? { ...win, z, minimized: false } : win
+          )
+        };
+      }
+      const saved = geometryFromPersistence(persistedRef.current, id, "site");
+      const place = saved ? { left: saved.left, top: saved.top, z: raiseZ() } : allocatePlacement();
+      const size = saved ? { width: saved.width, height: saved.height } : DEFAULT_WINDOW_SIZE.site;
+      return {
+        activeId: id,
+        windows: [
+          ...prev.windows,
+          {
+            id,
+            kind: "site",
+            title: site.name,
+            siteId: site.id,
+            left: place.left,
+            top: place.top,
+            z: place.z,
+            width: size.width,
+            height: size.height,
+            minimized: false,
+            maximized: false
+          }
+        ]
+      };
+    });
+  };
+  const moveWindow = (id, left, top) => {
+    setShell((prev) => ({
+      ...prev,
+      windows: prev.windows.map(
+        (win) => win.id === id ? { ...win, left, top } : win
+      )
+    }));
+  };
+  const resizeWindow = (id, bounds) => {
+    setShell((prev) => ({
+      ...prev,
+      windows: prev.windows.map(
+        (win) => win.id === id ? {
+          ...win,
+          left: bounds.left,
+          top: bounds.top,
+          width: bounds.width,
+          height: bounds.height,
+          maximized: false,
+          restore: void 0
+        } : win
+      )
+    }));
+  };
+  return /* @__PURE__ */ jsxs36("div", { ref: dashboardRef, className: cn("dashboard", className), children: [
+    /* @__PURE__ */ jsxs36("div", { className: "icon-list", children: [
+      sites.map((site) => /* @__PURE__ */ jsx60(
         SystemIcon,
         {
           kind: "site",
@@ -2363,7 +4811,7 @@ function AdminDesktop({ sites = [], className }) {
         },
         site.id
       )),
-      /* @__PURE__ */ jsx52(
+      /* @__PURE__ */ jsx60(
         SystemIcon,
         {
           kind: "control-panel",
@@ -2373,43 +4821,104 @@ function AdminDesktop({ sites = [], className }) {
         }
       )
     ] }),
-    controlPanel ? /* @__PURE__ */ jsx52(
-      "div",
-      {
-        className: "desktop-window",
-        style: { left: controlPanel.left, top: controlPanel.top, zIndex: controlPanel.z },
-        children: /* @__PURE__ */ jsx52(ControlPanel, { onClose: closeControlPanel, onActivate: activateControlPanel })
-      }
-    ) : null,
-    openSites.map((win) => /* @__PURE__ */ jsx52(
-      "div",
-      {
-        className: "desktop-window",
-        style: { left: win.left, top: win.top, zIndex: win.z },
-        onMouseDown: () => activateSite(win.id),
-        children: /* @__PURE__ */ jsx52(
-          DialogWindow,
+    shell.windows.map((win) => {
+      const active = win.id === shell.activeId && !win.minimized;
+      const maximizeAction = win.maximized ? "Restore" : "Maximize";
+      if (win.kind === "control-panel") {
+        return /* @__PURE__ */ jsx60(
+          DesktopWindow,
           {
-            title: win.name,
-            titleIcon: "site",
-            type: "info",
-            titleBarControls: /* @__PURE__ */ jsx52(TitleBarControls, { children: /* @__PURE__ */ jsx52(TitleBarControl, { action: "Close", onClick: () => closeSite(win.id) }) }),
-            actions: /* @__PURE__ */ jsx52(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx52(Button2, { type: "button", isDefault: true, accessKey: "o", onClick: () => closeSite(win.id), children: "OK" }) }),
-            children: /* @__PURE__ */ jsxs30("p", { style: { margin: 0 }, children: [
-              "Site administration for ",
-              /* @__PURE__ */ jsx52("strong", { children: win.name }),
-              " will appear here in a later release."
-            ] })
+            windowId: win.id,
+            left: win.left,
+            top: win.top,
+            zIndex: win.z,
+            width: win.width,
+            height: win.height,
+            maximized: win.maximized,
+            className: cn(win.minimized && "is-minimized"),
+            dragDisabled: win.minimized || win.maximized,
+            onActivate: () => activateWindow(win.id),
+            onPositionChange: (left, top) => moveWindow(win.id, left, top),
+            onBoundsChange: (bounds) => resizeWindow(win.id, bounds),
+            onToggleMaximize: () => toggleMaximize(win.id),
+            children: /* @__PURE__ */ jsx60(
+              ControlPanel,
+              {
+                className: cn(win.maximized && "is-maximized"),
+                inactive: !active,
+                maximized: win.maximized,
+                onClose: () => closeWindow(win.id),
+                onMinimize: () => minimizeWindow(win.id),
+                onMaximize: () => toggleMaximize(win.id),
+                onActivate: () => activateWindow(win.id)
+              }
+            )
+          },
+          win.id
+        );
+      }
+      const site = sites.find((entry) => entry.id === win.siteId) ?? {
+        id: win.siteId ?? 0,
+        name: win.title
+      };
+      return /* @__PURE__ */ jsx60(
+        DesktopWindow,
+        {
+          windowId: win.id,
+          left: win.left,
+          top: win.top,
+          zIndex: win.z,
+          width: win.width,
+          height: win.height,
+          maximized: win.maximized,
+          className: cn(win.minimized && "is-minimized"),
+          dragDisabled: win.minimized || win.maximized,
+          onActivate: () => activateWindow(win.id),
+          onPositionChange: (left, top) => moveWindow(win.id, left, top),
+          onBoundsChange: (bounds) => resizeWindow(win.id, bounds),
+          onToggleMaximize: () => toggleMaximize(win.id),
+          children: /* @__PURE__ */ jsx60(
+            SiteFileExplorer,
+            {
+              className: cn(win.maximized && "is-maximized"),
+              inactive: !active,
+              title: win.title,
+              titleIcon: "site",
+              tree: explorerTreeForSite(site),
+              onClose: () => closeWindow(win.id),
+              onMinimize: () => minimizeWindow(win.id),
+              onMaximize: () => toggleMaximize(win.id),
+              maximizeAction
+            }
+          )
+        },
+        win.id
+      );
+    }),
+    /* @__PURE__ */ jsx60(
+      Taskbar,
+      {
+        windows: shell.windows,
+        activeId: shell.activeId,
+        onTaskClick: handleTaskClick,
+        onMenuClick: toggleStartMenu,
+        menuExpanded: startMenuOpen,
+        startMenu: /* @__PURE__ */ jsx60(
+          StartMenu,
+          {
+            open: startMenuOpen,
+            onClose: closeStartMenu,
+            onOpenControlPanel: openControlPanel,
+            logoutHref
           }
         )
-      },
-      win.id
-    ))
+      }
+    )
   ] });
 }
 
 // src/admin/pages/AdminDashboard.tsx
-import { jsx as jsx53, jsxs as jsxs31 } from "react/jsx-runtime";
+import { jsx as jsx61, jsxs as jsxs37 } from "react/jsx-runtime";
 function AdminDashboard({
   userLabel,
   navItems,
@@ -2417,21 +4926,21 @@ function AdminDashboard({
   hostCount = 0,
   flashes
 }) {
-  return /* @__PURE__ */ jsxs31(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Dashboard", children: [
-    /* @__PURE__ */ jsx53(FlashList, { flashes }),
-    /* @__PURE__ */ jsx53(
+  return /* @__PURE__ */ jsxs37(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Dashboard", children: [
+    /* @__PURE__ */ jsx61(FlashList, { flashes }),
+    /* @__PURE__ */ jsx61(
       PageHeader,
       {
         title: "Dashboard",
         description: "Multi-tenant control panel powered by @webhemi/ui."
       }
     ),
-    /* @__PURE__ */ jsxs31("div", { style: { display: "flex", gap: "1.5rem", flexWrap: "wrap" }, children: [
-      /* @__PURE__ */ jsxs31(Alert, { tone: "info", title: "Sites", children: [
+    /* @__PURE__ */ jsxs37("div", { style: { display: "flex", gap: "1.5rem", flexWrap: "wrap" }, children: [
+      /* @__PURE__ */ jsxs37(Alert, { tone: "info", title: "Sites", children: [
         siteCount,
         " configured"
       ] }),
-      /* @__PURE__ */ jsxs31(Alert, { tone: "info", title: "Hosts", children: [
+      /* @__PURE__ */ jsxs37(Alert, { tone: "info", title: "Hosts", children: [
         hostCount,
         " configured"
       ] })
@@ -2440,7 +4949,7 @@ function AdminDashboard({
 }
 
 // src/admin/pages/SitesPage.tsx
-import { jsx as jsx54, jsxs as jsxs32 } from "react/jsx-runtime";
+import { jsx as jsx62, jsxs as jsxs38 } from "react/jsx-runtime";
 function SitesPage({
   userLabel,
   navItems,
@@ -2449,19 +4958,19 @@ function SitesPage({
   createAction,
   flashes
 }) {
-  return /* @__PURE__ */ jsxs32(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Sites", children: [
-    /* @__PURE__ */ jsx54(FlashList, { flashes }),
-    /* @__PURE__ */ jsx54(SiteListView, { sites: sites || [], createHref: "#create-site" }),
-    canEdit ? /* @__PURE__ */ jsxs32("form", { id: "create-site", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
-      /* @__PURE__ */ jsx54(FormField, { label: "Name", htmlFor: "name", required: true, children: /* @__PURE__ */ jsx54(Input, { id: "name", name: "name", required: true }) }),
-      /* @__PURE__ */ jsx54(FormField, { label: "Slug", htmlFor: "slug", required: true, hint: "Lowercase identifier", children: /* @__PURE__ */ jsx54(Input, { id: "slug", name: "slug", required: true }) }),
-      /* @__PURE__ */ jsx54(Button, { type: "submit", children: "Create site" })
+  return /* @__PURE__ */ jsxs38(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Sites", children: [
+    /* @__PURE__ */ jsx62(FlashList, { flashes }),
+    /* @__PURE__ */ jsx62(SiteListView, { sites: sites || [], createHref: "#create-site" }),
+    canEdit ? /* @__PURE__ */ jsxs38("form", { id: "create-site", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
+      /* @__PURE__ */ jsx62(FormField, { label: "Name", htmlFor: "name", required: true, children: /* @__PURE__ */ jsx62(Input, { id: "name", name: "name", required: true }) }),
+      /* @__PURE__ */ jsx62(FormField, { label: "Slug", htmlFor: "slug", required: true, hint: "Lowercase identifier", children: /* @__PURE__ */ jsx62(Input, { id: "slug", name: "slug", required: true }) }),
+      /* @__PURE__ */ jsx62(Button, { type: "submit", children: "Create site" })
     ] }) : null
   ] });
 }
 
 // src/admin/pages/HostsPage.tsx
-import { jsx as jsx55, jsxs as jsxs33 } from "react/jsx-runtime";
+import { jsx as jsx63, jsxs as jsxs39 } from "react/jsx-runtime";
 function HostsPage({
   userLabel,
   navItems,
@@ -2471,34 +4980,34 @@ function HostsPage({
   createAction,
   flashes
 }) {
-  return /* @__PURE__ */ jsxs33(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Hosts", children: [
-    /* @__PURE__ */ jsx55(FlashList, { flashes }),
-    /* @__PURE__ */ jsx55(SiteHostListView, { hosts: hosts || [], createHref: "#create-host" }),
-    canEdit ? /* @__PURE__ */ jsxs33("form", { id: "create-host", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
-      /* @__PURE__ */ jsx55(FormField, { label: "Hostname", htmlFor: "host", required: true, children: /* @__PURE__ */ jsx55(Input, { id: "host", name: "host", placeholder: "www.example.com", required: true }) }),
-      /* @__PURE__ */ jsx55(FormField, { label: "Site", htmlFor: "site_id", required: true, children: /* @__PURE__ */ jsx55(Select, { id: "site_id", name: "site_id", required: true, children: (sites || []).map((site) => /* @__PURE__ */ jsx55("option", { value: site.id, children: site.name }, site.id)) }) }),
-      /* @__PURE__ */ jsx55(FormField, { label: "Surface", htmlFor: "surface", children: /* @__PURE__ */ jsxs33(Select, { id: "surface", name: "surface", defaultValue: "site", children: [
-        /* @__PURE__ */ jsx55("option", { value: "admin", children: "admin" }),
-        /* @__PURE__ */ jsx55("option", { value: "site", children: "site" }),
-        /* @__PURE__ */ jsx55("option", { value: "api", children: "api" })
+  return /* @__PURE__ */ jsxs39(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Hosts", children: [
+    /* @__PURE__ */ jsx63(FlashList, { flashes }),
+    /* @__PURE__ */ jsx63(SiteHostListView, { hosts: hosts || [], createHref: "#create-host" }),
+    canEdit ? /* @__PURE__ */ jsxs39("form", { id: "create-host", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
+      /* @__PURE__ */ jsx63(FormField, { label: "Hostname", htmlFor: "host", required: true, children: /* @__PURE__ */ jsx63(Input, { id: "host", name: "host", placeholder: "www.example.com", required: true }) }),
+      /* @__PURE__ */ jsx63(FormField, { label: "Site", htmlFor: "site_id", required: true, children: /* @__PURE__ */ jsx63(Select, { id: "site_id", name: "site_id", required: true, children: (sites || []).map((site) => /* @__PURE__ */ jsx63("option", { value: site.id, children: site.name }, site.id)) }) }),
+      /* @__PURE__ */ jsx63(FormField, { label: "Surface", htmlFor: "surface", children: /* @__PURE__ */ jsxs39(Select, { id: "surface", name: "surface", defaultValue: "site", children: [
+        /* @__PURE__ */ jsx63("option", { value: "admin", children: "admin" }),
+        /* @__PURE__ */ jsx63("option", { value: "site", children: "site" }),
+        /* @__PURE__ */ jsx63("option", { value: "api", children: "api" })
       ] }) }),
-      /* @__PURE__ */ jsx55(Button, { type: "submit", children: "Add host" })
+      /* @__PURE__ */ jsx63(Button, { type: "submit", children: "Add host" })
     ] }) : null
   ] });
 }
 
 // src/themes/default/components/SiteHeader/SiteHeader.tsx
-import { jsx as jsx56, jsxs as jsxs34 } from "react/jsx-runtime";
+import { jsx as jsx64, jsxs as jsxs40 } from "react/jsx-runtime";
 function SiteHeader({ siteName, navItems = [], actions, className }) {
-  return /* @__PURE__ */ jsx56(
+  return /* @__PURE__ */ jsx64(
     "header",
     {
       className: cn(
         "wh-ui border-b border-[var(--wh-color-line)] bg-[var(--wh-color-surface)]",
         className
       ),
-      children: /* @__PURE__ */ jsxs34("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
-        /* @__PURE__ */ jsx56(
+      children: /* @__PURE__ */ jsxs40("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
+        /* @__PURE__ */ jsx64(
           "a",
           {
             href: "/",
@@ -2506,7 +5015,7 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
             children: siteName
           }
         ),
-        /* @__PURE__ */ jsx56("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx56(
+        /* @__PURE__ */ jsx64("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx64(
           "a",
           {
             href: item.href,
@@ -2518,16 +5027,16 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
           },
           item.href
         )) }),
-        actions ? /* @__PURE__ */ jsx56("div", { className: "flex items-center gap-2", children: actions }) : null
+        actions ? /* @__PURE__ */ jsx64("div", { className: "flex items-center gap-2", children: actions }) : null
       ] })
     }
   );
 }
 
 // src/themes/default/components/Hero/Hero.tsx
-import { jsx as jsx57, jsxs as jsxs35 } from "react/jsx-runtime";
+import { jsx as jsx65, jsxs as jsxs41 } from "react/jsx-runtime";
 function Hero({ title, subtitle, actions, className }) {
-  return /* @__PURE__ */ jsxs35(
+  return /* @__PURE__ */ jsxs41(
     "section",
     {
       className: cn(
@@ -2535,7 +5044,7 @@ function Hero({ title, subtitle, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsx57(
+        /* @__PURE__ */ jsx65(
           "div",
           {
             className: "pointer-events-none absolute inset-0 opacity-40",
@@ -2545,10 +5054,10 @@ function Hero({ title, subtitle, actions, className }) {
             "aria-hidden": true
           }
         ),
-        /* @__PURE__ */ jsxs35("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
-          /* @__PURE__ */ jsx57("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
-          subtitle ? /* @__PURE__ */ jsx57("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
-          actions ? /* @__PURE__ */ jsx57("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
+        /* @__PURE__ */ jsxs41("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
+          /* @__PURE__ */ jsx65("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
+          subtitle ? /* @__PURE__ */ jsx65("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
+          actions ? /* @__PURE__ */ jsx65("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
         ] })
       ]
     }
@@ -2570,6 +5079,9 @@ export {
   EXPLORER_FIXTURE_SITE,
   EXPLORER_FIXTURE_TREE,
   ExplorerContent,
+  ExplorerMenuBar,
+  ExplorerPropertiesDialog,
+  ExplorerSplitter,
   ExplorerToolbar,
   FieldBorder,
   FieldRow,
@@ -2596,6 +5108,7 @@ export {
   Scrollable,
   Select2 as Select,
   Sidebar,
+  SiteFileExplorer,
   SiteHeader,
   SiteHostListView,
   SiteListView,
@@ -2629,16 +5142,33 @@ export {
   adminAsset,
   adminIconAsset,
   attachCustomScrollbar,
+  buildDemoSiteExplorerTree,
+  buildEmptySiteExplorerTree,
+  canCutOrCopyExplorerItem,
+  canCutOrCopyExplorerItems,
+  canDeleteExplorerItem,
+  canPasteIntoExplorerLocation,
+  cloneExplorerForest,
+  deleteExplorerItem,
+  deleteExplorerItems,
   explorerContentItems,
   explorerTreeChildren,
+  findExplorerAncestorIds,
   findExplorerItem,
+  findExplorerParent,
+  findExplorerTrashRoot,
   formatExplorerSize,
   isExplorerDocument,
   isExplorerFolder,
   isExplorerLocation,
   isExplorerTreeExpandable,
+  isUnderExplorerTrash,
+  pasteExplorerClipboard,
   promoteTabRow,
   resolveTitleBarIcon,
+  undoExplorerAction,
+  undoExplorerDelete,
+  undoExplorerPaste,
   useCustomScrollbar,
   useTableView
 };

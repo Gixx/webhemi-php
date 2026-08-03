@@ -4,6 +4,7 @@
 
 {% block body %}
 <div {{ react_component('AdminDesktop', {
-    sites: sites
+    sites: sites,
+    logoutHref: path('app_logout')
 }) }}></div>
 {% endblock %}

@@ -823,6 +823,11 @@
     outline-style: none;
   }
 
+  .select-all {
+    -webkit-user-select: all;
+    user-select: all;
+  }
+
   @media (hover: hover) {
     .hover\:border-\[var\(--wh-color-accent\)\]:hover {
       border-color: var(--wh-color-accent);
@@ -1216,13 +1221,17 @@
  *
  * Compile with Vite (+ sass), not via Tailwind CSS @import.
  */
-html[data-wh-theme=admin] {
+html[data-wh-theme=admin],
+[data-wh-theme=admin] {
   position: relative;
   margin: 0;
   padding: 0;
+  user-select: none;
+}
+
+html[data-wh-theme=admin] {
   width: 100vw;
   height: 100vh;
-  user-select: none;
 }
 
 [data-wh-theme=admin] {
@@ -1873,7 +1882,8 @@ html[data-wh-theme=admin] {
   background: transparent;
   color: inherit;
 }
-[data-wh-theme=admin] ul.tree-view a:focus .tree-view-label {
+[data-wh-theme=admin] ul.tree-view a:focus .tree-view-label,
+[data-wh-theme=admin] ul.tree-view a[aria-current=true] .tree-view-label {
   background-color: var(--dialog-blue);
   color: var(--button-highlight);
   outline: 1px dotted #000000;
@@ -2377,7 +2387,9 @@ html[data-wh-theme=admin] {
 }
 [data-wh-theme=admin] body {
   margin: 0;
-  padding: 20px 20px 44px;
+  /* No padding: maximized shell windows must reach the viewport edges.
+   * Desktop icon inset lives on `.dashboard > .icon-list`. */
+  padding: 0;
   width: 100%;
   min-height: 100vh;
   position: relative;
@@ -2418,12 +2430,23 @@ html[data-wh-theme=admin] {
   outline: none;
 }
 [data-wh-theme=admin] {
-  /* Product: desktop shell surface (Phase 4; WM in Phase 5). Icon chrome: chrome/_icon.scss */
+  /* Shell UI is non-selectable; allow selection only in editable fields. */
+}
+[data-wh-theme=admin] input,
+[data-wh-theme=admin] textarea,
+[data-wh-theme=admin] [contenteditable=true] {
+  user-select: text;
+}
+[data-wh-theme=admin] {
+  /* Product: desktop shell surface (Phase 5). Icon chrome: chrome/_icon.scss */
 }
 [data-wh-theme=admin] .dashboard {
   position: relative;
   width: 100%;
-  min-height: calc(100vh - 40px);
+  min-height: 100vh;
+  /* Own fill so Docs / nested hosts still show teal (body theme may be default). */
+  background-color: var(--desktop, #008284);
+  box-sizing: border-box;
 }
 [data-wh-theme=admin] .dashboard > .icon-list {
   position: static;
@@ -2431,16 +2454,110 @@ html[data-wh-theme=admin] {
   flex-direction: column;
   flex-wrap: wrap;
   justify-content: flex-start;
-  max-height: calc(100vh - 40px);
+  /* Former body padding — icons stay inset; maximized windows go edge-to-edge. */
+  padding: 20px 20px 44px;
+  box-sizing: border-box;
+  max-height: 100vh;
 }
 [data-wh-theme=admin] .dashboard > .desktop-window {
   position: absolute;
+}
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized > .window,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized > .window,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized > .site-file-explorer,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized > .site-file-explorer {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100% !important;
+  height: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized > .site-file-explorer > .window,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized > .site-file-explorer > .window {
+  width: 100% !important;
+  height: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized > .site-file-explorer,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized > .site-file-explorer {
+  display: flex;
+  flex-direction: column;
+}
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized .window-body,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .window-body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized .window-pane,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .window-pane,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized .explorer-panel-layout,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .explorer-panel-layout {
+  height: auto !important;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized .explorer-split,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .explorer-split {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+[data-wh-theme=admin] .dashboard > .desktop-window > .window-resize-handle {
+  position: absolute;
+  z-index: 20;
+  background: transparent;
+}
+[data-wh-theme=admin] .dashboard > .desktop-window.is-dragging {
+  cursor: move;
+  user-select: none;
+}
+[data-wh-theme=admin] .dashboard > .desktop-window.is-minimized {
+  display: none;
+}
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized > .window-resize-handle {
+  display: none;
+}
+[data-wh-theme=admin] .dashboard > .desktop-window.is-resizing,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-resizing * {
+  cursor: inherit;
 }
 [data-wh-theme=admin] .dashboard [draggable=true] {
   touch-action: none;
 }
 [data-wh-theme=admin] .dashboard [draggable=true].is-dragging {
   cursor: move;
+}
+[data-wh-theme=admin] {
+  /*
+   * Storybook Docs: constrain the desktop canvas and pin the taskbar to it
+   * (position:fixed would stick to the docs iframe, not the preview).
+   */
+}
+[data-wh-theme=admin] .sb-admin-desktop-docs {
+  position: relative;
+  height: 480px;
+  max-height: 70vh;
+  overflow: hidden;
+  background-color: var(--desktop, #008284);
+}
+[data-wh-theme=admin] .sb-admin-desktop-docs .dashboard {
+  min-height: 100%;
+  height: 100%;
+}
+[data-wh-theme=admin] .sb-admin-desktop-docs .dashboard > .icon-list {
+  max-height: calc(100% - 40px);
+}
+[data-wh-theme=admin] .sb-admin-desktop-docs #toolbar {
+  position: absolute;
 }
 [data-wh-theme=admin] {
   /* Product: taskbar, Start menu, task buttons, clock. */
@@ -2564,6 +2681,16 @@ html[data-wh-theme=admin] {
   color: #fff;
   text-shadow: none;
 }
+[data-wh-theme=admin] #toolbar .start-menu-list .start-item:disabled {
+  color: grey;
+  text-shadow: 1px 1px 0 #fff;
+}
+[data-wh-theme=admin] #toolbar .start-menu-list .start-item:disabled:hover,
+[data-wh-theme=admin] #toolbar .start-menu-list .start-item:disabled:focus-visible {
+  background-color: transparent;
+  color: grey;
+  text-shadow: 1px 1px 0 #fff;
+}
 [data-wh-theme=admin] #toolbar .start-menu-list .start-item.uploads {
   background-image: url("./icons/system/upload.svg");
 }
@@ -2614,6 +2741,9 @@ html[data-wh-theme=admin] {
 }
 [data-wh-theme=admin] #toolbar .task-buttons > .task.control-panel {
   background-image: url("./icons/system/control_panel.svg");
+}
+[data-wh-theme=admin] #toolbar .task-buttons > .task.site {
+  background-image: url("./icons/system/site.svg");
 }
 [data-wh-theme=admin] #toolbar .task-buttons > .task.settings {
   background-image: url("./icons/system/settings.svg");
@@ -2849,6 +2979,32 @@ html[data-wh-theme=admin] {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 66%;
+}
+[data-wh-theme=admin] {
+  /*
+   * Size grip: only when the window is resizable and a status bar is present.
+   * Sit slightly outside the 3rd field so the glyph covers the inset bevel.
+   */
+}
+[data-wh-theme=admin] .window.resizable:not(.is-maximized) > .status-bar {
+  overflow: visible;
+}
+[data-wh-theme=admin] .window.resizable:not(.is-maximized) > .status-bar > .status-bar-field:nth-child(3) {
+  position: relative;
+  overflow: visible;
+}
+[data-wh-theme=admin] .window.resizable:not(.is-maximized) > .status-bar > .status-bar-field:nth-child(3)::after {
+  content: "";
+  display: block;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  background: url("./chrome/window-resize.svg") no-repeat right bottom;
+  background-size: 12px 12px;
+  image-rendering: pixelated;
+  pointer-events: none;
 }
 [data-wh-theme=admin] {
   /*
@@ -3358,6 +3514,141 @@ html[data-wh-theme=admin] {
   min-height: 0;
   box-sizing: border-box;
 }
+[data-wh-theme=admin] .explorer-panel-layout > .panel.explorer-menubar {
+  flex: 0 0 auto;
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0;
+  padding: 1px 2px;
+  background: var(--surface, #c0c0c0);
+  z-index: 2;
+}
+[data-wh-theme=admin] .explorer-menu-root {
+  position: relative;
+  flex: 0 0 auto;
+}
+[data-wh-theme=admin] .explorer-menu-button {
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  margin: 0;
+  /* Transparent border reserves 1px so hover/active outset|inset does not shift text. */
+  padding: 1px 5px;
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  color: #000;
+  font: inherit;
+  cursor: default;
+}
+[data-wh-theme=admin] .explorer-menu-button:focus {
+  outline: none;
+}
+[data-wh-theme=admin] {
+  /* Win98 flat menubar: no navy fill — hover raises, open/press sinks. */
+}
+[data-wh-theme=admin] .explorer-menu-button:not(:disabled):hover:not([aria-expanded=true]),
+[data-wh-theme=admin] .explorer-menu-button:focus-visible:not([aria-expanded=true]) {
+  background: transparent;
+  color: #000;
+  border-top-color: var(--button-highlight, #fff);
+  border-left-color: var(--button-highlight, #fff);
+  border-right-color: var(--button-shadow, #808080);
+  border-bottom-color: var(--button-shadow, #808080);
+  box-shadow: none;
+  outline: none;
+  text-shadow: none;
+}
+[data-wh-theme=admin] .explorer-menu-button[aria-expanded=true],
+[data-wh-theme=admin] .explorer-menu-button:not(:disabled):active {
+  background: transparent;
+  color: #000;
+  border-top-color: var(--button-shadow, #808080);
+  border-left-color: var(--button-shadow, #808080);
+  border-right-color: var(--button-highlight, #fff);
+  border-bottom-color: var(--button-highlight, #fff);
+  box-shadow: none;
+  outline: none;
+  text-shadow: none;
+}
+[data-wh-theme=admin] .explorer-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 20;
+  min-width: 180px;
+  margin: 0;
+  padding: 2px;
+  background: var(--surface, #c0c0c0);
+  box-shadow: var(--border-raised-outer), var(--border-raised-inner);
+  box-sizing: border-box;
+}
+[data-wh-theme=admin] .explorer-menu-separator {
+  height: 0;
+  margin: 3px 2px;
+  border: none;
+  border-top: 1px solid var(--button-shadow, #808080);
+  border-bottom: 1px solid var(--button-highlight, #fff);
+}
+[data-wh-theme=admin] .explorer-menu-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  margin: 0;
+  padding: 2px 12px 2px 4px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: #000;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+[data-wh-theme=admin] .explorer-menu-item:not(:disabled):hover,
+[data-wh-theme=admin] .explorer-menu-item:not(:disabled):focus {
+  background: var(--dialog-blue, #000080);
+  color: var(--button-highlight, #fff);
+  box-shadow: none;
+  outline: none;
+}
+[data-wh-theme=admin] .explorer-menu-item:disabled,
+[data-wh-theme=admin] .explorer-menu-item.is-disabled {
+  color: var(--button-shadow, #808080);
+  text-shadow: 1px 1px 0 var(--button-highlight, #fff);
+}
+[data-wh-theme=admin] .explorer-menu-item:disabled:hover,
+[data-wh-theme=admin] .explorer-menu-item:disabled:focus {
+  background: transparent;
+  color: var(--button-shadow, #808080);
+}
+[data-wh-theme=admin] .explorer-menu-check {
+  display: inline-flex;
+  flex: 0 0 14px;
+  width: 14px;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+}
+[data-wh-theme=admin] .explorer-menu-label {
+  flex: 1 1 auto;
+  white-space: nowrap;
+}
+[data-wh-theme=admin] .explorer-panel-layout > .explorer-chrome-separator {
+  flex: 0 0 auto;
+  height: 0;
+  margin: 1px 2px;
+  border: none;
+  border-top: 1px solid var(--button-shadow, #808080);
+  border-bottom: 1px solid var(--button-highlight, #fff);
+}
 [data-wh-theme=admin] .explorer-panel-layout > .panel.explorer-toolbar {
   flex: 0 0 auto;
   display: flex;
@@ -3374,7 +3665,7 @@ html[data-wh-theme=admin] {
   align-items: stretch;
   flex: 1 1 auto;
   min-height: 0;
-  gap: 4px;
+  gap: 0;
   padding: 0 2px 2px;
 }
 [data-wh-theme=admin] .explorer-panel-layout > .explorer-split .explorer-tree-inner {
@@ -3384,11 +3675,32 @@ html[data-wh-theme=admin] {
   box-shadow: none;
 }
 [data-wh-theme=admin] .explorer-panel-layout > .explorer-split > .panel.explorer-tree {
-  flex: 0 0 200px;
-  width: 200px;
-  min-width: 140px;
+  flex: 0 0 auto;
+  min-width: 0;
   min-height: 0;
   background: #fff;
+}
+[data-wh-theme=admin] .explorer-panel-layout > .explorer-split > .explorer-splitter {
+  flex: 0 0 4px;
+  width: 4px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  align-self: stretch;
+  background: var(--surface, #c0c0c0);
+  cursor: col-resize;
+  touch-action: none;
+}
+[data-wh-theme=admin] .explorer-panel-layout > .explorer-split > .explorer-splitter:hover,
+[data-wh-theme=admin] .explorer-panel-layout > .explorer-split > .explorer-splitter.is-dragging,
+[data-wh-theme=admin] .explorer-panel-layout > .explorer-split > .explorer-splitter:focus-visible {
+  background: var(--button-face, #dfdfdf);
+  outline: none;
+  box-shadow: inset 1px 0 var(--button-highlight, #fff), inset -1px 0 var(--button-shadow, #808080);
+}
+[data-wh-theme=admin] .explorer-panel-layout > .explorer-split > .explorer-splitter.is-static {
+  cursor: default;
+  pointer-events: none;
 }
 [data-wh-theme=admin] .explorer-panel-layout > .explorer-split > .panel.explorer-content {
   flex: 1 1 auto;
@@ -3476,6 +3788,19 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .explorer-list-item.is-hidden,
 [data-wh-theme=admin] .explorer-details tr.is-hidden {
   opacity: 0.5;
+}
+[data-wh-theme=admin] .explorer-content-inner .icon.is-cut,
+[data-wh-theme=admin] .explorer-list-item.is-cut,
+[data-wh-theme=admin] .explorer-details tr.is-cut {
+  opacity: 0.45;
+}
+[data-wh-theme=admin] .explorer-content-inner .icon.is-drag-over > a > span,
+[data-wh-theme=admin] .explorer-list-item.is-drag-over,
+[data-wh-theme=admin] .explorer-details tr.is-drag-over td,
+[data-wh-theme=admin] .explorer-tree a.is-drag-over .tree-view-label {
+  outline: 1px dotted #000080;
+  background-color: #000080;
+  color: #ffffff;
 }
 [data-wh-theme=admin] {
   /* Selection only via .is-selected — not :focus (that looked like single-click activate). */
@@ -3570,6 +3895,61 @@ html[data-wh-theme=admin] {
   color: var(--button-shadow, #808080);
   text-shadow: 1px 1px 0 var(--button-highlight, #fff);
   cursor: default;
+}
+[data-wh-theme=admin] {
+  /* --- Properties dialog overlay --- */
+}
+[data-wh-theme=admin] .site-file-explorer {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+[data-wh-theme=admin] .explorer-properties-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.08);
+}
+[data-wh-theme=admin] .explorer-properties-dialog {
+  max-width: 100%;
+}
+[data-wh-theme=admin] .explorer-properties-identity {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--button-shadow, #808080);
+  box-shadow: 0 1px 0 var(--button-highlight, #fff);
+}
+[data-wh-theme=admin] .explorer-properties-name {
+  font-weight: 700;
+  word-break: break-word;
+}
+[data-wh-theme=admin] .explorer-properties-list {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+[data-wh-theme=admin] .explorer-properties-list > div {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+[data-wh-theme=admin] .explorer-properties-list dt {
+  margin: 0;
+  color: #000;
+}
+[data-wh-theme=admin] .explorer-properties-list dd {
+  margin: 0;
+  word-break: break-word;
 }/* Default frontend theme — swappable public-site tokens */
 
 [data-wh-theme="default"] {
