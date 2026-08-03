@@ -1105,8 +1105,524 @@ function DialogWindow({
   ] }) });
 }
 
+// src/admin/bricks/FloatingModal/FloatingModal.tsx
+import {
+  useEffect as useEffect3,
+  useLayoutEffect,
+  useRef as useRef3,
+  useState
+} from "react";
+
+// src/admin/shell/geometry.ts
+var DRAG_THRESHOLD_PX = 4;
+var TASKBAR_RESERVE_PX = 40;
+function getDesktopWorkSize(dashboard) {
+  const width = dashboard.clientWidth;
+  const toolbar = dashboard.querySelector("#toolbar");
+  if (toolbar instanceof HTMLElement) {
+    const dashboardTop = dashboard.getBoundingClientRect().top;
+    const toolbarTop = toolbar.getBoundingClientRect().top;
+    const height = Math.max(0, Math.floor(toolbarTop - dashboardTop));
+    return { width, height };
+  }
+  return {
+    width,
+    height: Math.max(0, dashboard.clientHeight - TASKBAR_RESERVE_PX)
+  };
+}
+function clampDesktopPosition(dashboard, width, height, left, top) {
+  const work = getDesktopWorkSize(dashboard);
+  const maxLeft = Math.max(0, work.width - width);
+  const maxTop = Math.max(0, work.height - height);
+  return {
+    left: Math.max(0, Math.min(left, maxLeft)),
+    top: Math.max(0, Math.min(top, maxTop))
+  };
+}
+function findShellProductWindow(host) {
+  const direct = host.querySelector(":scope > .window");
+  if (direct instanceof HTMLElement) {
+    return direct;
+  }
+  const nested = host.querySelector(":scope > .site-file-explorer > .window");
+  return nested instanceof HTMLElement ? nested : null;
+}
+function findShellTitleBar(host) {
+  const win = findShellProductWindow(host);
+  const titleBar = win?.querySelector(":scope > .title-bar");
+  return titleBar instanceof HTMLElement ? titleBar : null;
+}
+
+// src/admin/bricks/FloatingModal/FloatingModal.tsx
+import { jsx as jsx31 } from "react/jsx-runtime";
+function findOuterTitleBar(host) {
+  const win = host.querySelector(":scope > .window");
+  if (!(win instanceof HTMLElement)) {
+    return null;
+  }
+  const titleBar = win.querySelector(":scope > .title-bar");
+  return titleBar instanceof HTMLElement ? titleBar : null;
+}
+function workSize(bounds) {
+  if (bounds.classList.contains("dashboard") && bounds.querySelector("#toolbar")) {
+    return getDesktopWorkSize(bounds);
+  }
+  return { width: bounds.clientWidth, height: bounds.clientHeight };
+}
+function clampModalPosition(bounds, width, height, left, top) {
+  if (bounds.classList.contains("dashboard") && bounds.querySelector("#toolbar")) {
+    return clampDesktopPosition(bounds, width, height, left, top);
+  }
+  const maxLeft = Math.max(0, bounds.clientWidth - width);
+  const maxTop = Math.max(0, bounds.clientHeight - height);
+  return {
+    left: Math.max(0, Math.min(left, maxLeft)),
+    top: Math.max(0, Math.min(top, maxTop))
+  };
+}
+function assignRef(ref, node) {
+  if (!ref) {
+    return;
+  }
+  if (typeof ref === "function") {
+    ref(node);
+    return;
+  }
+  ref.current = node;
+}
+function FloatingModal({
+  children,
+  className,
+  style,
+  boundsEl,
+  rootRef,
+  "data-owner-window": dataOwnerWindow
+}) {
+  const nodeRef = useRef3(null);
+  const dragRef = useRef3(null);
+  const [pos, setPos] = useState(null);
+  const setRoot = (node) => {
+    nodeRef.current = node;
+    assignRef(rootRef, node);
+  };
+  useLayoutEffect(() => {
+    const root = nodeRef.current;
+    const bounds = boundsEl ?? root?.parentElement;
+    if (!root || !bounds) {
+      return;
+    }
+    const width = root.offsetWidth;
+    const height = root.offsetHeight;
+    const work = workSize(bounds);
+    const left = Math.max(0, Math.floor((work.width - width) / 2));
+    const top = Math.max(0, Math.floor((work.height - height) / 2));
+    setPos(clampModalPosition(bounds, width, height, left, top));
+  }, [boundsEl]);
+  useEffect3(() => {
+    const onMove = (event) => {
+      const session = dragRef.current;
+      const root = nodeRef.current;
+      const bounds = boundsEl ?? root?.parentElement;
+      if (!session || session.pointerId !== event.pointerId || !root || !bounds) {
+        return;
+      }
+      const dx = event.clientX - session.startX;
+      const dy = event.clientY - session.startY;
+      if (!session.active) {
+        if (Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) {
+          return;
+        }
+        session.active = true;
+      }
+      setPos(
+        clampModalPosition(
+          bounds,
+          root.offsetWidth,
+          root.offsetHeight,
+          session.originLeft + dx,
+          session.originTop + dy
+        )
+      );
+    };
+    const onUp = (event) => {
+      const session = dragRef.current;
+      if (!session || session.pointerId !== event.pointerId) {
+        return;
+      }
+      dragRef.current = null;
+      const root = nodeRef.current;
+      if (root && typeof root.releasePointerCapture === "function") {
+        try {
+          root.releasePointerCapture(event.pointerId);
+        } catch {
+        }
+      }
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, [boundsEl]);
+  const handlePointerDown = (event) => {
+    if (event.button !== 0 || !nodeRef.current || pos == null) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return;
+    }
+    if (target.closest(".title-bar-controls")) {
+      return;
+    }
+    const titleBar = findOuterTitleBar(nodeRef.current);
+    if (!titleBar || !titleBar.contains(target)) {
+      return;
+    }
+    event.preventDefault();
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originLeft: pos.left,
+      originTop: pos.top,
+      active: false
+    };
+    try {
+      nodeRef.current.setPointerCapture(event.pointerId);
+    } catch {
+    }
+  };
+  const mergedStyle = {
+    ...style,
+    ...pos ? { left: pos.left, top: pos.top, visibility: "visible" } : { visibility: "hidden" }
+  };
+  return /* @__PURE__ */ jsx31(
+    "div",
+    {
+      ref: setRoot,
+      className: cn("floating-modal", className),
+      style: mergedStyle,
+      "data-owner-window": dataOwnerWindow,
+      onPointerDown: handlePointerDown,
+      children
+    }
+  );
+}
+
+// src/admin/bricks/DesktopModal/DesktopModal.tsx
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useLayoutEffect as useLayoutEffect2,
+  useMemo,
+  useState as useState2
+} from "react";
+import { createPortal } from "react-dom";
+
+// src/admin/lib/assetPaths.ts
+var ADMIN_ASSETS_BASE = "/assets/admin";
+function adminAsset(path) {
+  const normalized = path.replace(/^\/+/, "");
+  return `${ADMIN_ASSETS_BASE}/${normalized}`;
+}
+function adminIconAsset(kind) {
+  const file = kind.replace(/-/g, "_");
+  return adminAsset(`icons/system/${file}.svg`);
+}
+
+// src/admin/lib/playAdminSound.ts
+var SOUND_PATHS = {
+  /** Critical Stop — error / MessageDialog open. */
+  chord: "sounds/chord.mp3",
+  /** Default Beep — click blocked owner while a modal is open (MessageBeep/MB_OK). */
+  ding: "sounds/ding.mp3"
+};
+function playAdminSound(name, soundUrl) {
+  if (typeof Audio === "undefined") {
+    return;
+  }
+  const src = soundUrl || adminAsset(SOUND_PATHS[name]);
+  try {
+    const audio = new Audio(src);
+    void audio.play().catch(() => {
+    });
+  } catch {
+  }
+}
+
+// src/admin/lib/flashOwnedModalAttention.ts
+var OWNED_MODAL_FLASH_COUNT = 3;
+var OWNED_MODAL_FLASH_INTERVAL_MS = 120;
+var flashTimers = /* @__PURE__ */ new WeakMap();
+function findOuterTitleBar2(modalHost) {
+  const direct = modalHost.querySelector(":scope > .window > .title-bar");
+  if (direct instanceof HTMLElement) {
+    return direct;
+  }
+  const nested = modalHost.querySelector(".title-bar");
+  return nested instanceof HTMLElement ? nested : null;
+}
+function escapeAttr(value) {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+    return CSS.escape(value);
+  }
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+function findTopOwnedFloatingModal(dashboard, ownerWindowId2) {
+  if (!dashboard) {
+    return null;
+  }
+  const selector = ownerWindowId2 ? `.floating-modal.desktop-owned-modal[data-owner-window="${escapeAttr(ownerWindowId2)}"]` : ".floating-modal.desktop-owned-modal";
+  const nodes = dashboard.querySelectorAll(selector);
+  const last = nodes[nodes.length - 1];
+  return last instanceof HTMLElement ? last : null;
+}
+function findTopFloatingModal(dashboard) {
+  return findTopOwnedFloatingModal(dashboard);
+}
+function flashOwnedModalAttention(modalHost, options = {}) {
+  if (!modalHost) {
+    return;
+  }
+  const titleBar = findOuterTitleBar2(modalHost);
+  if (!titleBar) {
+    return;
+  }
+  const prev = flashTimers.get(titleBar);
+  if (prev != null) {
+    window.clearTimeout(prev);
+    flashTimers.delete(titleBar);
+  }
+  if (options.playSound !== false) {
+    playAdminSound("ding", options.dingSoundUrl);
+  }
+  const flashCount = options.flashCount ?? OWNED_MODAL_FLASH_COUNT;
+  const intervalMs = options.intervalMs ?? OWNED_MODAL_FLASH_INTERVAL_MS;
+  const totalSteps = Math.max(1, flashCount) * 2;
+  let step = 0;
+  const finish = () => {
+    titleBar.classList.remove("inactive");
+    flashTimers.delete(titleBar);
+  };
+  const tick = () => {
+    const inactive = step % 2 === 0;
+    titleBar.classList.toggle("inactive", inactive);
+    step += 1;
+    if (step >= totalSteps) {
+      finish();
+      return;
+    }
+    const id = window.setTimeout(tick, intervalMs);
+    flashTimers.set(titleBar, id);
+  };
+  tick();
+}
+
+// src/admin/bricks/DesktopModal/DesktopModal.tsx
+import { Fragment as Fragment4, jsx as jsx32, jsxs as jsxs11 } from "react/jsx-runtime";
+var DesktopModalContext = createContext(null);
+function findDashboard(from) {
+  const closest = from?.closest(".dashboard");
+  if (closest instanceof HTMLElement) {
+    return closest;
+  }
+  const el2 = document.querySelector(".dashboard");
+  return el2 instanceof HTMLElement ? el2 : null;
+}
+function findOwnerShellWindow(from) {
+  if (!from) {
+    return null;
+  }
+  const host = from.closest("[data-shell-window], .desktop-window");
+  return host instanceof HTMLElement ? host : null;
+}
+function ownerWindowId(owner) {
+  if (!owner) {
+    return null;
+  }
+  return owner.getAttribute("data-shell-window") || owner.id || null;
+}
+function readElementZIndex(el2) {
+  const inline = el2.style.zIndex;
+  if (inline !== "") {
+    const parsed = Number.parseInt(inline, 10);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+  const computed = Number.parseInt(getComputedStyle(el2).zIndex, 10);
+  return Number.isNaN(computed) ? 0 : computed;
+}
+function findHostBlockTarget(anchor) {
+  if (!anchor) {
+    return null;
+  }
+  const host = anchor.closest(
+    ".sites-window, .site-file-explorer, .login-host, [data-shell-window], .desktop-window"
+  );
+  return host instanceof HTMLElement ? host : null;
+}
+function escapeAttr2(value) {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+    return CSS.escape(value);
+  }
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+function findTopDefaultOwnedModal(dashboard, ownerId) {
+  const selector = ownerId ? `.floating-modal.desktop-owned-modal[data-owner-window="${escapeAttr2(ownerId)}"]:not(.is-alert)` : ".floating-modal.desktop-owned-modal:not(.is-alert)";
+  const nodes = dashboard.querySelectorAll(selector);
+  const last = nodes[nodes.length - 1];
+  return last instanceof HTMLElement ? last : null;
+}
+function DesktopModal({
+  children,
+  layer = "default",
+  className,
+  dingSoundUrl
+}) {
+  const parentModal = useContext(DesktopModalContext);
+  const [anchor, setAnchor] = useState2(null);
+  const [dashboard, setDashboard] = useState2(null);
+  const [blockTarget, setBlockTarget] = useState2(null);
+  const [floatingRoot, setFloatingRoot] = useState2(null);
+  const [modalZIndex, setModalZIndex] = useState2(null);
+  const [ownerId, setOwnerId] = useState2(null);
+  useLayoutEffect2(() => {
+    const desk = findDashboard(anchor);
+    const owner = findOwnerShellWindow(anchor);
+    const id = ownerWindowId(owner);
+    setDashboard(desk);
+    setOwnerId(id);
+    if (parentModal?.floatingRoot) {
+      setBlockTarget(parentModal.floatingRoot);
+      return;
+    }
+    if (layer === "alert" && desk) {
+      const previous = findTopDefaultOwnedModal(desk, id);
+      if (previous) {
+        setBlockTarget(previous);
+        return;
+      }
+    }
+    setBlockTarget(findHostBlockTarget(anchor));
+  }, [parentModal, layer, anchor, floatingRoot]);
+  useLayoutEffect2(() => {
+    const owner = findOwnerShellWindow(anchor);
+    if (!owner) {
+      setModalZIndex(null);
+      return;
+    }
+    const sync = () => {
+      setModalZIndex(readElementZIndex(owner));
+    };
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(owner, { attributes: true, attributeFilter: ["style", "class"] });
+    return () => observer.disconnect();
+  }, [anchor, layer]);
+  const contextValue = useMemo(
+    () => ({ floatingRoot }),
+    [floatingRoot]
+  );
+  const onBlockedPointerDown = useCallback(
+    (event) => {
+      if (event.button !== 0) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const desk = dashboard ?? findDashboard(anchor);
+      const top = findTopOwnedFloatingModal(desk, ownerId) ?? floatingRoot;
+      flashOwnedModalAttention(top, { dingSoundUrl });
+    },
+    [anchor, dashboard, dingSoundUrl, floatingRoot, ownerId]
+  );
+  const modalClassName = cn(
+    "desktop-owned-modal",
+    layer === "alert" && "is-alert",
+    className
+  );
+  const modal = /* @__PURE__ */ jsx32(DesktopModalContext.Provider, { value: contextValue, children: /* @__PURE__ */ jsx32(
+    FloatingModal,
+    {
+      boundsEl: dashboard,
+      rootRef: setFloatingRoot,
+      className: modalClassName,
+      style: modalZIndex != null ? { zIndex: modalZIndex } : void 0,
+      "data-owner-window": ownerId ?? void 0,
+      children
+    }
+  ) });
+  const blocker = /* @__PURE__ */ jsx32(
+    "div",
+    {
+      className: "modal-blocker",
+      "aria-hidden": true,
+      onPointerDown: onBlockedPointerDown
+    }
+  );
+  if (dashboard == null) {
+    return /* @__PURE__ */ jsxs11(Fragment4, { children: [
+      /* @__PURE__ */ jsx32("span", { ref: setAnchor, className: "desktop-modal-anchor", hidden: true }),
+      /* @__PURE__ */ jsxs11(
+        "div",
+        {
+          className: cn(
+            "desktop-modal-layer",
+            "is-local",
+            layer === "alert" && "is-alert"
+          ),
+          children: [
+            blocker,
+            modal
+          ]
+        }
+      )
+    ] });
+  }
+  return /* @__PURE__ */ jsxs11(Fragment4, { children: [
+    /* @__PURE__ */ jsx32("span", { ref: setAnchor, className: "desktop-modal-anchor", hidden: true }),
+    blockTarget != null ? createPortal(blocker, blockTarget) : null,
+    createPortal(modal, dashboard)
+  ] });
+}
+
+// src/admin/bricks/MessageDialog/MessageDialog.tsx
+import { jsx as jsx33 } from "react/jsx-runtime";
+var DEFAULT_TITLES = {
+  info: "WebHemi",
+  question: "Confirm",
+  warning: "Warning",
+  error: "Error"
+};
+function MessageDialog({
+  type = "error",
+  title,
+  message,
+  onClose,
+  className,
+  okLabel = "OK"
+}) {
+  return /* @__PURE__ */ jsx33(
+    DialogWindow,
+    {
+      className: cn("message-dialog", className),
+      type,
+      title: title ?? DEFAULT_TITLES[type],
+      titleBarControls: /* @__PURE__ */ jsx33(TitleBarControls, { children: /* @__PURE__ */ jsx33(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      actions: /* @__PURE__ */ jsx33(FieldRow, { className: "justify-center", children: /* @__PURE__ */ jsx33(Button2, { type: "button", isDefault: true, accessKey: "o", onClick: onClose, children: okLabel }) }),
+      children: message.split("\n").map((line, index) => /* @__PURE__ */ jsx33("p", { style: { marginTop: 0, marginBottom: 8 }, children: line }, `${index}-${line}`))
+    }
+  );
+}
+
 // src/admin/bricks/IconPanelWindow/IconPanelWindow.tsx
-import { jsx as jsx31, jsxs as jsxs11 } from "react/jsx-runtime";
+import { jsx as jsx34, jsxs as jsxs12 } from "react/jsx-runtime";
 function IconPanelWindow({
   info,
   infoUnselected = false,
@@ -1119,37 +1635,37 @@ function IconPanelWindow({
   const paneStyle = {
     height: typeof paneHeight === "number" ? `${paneHeight}px` : paneHeight
   };
-  return /* @__PURE__ */ jsx31(
+  return /* @__PURE__ */ jsx34(
     PaneWindowShell,
     {
       className: cn("w-window-xl", className),
       resizable,
       ...shell,
-      children: /* @__PURE__ */ jsxs11(FieldBorder, { scrollable: true, className: "window-pane icon-panel-layout", style: paneStyle, children: [
-        /* @__PURE__ */ jsx31("div", { className: cn("panel info", infoUnselected && "unselected"), children: info }),
-        /* @__PURE__ */ jsx31("div", { className: "panel icon-list", children })
+      children: /* @__PURE__ */ jsxs12(FieldBorder, { scrollable: true, className: "window-pane icon-panel-layout", style: paneStyle, children: [
+        /* @__PURE__ */ jsx34("div", { className: cn("panel info", infoUnselected && "unselected"), children: info }),
+        /* @__PURE__ */ jsx34("div", { className: "panel icon-list", children })
       ] })
     }
   );
 }
 
 // src/admin/bricks/IconPanelWindow/IconPanelSelectionInfo.tsx
-import { Fragment as Fragment4, jsx as jsx32, jsxs as jsxs12 } from "react/jsx-runtime";
+import { Fragment as Fragment5, jsx as jsx35, jsxs as jsxs13 } from "react/jsx-runtime";
 function IconPanelSelectionInfo({
   kind,
   label,
   description
 }) {
-  return /* @__PURE__ */ jsxs12(Fragment4, { children: [
-    /* @__PURE__ */ jsx32("span", { className: cn("info-icon", kind), "aria-hidden": true }),
-    /* @__PURE__ */ jsx32("h1", { className: "info-title", children: label }),
-    /* @__PURE__ */ jsx32("hr", { className: "info-separator" }),
-    /* @__PURE__ */ jsx32("p", { className: "info-description", children: description })
+  return /* @__PURE__ */ jsxs13(Fragment5, { children: [
+    /* @__PURE__ */ jsx35("span", { className: cn("info-icon", kind), "aria-hidden": true }),
+    /* @__PURE__ */ jsx35("h1", { className: "info-title", children: label }),
+    /* @__PURE__ */ jsx35("hr", { className: "info-separator" }),
+    /* @__PURE__ */ jsx35("p", { className: "info-description", children: description })
   ] });
 }
 
 // src/admin/bricks/WizardWindow/WizardWindow.tsx
-import { jsx as jsx33, jsxs as jsxs13 } from "react/jsx-runtime";
+import { jsx as jsx36, jsxs as jsxs14 } from "react/jsx-runtime";
 function WizardWindow({
   banner,
   info,
@@ -1157,18 +1673,34 @@ function WizardWindow({
   className,
   ...shell
 }) {
-  return /* @__PURE__ */ jsx33(PaneWindowShell, { className: cn("w-window-md", className), ...shell, children: /* @__PURE__ */ jsxs13("div", { className: "window-pane wizard-panel-layout", children: [
-    /* @__PURE__ */ jsx33("div", { className: "panel banner", children: banner }),
-    /* @__PURE__ */ jsx33("div", { className: "panel info", children: info }),
-    /* @__PURE__ */ jsx33("div", { className: "panel actions", children: actions })
+  return /* @__PURE__ */ jsx36(PaneWindowShell, { className: cn("w-window-md", className), ...shell, children: /* @__PURE__ */ jsxs14("div", { className: "window-pane wizard-panel-layout", children: [
+    /* @__PURE__ */ jsx36("div", { className: "panel banner", children: banner }),
+    /* @__PURE__ */ jsx36("div", { className: "panel info", children: info }),
+    /* @__PURE__ */ jsx36("div", { className: "panel actions", children: actions })
+  ] }) });
+}
+
+// src/admin/bricks/HeadingPanelWindow/HeadingPanelWindow.tsx
+import { jsx as jsx37, jsxs as jsxs15 } from "react/jsx-runtime";
+function HeadingPanelWindow({
+  heading,
+  children,
+  actions,
+  className,
+  ...shell
+}) {
+  return /* @__PURE__ */ jsx37(PaneWindowShell, { className: cn(className), ...shell, children: /* @__PURE__ */ jsxs15("div", { className: "window-pane heading-panel-layout", children: [
+    heading != null ? /* @__PURE__ */ jsx37("div", { className: "panel", children: heading }) : null,
+    /* @__PURE__ */ jsx37("div", { className: "panel", children }),
+    actions != null ? /* @__PURE__ */ jsx37("div", { className: "panel actions", children: actions }) : null
   ] }) });
 }
 
 // src/admin/bricks/FileExplorerWindow/FileExplorerWindow.tsx
-import { useEffect as useEffect4, useMemo, useState as useState4 } from "react";
+import { useEffect as useEffect5, useMemo as useMemo2, useState as useState6 } from "react";
 
 // src/admin/bricks/FileExplorerWindow/ExplorerContent.tsx
-import { useState } from "react";
+import { useState as useState3 } from "react";
 
 // src/admin/bricks/FileExplorerWindow/explorerDnd.ts
 var EXPLORER_DND_MIME = "application/x-webhemi-explorer-ids";
@@ -1315,9 +1847,9 @@ function findExplorerAncestorIds(roots, id) {
 }
 
 // src/admin/bricks/FileExplorerWindow/ExplorerContent.tsx
-import { jsx as jsx34, jsxs as jsxs14 } from "react/jsx-runtime";
+import { jsx as jsx38, jsxs as jsxs16 } from "react/jsx-runtime";
 function Glyph({ kind }) {
-  return /* @__PURE__ */ jsx34("span", { className: cn("explorer-glyph", kind), "aria-hidden": true });
+  return /* @__PURE__ */ jsx38("span", { className: cn("explorer-glyph", kind), "aria-hidden": true });
 }
 function modifiersFromEvent(event) {
   return {
@@ -1337,7 +1869,7 @@ function ExplorerContent({
 }) {
   const selected = new Set(selectedIds);
   const cut = new Set(cutItemIds);
-  const [dragOverId, setDragOverId] = useState(null);
+  const [dragOverId, setDragOverId] = useState3(null);
   const openItem = (item) => {
     if (isExplorerDocument(item)) {
       return;
@@ -1397,7 +1929,7 @@ function ExplorerContent({
     dragOverId === item.id && "is-drag-over"
   );
   if (view === "large-icons") {
-    return /* @__PURE__ */ jsx34("div", { className: "explorer-content-inner large-icons", children: items.map((item) => /* @__PURE__ */ jsx34(
+    return /* @__PURE__ */ jsx38("div", { className: "explorer-content-inner large-icons", children: items.map((item) => /* @__PURE__ */ jsx38(
       SystemIcon,
       {
         kind: item.kind,
@@ -1416,7 +1948,7 @@ function ExplorerContent({
     )) });
   }
   if (view === "list") {
-    return /* @__PURE__ */ jsx34("div", { className: "explorer-content-inner list", children: items.map((item) => /* @__PURE__ */ jsxs14(
+    return /* @__PURE__ */ jsx38("div", { className: "explorer-content-inner list", children: items.map((item) => /* @__PURE__ */ jsxs16(
       "a",
       {
         href: "#",
@@ -1435,21 +1967,21 @@ function ExplorerContent({
         onDragLeave: () => onDragLeaveItem(item),
         onDrop: (event) => onDropItem(item, event),
         children: [
-          /* @__PURE__ */ jsx34(Glyph, { kind: item.kind }),
-          /* @__PURE__ */ jsx34("span", { className: "label", children: item.label })
+          /* @__PURE__ */ jsx38(Glyph, { kind: item.kind }),
+          /* @__PURE__ */ jsx38("span", { className: "label", children: item.label })
         ]
       },
       item.id
     )) });
   }
-  return /* @__PURE__ */ jsx34("div", { className: "explorer-content-inner details", children: /* @__PURE__ */ jsxs14(Table, { className: "explorer-details", children: [
-    /* @__PURE__ */ jsx34("thead", { children: /* @__PURE__ */ jsxs14("tr", { children: [
-      /* @__PURE__ */ jsx34("th", { children: "Name" }),
-      /* @__PURE__ */ jsx34("th", { children: "Size" }),
-      /* @__PURE__ */ jsx34("th", { children: "Type" }),
-      /* @__PURE__ */ jsx34("th", { children: "Modified" })
+  return /* @__PURE__ */ jsx38("div", { className: "explorer-content-inner details", children: /* @__PURE__ */ jsxs16(Table, { className: "explorer-details", children: [
+    /* @__PURE__ */ jsx38("thead", { children: /* @__PURE__ */ jsxs16("tr", { children: [
+      /* @__PURE__ */ jsx38("th", { children: "Name" }),
+      /* @__PURE__ */ jsx38("th", { children: "Size" }),
+      /* @__PURE__ */ jsx38("th", { children: "Type" }),
+      /* @__PURE__ */ jsx38("th", { children: "Modified" })
     ] }) }),
-    /* @__PURE__ */ jsx34("tbody", { children: items.map((item) => /* @__PURE__ */ jsxs14(
+    /* @__PURE__ */ jsx38("tbody", { children: items.map((item) => /* @__PURE__ */ jsxs16(
       TableRow,
       {
         draggable: Boolean(onItemsDrop),
@@ -1462,13 +1994,13 @@ function ExplorerContent({
         onDragLeave: () => onDragLeaveItem(item),
         onDrop: (event) => onDropItem(item, event),
         children: [
-          /* @__PURE__ */ jsxs14("td", { className: "name-cell", children: [
-            /* @__PURE__ */ jsx34(Glyph, { kind: item.kind }),
+          /* @__PURE__ */ jsxs16("td", { className: "name-cell", children: [
+            /* @__PURE__ */ jsx38(Glyph, { kind: item.kind }),
             item.label
           ] }),
-          /* @__PURE__ */ jsx34("td", { children: formatExplorerSize(item.sizeBytes) }),
-          /* @__PURE__ */ jsx34("td", { children: item.typeLabel ?? "" }),
-          /* @__PURE__ */ jsx34("td", { children: item.modifiedAt ?? "" })
+          /* @__PURE__ */ jsx38("td", { children: formatExplorerSize(item.sizeBytes) }),
+          /* @__PURE__ */ jsx38("td", { children: item.typeLabel ?? "" }),
+          /* @__PURE__ */ jsx38("td", { children: item.modifiedAt ?? "" })
         ]
       },
       item.id
@@ -1478,14 +2010,14 @@ function ExplorerContent({
 
 // src/admin/bricks/FileExplorerWindow/ExplorerMenuBar.tsx
 import {
-  useEffect as useEffect3,
+  useEffect as useEffect4,
   useId,
-  useRef as useRef3,
-  useState as useState2
+  useRef as useRef4,
+  useState as useState4
 } from "react";
-import { Fragment as Fragment5, jsx as jsx35, jsxs as jsxs15 } from "react/jsx-runtime";
+import { Fragment as Fragment6, jsx as jsx39, jsxs as jsxs17 } from "react/jsx-runtime";
 function MenuLabel({ text, accessKey }) {
-  return /* @__PURE__ */ jsx35(Fragment5, { children: underlineAccessKey(text, accessKey) });
+  return /* @__PURE__ */ jsx39(Fragment6, { children: underlineAccessKey(text, accessKey) });
 }
 function buildMenus(props) {
   const {
@@ -1686,10 +2218,10 @@ var TOP_LEVEL = [
 function ExplorerMenuBar(props) {
   const { className } = props;
   const menus = buildMenus(props);
-  const rootRef = useRef3(null);
-  const [openMenu, setOpenMenu] = useState2(null);
+  const rootRef = useRef4(null);
+  const [openMenu, setOpenMenu] = useState4(null);
   const baseId = useId();
-  useEffect3(() => {
+  useEffect4(() => {
     if (!openMenu) {
       return;
     }
@@ -1726,7 +2258,7 @@ function ExplorerMenuBar(props) {
       setOpenMenu(next.id);
     }
   };
-  return /* @__PURE__ */ jsx35(
+  return /* @__PURE__ */ jsx39(
     "div",
     {
       ref: rootRef,
@@ -1737,7 +2269,7 @@ function ExplorerMenuBar(props) {
         const menuId = `${baseId}-${top.id}`;
         const expanded = openMenu === top.id;
         const items = menus[top.id];
-        return /* @__PURE__ */ jsxs15(
+        return /* @__PURE__ */ jsxs17(
           "div",
           {
             className: "explorer-menu-root",
@@ -1748,7 +2280,7 @@ function ExplorerMenuBar(props) {
               }
             },
             children: [
-              /* @__PURE__ */ jsx35(
+              /* @__PURE__ */ jsx39(
                 "button",
                 {
                   type: "button",
@@ -1760,15 +2292,15 @@ function ExplorerMenuBar(props) {
                   onClick: () => {
                     setOpenMenu((current) => current === top.id ? null : top.id);
                   },
-                  children: /* @__PURE__ */ jsx35(MenuLabel, { text: top.label, accessKey: top.accessKey })
+                  children: /* @__PURE__ */ jsx39(MenuLabel, { text: top.label, accessKey: top.accessKey })
                 }
               ),
-              expanded ? /* @__PURE__ */ jsx35("div", { id: menuId, className: "explorer-menu", role: "menu", "aria-label": top.label, children: items.map((item) => {
+              expanded ? /* @__PURE__ */ jsx39("div", { id: menuId, className: "explorer-menu", role: "menu", "aria-label": top.label, children: items.map((item) => {
                 if (item.kind === "separator") {
-                  return /* @__PURE__ */ jsx35("div", { className: "explorer-menu-separator", role: "separator" }, item.id);
+                  return /* @__PURE__ */ jsx39("div", { className: "explorer-menu-separator", role: "separator" }, item.id);
                 }
                 const role = item.role ?? "menuitem";
-                return /* @__PURE__ */ jsxs15(
+                return /* @__PURE__ */ jsxs17(
                   "button",
                   {
                     type: "button",
@@ -1782,8 +2314,8 @@ function ExplorerMenuBar(props) {
                     "aria-checked": role === "menuitemradio" || role === "menuitemcheckbox" ? item.checked : void 0,
                     onClick: () => activateItem(item),
                     children: [
-                      /* @__PURE__ */ jsx35("span", { className: "explorer-menu-check", "aria-hidden": true, children: item.checked ? "\u2713" : "" }),
-                      /* @__PURE__ */ jsx35("span", { className: "explorer-menu-label", children: /* @__PURE__ */ jsx35(MenuLabel, { text: item.label, accessKey: item.accessKey }) })
+                      /* @__PURE__ */ jsx39("span", { className: "explorer-menu-check", "aria-hidden": true, children: item.checked ? "\u2713" : "" }),
+                      /* @__PURE__ */ jsx39("span", { className: "explorer-menu-label", children: /* @__PURE__ */ jsx39(MenuLabel, { text: item.label, accessKey: item.accessKey }) })
                     ]
                   },
                   item.id
@@ -1800,11 +2332,11 @@ function ExplorerMenuBar(props) {
 
 // src/admin/bricks/FileExplorerWindow/ExplorerSplitter.tsx
 import {
-  useCallback,
-  useRef as useRef4,
-  useState as useState3
+  useCallback as useCallback2,
+  useRef as useRef5,
+  useState as useState5
 } from "react";
-import { jsx as jsx36 } from "react/jsx-runtime";
+import { jsx as jsx40 } from "react/jsx-runtime";
 function ExplorerSplitter({
   value,
   onChange,
@@ -1814,11 +2346,11 @@ function ExplorerSplitter({
   className,
   keyboardStep = 8
 }) {
-  const [dragging, setDragging] = useState3(false);
-  const dragRef = useRef4(
+  const [dragging, setDragging] = useState5(false);
+  const dragRef = useRef5(
     null
   );
-  const clamp = useCallback(
+  const clamp = useCallback2(
     (width) => Math.min(max, Math.max(min, Math.round(width))),
     [min, max]
   );
@@ -1877,7 +2409,7 @@ function ExplorerSplitter({
       onChange(max);
     }
   };
-  return /* @__PURE__ */ jsx36(
+  return /* @__PURE__ */ jsx40(
     "div",
     {
       className: cn("explorer-splitter", dragging && "is-dragging", className),
@@ -1899,7 +2431,7 @@ function ExplorerSplitter({
 }
 
 // src/admin/bricks/FileExplorerWindow/ExplorerToolbar.tsx
-import { jsx as jsx37, jsxs as jsxs16 } from "react/jsx-runtime";
+import { jsx as jsx41, jsxs as jsxs18 } from "react/jsx-runtime";
 var VIEW_TOOLS = [
   { view: "large-icons", label: "Large Icons", className: "large-icons" },
   { view: "list", label: "List", className: "list" },
@@ -1918,8 +2450,8 @@ function ExplorerToolbar({
   onProperties,
   className
 }) {
-  return /* @__PURE__ */ jsxs16("div", { className: cn("panel explorer-toolbar", className), role: "toolbar", "aria-label": "Explorer", children: [
-    /* @__PURE__ */ jsx37(
+  return /* @__PURE__ */ jsxs18("div", { className: cn("panel explorer-toolbar", className), role: "toolbar", "aria-label": "Explorer", children: [
+    /* @__PURE__ */ jsx41(
       Button2,
       {
         type: "button",
@@ -1929,9 +2461,9 @@ function ExplorerToolbar({
         onClick: onLevelUp
       }
     ),
-    /* @__PURE__ */ jsx37(VerticalBar, {}),
-    /* @__PURE__ */ jsx37(Button2, { type: "button", className: "tool cut", "aria-label": "Cut", disabled: !onCut, onClick: onCut }),
-    /* @__PURE__ */ jsx37(
+    /* @__PURE__ */ jsx41(VerticalBar, {}),
+    /* @__PURE__ */ jsx41(Button2, { type: "button", className: "tool cut", "aria-label": "Cut", disabled: !onCut, onClick: onCut }),
+    /* @__PURE__ */ jsx41(
       Button2,
       {
         type: "button",
@@ -1941,7 +2473,7 @@ function ExplorerToolbar({
         onClick: onCopy
       }
     ),
-    /* @__PURE__ */ jsx37(
+    /* @__PURE__ */ jsx41(
       Button2,
       {
         type: "button",
@@ -1951,7 +2483,7 @@ function ExplorerToolbar({
         onClick: onPaste
       }
     ),
-    /* @__PURE__ */ jsx37(
+    /* @__PURE__ */ jsx41(
       Button2,
       {
         type: "button",
@@ -1961,7 +2493,7 @@ function ExplorerToolbar({
         onClick: onUndo
       }
     ),
-    /* @__PURE__ */ jsx37(
+    /* @__PURE__ */ jsx41(
       Button2,
       {
         type: "button",
@@ -1971,7 +2503,7 @@ function ExplorerToolbar({
         onClick: onDelete
       }
     ),
-    /* @__PURE__ */ jsx37(
+    /* @__PURE__ */ jsx41(
       Button2,
       {
         type: "button",
@@ -1981,8 +2513,8 @@ function ExplorerToolbar({
         onClick: onProperties
       }
     ),
-    /* @__PURE__ */ jsx37(VerticalBar, {}),
-    VIEW_TOOLS.map((tool) => /* @__PURE__ */ jsx37(
+    /* @__PURE__ */ jsx41(VerticalBar, {}),
+    VIEW_TOOLS.map((tool) => /* @__PURE__ */ jsx41(
       Button2,
       {
         type: "button",
@@ -1997,7 +2529,7 @@ function ExplorerToolbar({
 }
 
 // src/admin/bricks/FileExplorerWindow/FileExplorerWindow.tsx
-import { jsx as jsx38, jsxs as jsxs17 } from "react/jsx-runtime";
+import { jsx as jsx42, jsxs as jsxs19 } from "react/jsx-runtime";
 var DEFAULT_TREE_WIDTH = 200;
 var MIN_TREE_WIDTH = 120;
 var MAX_TREE_WIDTH = 480;
@@ -2011,9 +2543,9 @@ function TreeNodeLabel({
   node,
   expanded = false
 }) {
-  return /* @__PURE__ */ jsxs17("span", { className: cn("explorer-tree-node", node.disabled && "is-disabled"), children: [
-    /* @__PURE__ */ jsx38("span", { className: cn("explorer-glyph", treeGlyphKind(node, expanded)), "aria-hidden": true }),
-    /* @__PURE__ */ jsx38("span", { className: "tree-view-label", children: node.label })
+  return /* @__PURE__ */ jsxs19("span", { className: cn("explorer-tree-node", node.disabled && "is-disabled"), children: [
+    /* @__PURE__ */ jsx42("span", { className: cn("explorer-glyph", treeGlyphKind(node, expanded)), "aria-hidden": true }),
+    /* @__PURE__ */ jsx42("span", { className: "tree-view-label", children: node.label })
   ] });
 }
 function readDraggedIds(event) {
@@ -2027,8 +2559,8 @@ function TreeDropLink({
   children
 }) {
   const droppable = Boolean(onItemsDrop) && isExplorerLocation(node) && !node.disabled;
-  const [dragOver, setDragOver] = useState4(false);
-  return /* @__PURE__ */ jsx38(
+  const [dragOver, setDragOver] = useState6(false);
+  return /* @__PURE__ */ jsx42(
     "a",
     {
       href: "#",
@@ -2075,15 +2607,15 @@ function ExplorerTreeBranch({
   onItemsDrop
 }) {
   const kids = explorerTreeChildren(node);
-  const [open, setOpen] = useState4(node.role === "site" || ancestorIds.has(node.id));
-  useEffect4(() => {
+  const [open, setOpen] = useState6(node.role === "site" || ancestorIds.has(node.id));
+  useEffect5(() => {
     if (ancestorIds.has(node.id)) {
       setOpen(true);
     }
   }, [ancestorIds, node.id]);
   const isCurrent = locationId === node.id;
-  return /* @__PURE__ */ jsx38("li", { children: /* @__PURE__ */ jsxs17("details", { open, children: [
-    /* @__PURE__ */ jsxs17(
+  return /* @__PURE__ */ jsx42("li", { children: /* @__PURE__ */ jsxs19("details", { open, children: [
+    /* @__PURE__ */ jsxs19(
       "summary",
       {
         tabIndex: -1,
@@ -2091,7 +2623,7 @@ function ExplorerTreeBranch({
           event.preventDefault();
         },
         children: [
-          /* @__PURE__ */ jsx38(
+          /* @__PURE__ */ jsx42(
             TreeToggle,
             {
               expanded: open,
@@ -2102,20 +2634,20 @@ function ExplorerTreeBranch({
               }
             }
           ),
-          node.disabled ? /* @__PURE__ */ jsx38("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: /* @__PURE__ */ jsx38(TreeNodeLabel, { node, expanded: open }) }) : /* @__PURE__ */ jsx38(
+          node.disabled ? /* @__PURE__ */ jsx42("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: /* @__PURE__ */ jsx42(TreeNodeLabel, { node, expanded: open }) }) : /* @__PURE__ */ jsx42(
             TreeDropLink,
             {
               node,
               isCurrent,
               onTreeSelect,
               onItemsDrop,
-              children: /* @__PURE__ */ jsx38(TreeNodeLabel, { node, expanded: open })
+              children: /* @__PURE__ */ jsx42(TreeNodeLabel, { node, expanded: open })
             }
           )
         ]
       }
     ),
-    /* @__PURE__ */ jsx38("ul", { children: renderTreeNodes(kids, locationId, ancestorIds, onTreeSelect, onItemsDrop) })
+    /* @__PURE__ */ jsx42("ul", { children: renderTreeNodes(kids, locationId, ancestorIds, onTreeSelect, onItemsDrop) })
   ] }) });
 }
 function renderTreeNodes(nodes, locationId, ancestorIds, onTreeSelect, onItemsDrop) {
@@ -2123,7 +2655,7 @@ function renderTreeNodes(nodes, locationId, ancestorIds, onTreeSelect, onItemsDr
     const canExpand = isExplorerTreeExpandable(node);
     const isCurrent = locationId === node.id;
     if (canExpand) {
-      return /* @__PURE__ */ jsx38(
+      return /* @__PURE__ */ jsx42(
         ExplorerTreeBranch,
         {
           node,
@@ -2135,14 +2667,14 @@ function renderTreeNodes(nodes, locationId, ancestorIds, onTreeSelect, onItemsDr
         node.id
       );
     }
-    return /* @__PURE__ */ jsx38("li", { className: cn(node.disabled && "is-disabled"), children: node.disabled ? /* @__PURE__ */ jsx38("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: /* @__PURE__ */ jsx38(TreeNodeLabel, { node }) }) : /* @__PURE__ */ jsx38(
+    return /* @__PURE__ */ jsx42("li", { className: cn(node.disabled && "is-disabled"), children: node.disabled ? /* @__PURE__ */ jsx42("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: /* @__PURE__ */ jsx42(TreeNodeLabel, { node }) }) : /* @__PURE__ */ jsx42(
       TreeDropLink,
       {
         node,
         isCurrent,
         onTreeSelect,
         onItemsDrop,
-        children: /* @__PURE__ */ jsx38(TreeNodeLabel, { node })
+        children: /* @__PURE__ */ jsx42(TreeNodeLabel, { node })
       }
     ) }, node.id);
   });
@@ -2186,10 +2718,10 @@ function FileExplorerWindow({
   resizable = true,
   ...shell
 }) {
-  const [uncontrolledTreeWidth, setUncontrolledTreeWidth] = useState4(treeWidth);
+  const [uncontrolledTreeWidth, setUncontrolledTreeWidth] = useState6(treeWidth);
   const isTreeWidthControlled = onTreeWidthChange !== void 0;
   const resolvedTreeWidth = isTreeWidthControlled ? treeWidth : uncontrolledTreeWidth;
-  useEffect4(() => {
+  useEffect5(() => {
     if (!isTreeWidthControlled) {
       setUncontrolledTreeWidth(treeWidth);
     }
@@ -2208,20 +2740,20 @@ function FileExplorerWindow({
     flexBasis: `${resolvedTreeWidth}px`,
     width: `${resolvedTreeWidth}px`
   };
-  const ancestorIds = useMemo(
+  const ancestorIds = useMemo2(
     () => new Set(findExplorerAncestorIds(tree, locationId)),
     [tree, locationId]
   );
   const primarySelectedId = selectedIds.length > 0 ? selectedIds[selectedIds.length - 1] : null;
   const selectedItem = findExplorerItem(tree, primarySelectedId) ?? items.find((item) => item.id === primarySelectedId) ?? null;
-  return /* @__PURE__ */ jsx38(
+  return /* @__PURE__ */ jsx42(
     PaneWindowShell,
     {
       className: cn("w-window-xl file-explorer-window", className),
       resizable,
       ...shell,
-      children: /* @__PURE__ */ jsxs17("div", { className: "window-pane explorer-panel-layout", style: paneStyle, children: [
-        /* @__PURE__ */ jsx38(
+      children: /* @__PURE__ */ jsxs19("div", { className: "window-pane explorer-panel-layout", style: paneStyle, children: [
+        /* @__PURE__ */ jsx42(
           ExplorerMenuBar,
           {
             view,
@@ -2249,8 +2781,8 @@ function FileExplorerWindow({
             onAbout
           }
         ),
-        /* @__PURE__ */ jsx38("div", { className: "explorer-chrome-separator", role: "separator" }),
-        /* @__PURE__ */ jsx38(
+        /* @__PURE__ */ jsx42("div", { className: "explorer-chrome-separator", role: "separator" }),
+        /* @__PURE__ */ jsx42(
           ExplorerToolbar,
           {
             view,
@@ -2265,9 +2797,9 @@ function FileExplorerWindow({
             onProperties
           }
         ),
-        /* @__PURE__ */ jsxs17("div", { className: "explorer-split", children: [
-          /* @__PURE__ */ jsx38(FieldBorder, { scrollable: true, className: "panel explorer-tree", style: treeStyle, children: /* @__PURE__ */ jsx38("div", { className: "explorer-tree-inner", children: /* @__PURE__ */ jsx38(TreeView, { children: renderTreeNodes(tree, locationId, ancestorIds, onTreeSelect, onItemsDrop) }) }) }),
-          treePaneResizable ? /* @__PURE__ */ jsx38(
+        /* @__PURE__ */ jsxs19("div", { className: "explorer-split", children: [
+          /* @__PURE__ */ jsx42(FieldBorder, { scrollable: true, className: "panel explorer-tree", style: treeStyle, children: /* @__PURE__ */ jsx42("div", { className: "explorer-tree-inner", children: /* @__PURE__ */ jsx42(TreeView, { children: renderTreeNodes(tree, locationId, ancestorIds, onTreeSelect, onItemsDrop) }) }) }),
+          treePaneResizable ? /* @__PURE__ */ jsx42(
             ExplorerSplitter,
             {
               value: resolvedTreeWidth,
@@ -2275,8 +2807,8 @@ function FileExplorerWindow({
               min: minTreeWidth,
               max: maxTreeWidth
             }
-          ) : /* @__PURE__ */ jsx38("div", { className: "explorer-splitter is-static", "aria-hidden": true }),
-          /* @__PURE__ */ jsx38(FieldBorder, { scrollable: true, className: "panel explorer-content", children: /* @__PURE__ */ jsx38(
+          ) : /* @__PURE__ */ jsx42("div", { className: "explorer-splitter is-static", "aria-hidden": true }),
+          /* @__PURE__ */ jsx42(FieldBorder, { scrollable: true, className: "panel explorer-content", children: /* @__PURE__ */ jsx42(
             ExplorerContent,
             {
               view,
@@ -2295,7 +2827,7 @@ function FileExplorerWindow({
 }
 
 // src/admin/bricks/FileExplorerWindow/ExplorerPropertiesDialog.tsx
-import { jsx as jsx39, jsxs as jsxs18 } from "react/jsx-runtime";
+import { jsx as jsx43, jsxs as jsxs20 } from "react/jsx-runtime";
 function ExplorerPropertiesDialog({
   item,
   parentLabel = null,
@@ -2303,37 +2835,37 @@ function ExplorerPropertiesDialog({
   className
 }) {
   const sizeLabel = formatExplorerSize(item.sizeBytes) || "\u2014";
-  return /* @__PURE__ */ jsx39(
+  return /* @__PURE__ */ jsx43(
     DialogWindow,
     {
       className: cn("explorer-properties-dialog", className),
       title: `${item.label} Properties`,
-      titleBarControls: /* @__PURE__ */ jsx39(TitleBarControls, { children: /* @__PURE__ */ jsx39(TitleBarControl, { action: "Close", onClick: onClose }) }),
-      actions: /* @__PURE__ */ jsxs18(FieldRow, { className: "justify-end", children: [
-        /* @__PURE__ */ jsx39(Button2, { type: "button", isDefault: true, accessKey: "o", onClick: onClose, children: "OK" }),
-        /* @__PURE__ */ jsx39(Button2, { type: "button", accessKey: "c", onClick: onClose, children: "Cancel" })
+      titleBarControls: /* @__PURE__ */ jsx43(TitleBarControls, { children: /* @__PURE__ */ jsx43(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      actions: /* @__PURE__ */ jsxs20(FieldRow, { className: "justify-end", children: [
+        /* @__PURE__ */ jsx43(Button2, { type: "button", isDefault: true, accessKey: "o", onClick: onClose, children: "OK" }),
+        /* @__PURE__ */ jsx43(Button2, { type: "button", accessKey: "c", onClick: onClose, children: "Cancel" })
       ] }),
-      children: /* @__PURE__ */ jsxs18("div", { className: "explorer-properties", children: [
-        /* @__PURE__ */ jsxs18("div", { className: "explorer-properties-identity", children: [
-          /* @__PURE__ */ jsx39("span", { className: cn("explorer-glyph", item.kind), "aria-hidden": true }),
-          /* @__PURE__ */ jsx39("span", { className: "explorer-properties-name", children: item.label })
+      children: /* @__PURE__ */ jsxs20("div", { className: "explorer-properties", children: [
+        /* @__PURE__ */ jsxs20("div", { className: "explorer-properties-identity", children: [
+          /* @__PURE__ */ jsx43("span", { className: cn("explorer-glyph", item.kind), "aria-hidden": true }),
+          /* @__PURE__ */ jsx43("span", { className: "explorer-properties-name", children: item.label })
         ] }),
-        /* @__PURE__ */ jsxs18("dl", { className: "explorer-properties-list", children: [
-          /* @__PURE__ */ jsxs18("div", { children: [
-            /* @__PURE__ */ jsx39("dt", { children: "Type:" }),
-            /* @__PURE__ */ jsx39("dd", { children: item.typeLabel ?? "\u2014" })
+        /* @__PURE__ */ jsxs20("dl", { className: "explorer-properties-list", children: [
+          /* @__PURE__ */ jsxs20("div", { children: [
+            /* @__PURE__ */ jsx43("dt", { children: "Type:" }),
+            /* @__PURE__ */ jsx43("dd", { children: item.typeLabel ?? "\u2014" })
           ] }),
-          /* @__PURE__ */ jsxs18("div", { children: [
-            /* @__PURE__ */ jsx39("dt", { children: "Location:" }),
-            /* @__PURE__ */ jsx39("dd", { children: parentLabel ?? "\u2014" })
+          /* @__PURE__ */ jsxs20("div", { children: [
+            /* @__PURE__ */ jsx43("dt", { children: "Location:" }),
+            /* @__PURE__ */ jsx43("dd", { children: parentLabel ?? "\u2014" })
           ] }),
-          /* @__PURE__ */ jsxs18("div", { children: [
-            /* @__PURE__ */ jsx39("dt", { children: "Size:" }),
-            /* @__PURE__ */ jsx39("dd", { children: sizeLabel })
+          /* @__PURE__ */ jsxs20("div", { children: [
+            /* @__PURE__ */ jsx43("dt", { children: "Size:" }),
+            /* @__PURE__ */ jsx43("dd", { children: sizeLabel })
           ] }),
-          /* @__PURE__ */ jsxs18("div", { children: [
-            /* @__PURE__ */ jsx39("dt", { children: "Modified:" }),
-            /* @__PURE__ */ jsx39("dd", { children: item.modifiedAt ?? "\u2014" })
+          /* @__PURE__ */ jsxs20("div", { children: [
+            /* @__PURE__ */ jsx43("dt", { children: "Modified:" }),
+            /* @__PURE__ */ jsx43("dd", { children: item.modifiedAt ?? "\u2014" })
           ] })
         ] })
       ] })
@@ -2342,7 +2874,7 @@ function ExplorerPropertiesDialog({
 }
 
 // src/admin/bricks/FileExplorerWindow/SiteFileExplorer.tsx
-import { useMemo as useMemo2, useState as useState5 } from "react";
+import { useMemo as useMemo3, useState as useState7 } from "react";
 
 // src/admin/bricks/FileExplorerWindow/explorerTreeOps.ts
 function cloneExplorerForest(nodes) {
@@ -2657,7 +3189,7 @@ function undoExplorerAction(roots, entry) {
 }
 
 // src/admin/bricks/FileExplorerWindow/SiteFileExplorer.tsx
-import { jsx as jsx40, jsxs as jsxs19 } from "react/jsx-runtime";
+import { jsx as jsx44, jsxs as jsxs21 } from "react/jsx-runtime";
 function SiteFileExplorer({
   tree,
   initialLocationId,
@@ -2670,19 +3202,19 @@ function SiteFileExplorer({
   ...rest
 }) {
   const rootId = initialLocationId ?? tree[0]?.id ?? "";
-  const [forest, setForest] = useState5(() => cloneExplorerForest(tree));
-  const [view, setView] = useState5("large-icons");
-  const [locationId, setLocationId] = useState5(rootId);
-  const [selectedIds, setSelectedIds] = useState5([]);
-  const [selectionAnchorId, setSelectionAnchorId] = useState5(null);
-  const [statusBarVisible, setStatusBarVisible] = useState5(true);
-  const [clipboard, setClipboard] = useState5(null);
-  const [undoEntry, setUndoEntry] = useState5(null);
-  const [propertiesItem, setPropertiesItem] = useState5(null);
-  const location = useMemo2(() => findExplorerItem(forest, locationId), [forest, locationId]);
-  const items = useMemo2(() => explorerContentItems(location), [location]);
-  const parent = useMemo2(() => findExplorerParent(forest, locationId), [forest, locationId]);
-  const selectedItems = useMemo2(
+  const [forest, setForest] = useState7(() => cloneExplorerForest(tree));
+  const [view, setView] = useState7("large-icons");
+  const [locationId, setLocationId] = useState7(rootId);
+  const [selectedIds, setSelectedIds] = useState7([]);
+  const [selectionAnchorId, setSelectionAnchorId] = useState7(null);
+  const [statusBarVisible, setStatusBarVisible] = useState7(true);
+  const [clipboard, setClipboard] = useState7(null);
+  const [undoEntry, setUndoEntry] = useState7(null);
+  const [propertiesItem, setPropertiesItem] = useState7(null);
+  const location = useMemo3(() => findExplorerItem(forest, locationId), [forest, locationId]);
+  const items = useMemo3(() => explorerContentItems(location), [location]);
+  const parent = useMemo3(() => findExplorerParent(forest, locationId), [forest, locationId]);
+  const selectedItems = useMemo3(
     () => selectedIds.map((id) => findExplorerItem(forest, id) ?? items.find((item) => item.id === id) ?? null).filter((item) => item !== null),
     [forest, items, selectedIds]
   );
@@ -2837,8 +3369,8 @@ function SiteFileExplorer({
   };
   const propertiesParentLabel = propertiesItem ? findExplorerParent(forest, propertiesItem.id)?.label ?? null : null;
   const statusCountLabel = selectedIds.length > 0 ? `${selectedIds.length} object(s) selected` : `${items.length} object(s)${hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}`;
-  return /* @__PURE__ */ jsxs19("div", { className: "site-file-explorer", children: [
-    /* @__PURE__ */ jsx40(
+  return /* @__PURE__ */ jsxs21("div", { className: "site-file-explorer", children: [
+    /* @__PURE__ */ jsx44(
       FileExplorerWindow,
       {
         title,
@@ -2877,19 +3409,19 @@ function SiteFileExplorer({
         } : void 0,
         statusBarVisible,
         onStatusBarToggle: () => setStatusBarVisible((value) => !value),
-        titleBarControls: /* @__PURE__ */ jsxs19(TitleBarControls, { children: [
-          /* @__PURE__ */ jsx40(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-          /* @__PURE__ */ jsx40(TitleBarControl, { action: maximizeAction, onClick: onMaximize }),
-          /* @__PURE__ */ jsx40(TitleBarControl, { action: "Close", onClick: onClose })
+        titleBarControls: /* @__PURE__ */ jsxs21(TitleBarControls, { children: [
+          /* @__PURE__ */ jsx44(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+          /* @__PURE__ */ jsx44(TitleBarControl, { action: maximizeAction, onClick: onMaximize }),
+          /* @__PURE__ */ jsx44(TitleBarControl, { action: "Close", onClick: onClose })
         ] }),
-        statusBar: statusBarVisible ? /* @__PURE__ */ jsxs19(StatusBar, { children: [
-          /* @__PURE__ */ jsx40(StatusBarField, { children: statusCountLabel }),
-          /* @__PURE__ */ jsx40(StatusBarField, { className: "description", children: statusItem?.typeLabel ?? "" }),
-          /* @__PURE__ */ jsx40(StatusBarField, {})
+        statusBar: statusBarVisible ? /* @__PURE__ */ jsxs21(StatusBar, { children: [
+          /* @__PURE__ */ jsx44(StatusBarField, { children: statusCountLabel }),
+          /* @__PURE__ */ jsx44(StatusBarField, { className: "description", children: statusItem?.typeLabel ?? "" }),
+          /* @__PURE__ */ jsx44(StatusBarField, {})
         ] }) : void 0
       }
     ),
-    propertiesItem ? /* @__PURE__ */ jsx40("div", { className: "explorer-properties-overlay", children: /* @__PURE__ */ jsx40(
+    propertiesItem ? /* @__PURE__ */ jsx44(DesktopModal, { children: /* @__PURE__ */ jsx44(
       ExplorerPropertiesDialog,
       {
         item: propertiesItem,
@@ -3137,19 +3669,77 @@ function buildDemoSiteExplorerTree(site) {
   ];
 }
 
-// src/admin/lib/assetPaths.ts
-var ADMIN_ASSETS_BASE = "/assets/admin";
-function adminAsset(path) {
-  const normalized = path.replace(/^\/+/, "");
-  return `${ADMIN_ASSETS_BASE}/${normalized}`;
+// src/admin/api/client.ts
+var DEFAULT_BASE = "/admin/api";
+function normalizeBase(baseUrl) {
+  return baseUrl.replace(/\/+$/, "");
 }
-function adminIconAsset(kind) {
-  const file = kind.replace(/-/g, "_");
-  return adminAsset(`icons/system/${file}.svg`);
+async function parseResult(response) {
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    return {
+      ok: false,
+      status: response.status,
+      error: {
+        code: "invalid_json",
+        message: "Server returned a non-JSON response."
+      }
+    };
+  }
+  if (response.ok) {
+    const data = payload && typeof payload === "object" && "data" in payload ? payload.data : payload;
+    return { ok: true, status: response.status, data };
+  }
+  const error = payload && typeof payload === "object" && "error" in payload && payload.error && typeof payload.error === "object" ? payload.error : {
+    code: "http_error",
+    message: `Request failed (${response.status}).`
+  };
+  return {
+    ok: false,
+    status: response.status,
+    error: {
+      code: typeof error.code === "string" ? error.code : "http_error",
+      message: typeof error.message === "string" ? error.message : `Request failed (${response.status}).`,
+      fields: error.fields && typeof error.fields === "object" ? error.fields : void 0
+    }
+  };
+}
+function createAdminApiClient(options = {}) {
+  const baseUrl = normalizeBase(options.baseUrl ?? DEFAULT_BASE);
+  const fetchImpl = options.fetch ?? globalThis.fetch.bind(globalThis);
+  const csrfToken = options.csrfToken;
+  async function request(path, init = {}) {
+    const headers = new Headers(init.headers);
+    if (!headers.has("Accept")) {
+      headers.set("Accept", "application/json");
+    }
+    if (init.body != null && !headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+    const method = (init.method ?? "GET").toUpperCase();
+    if (csrfToken && method !== "GET" && method !== "HEAD") {
+      headers.set("X-CSRF-TOKEN", csrfToken);
+    }
+    const response = await fetchImpl(`${baseUrl}${path}`, {
+      ...init,
+      headers,
+      credentials: "same-origin"
+    });
+    return parseResult(response);
+  }
+  return {
+    listSites: () => request("/sites"),
+    createSite: (body) => request("/sites", {
+      method: "POST",
+      body: JSON.stringify(body)
+    })
+  };
 }
 
 // src/admin/components/FlashList/FlashList.tsx
-import { jsx as jsx41 } from "react/jsx-runtime";
+import { jsx as jsx45 } from "react/jsx-runtime";
 function toneForFlash(key) {
   if (key === "success") {
     return "success";
@@ -3167,12 +3757,12 @@ function FlashList({ flashes }) {
     return null;
   }
   return Object.entries(flashes).flatMap(
-    ([tone, messages]) => messages.map((message, index) => /* @__PURE__ */ jsx41(Alert, { tone: toneForFlash(tone), className: "mb-4", children: message }, `${tone}-${index}`))
+    ([tone, messages]) => messages.map((message, index) => /* @__PURE__ */ jsx45(Alert, { tone: toneForFlash(tone), className: "mb-4", children: message }, `${tone}-${index}`))
   );
 }
 
 // src/admin/components/DataTable/DataTable.tsx
-import { jsx as jsx42, jsxs as jsxs20 } from "react/jsx-runtime";
+import { jsx as jsx46, jsxs as jsxs22 } from "react/jsx-runtime";
 function DataTable({
   columns,
   rows,
@@ -3182,25 +3772,25 @@ function DataTable({
   className
 }) {
   if (loading) {
-    return /* @__PURE__ */ jsx42("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: "Loading\u2026" });
+    return /* @__PURE__ */ jsx46("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: "Loading\u2026" });
   }
   if (rows.length === 0) {
-    return /* @__PURE__ */ jsx42("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-dashed border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: emptyMessage });
+    return /* @__PURE__ */ jsx46("div", { className: "wh-ui rounded-[var(--wh-radius-md)] border border-dashed border-[var(--wh-color-line)] bg-[var(--wh-color-surface)] p-8 text-center text-[var(--wh-color-muted)]", children: emptyMessage });
   }
-  return /* @__PURE__ */ jsx42(
+  return /* @__PURE__ */ jsx46(
     "div",
     {
       className: cn(
         "wh-ui overflow-x-auto rounded-[var(--wh-radius-md)] border border-[var(--wh-color-line)] bg-[var(--wh-color-surface)]",
         className
       ),
-      children: /* @__PURE__ */ jsxs20("table", { className: "w-full border-collapse text-left text-sm", children: [
-        /* @__PURE__ */ jsx42("thead", { className: "bg-[var(--wh-color-canvas)] text-[var(--wh-color-muted)]", children: /* @__PURE__ */ jsx42("tr", { children: columns.map((col) => /* @__PURE__ */ jsx42("th", { className: cn("px-4 py-3 font-semibold", col.className), children: col.header }, col.key)) }) }),
-        /* @__PURE__ */ jsx42("tbody", { children: rows.map((row) => /* @__PURE__ */ jsx42(
+      children: /* @__PURE__ */ jsxs22("table", { className: "w-full border-collapse text-left text-sm", children: [
+        /* @__PURE__ */ jsx46("thead", { className: "bg-[var(--wh-color-canvas)] text-[var(--wh-color-muted)]", children: /* @__PURE__ */ jsx46("tr", { children: columns.map((col) => /* @__PURE__ */ jsx46("th", { className: cn("px-4 py-3 font-semibold", col.className), children: col.header }, col.key)) }) }),
+        /* @__PURE__ */ jsx46("tbody", { children: rows.map((row) => /* @__PURE__ */ jsx46(
           "tr",
           {
             className: "border-t border-[var(--wh-color-line)] hover:bg-[color-mix(in_srgb,var(--wh-color-accent)_6%,white)]",
-            children: columns.map((col) => /* @__PURE__ */ jsx42("td", { className: cn("px-4 py-3", col.className), children: col.render(row) }, col.key))
+            children: columns.map((col) => /* @__PURE__ */ jsx46("td", { className: cn("px-4 py-3", col.className), children: col.render(row) }, col.key))
           },
           rowKey(row)
         )) })
@@ -3210,18 +3800,18 @@ function DataTable({
 }
 
 // src/admin/components/Pagination/Pagination.tsx
-import { jsx as jsx43, jsxs as jsxs21 } from "react/jsx-runtime";
+import { jsx as jsx47, jsxs as jsxs23 } from "react/jsx-runtime";
 function Pagination({ page, pageCount, onPageChange, className }) {
   if (pageCount <= 1) {
     return null;
   }
-  return /* @__PURE__ */ jsxs21(
+  return /* @__PURE__ */ jsxs23(
     "nav",
     {
       className: cn("wh-ui mt-4 flex items-center justify-between gap-3", className),
       "aria-label": "Pagination",
       children: [
-        /* @__PURE__ */ jsx43(
+        /* @__PURE__ */ jsx47(
           Button,
           {
             variant: "secondary",
@@ -3231,13 +3821,13 @@ function Pagination({ page, pageCount, onPageChange, className }) {
             children: "Previous"
           }
         ),
-        /* @__PURE__ */ jsxs21("span", { className: "text-sm text-[var(--wh-color-muted)]", children: [
+        /* @__PURE__ */ jsxs23("span", { className: "text-sm text-[var(--wh-color-muted)]", children: [
           "Page ",
           page,
           " of ",
           pageCount
         ] }),
-        /* @__PURE__ */ jsx43(
+        /* @__PURE__ */ jsx47(
           Button,
           {
             variant: "secondary",
@@ -3253,10 +3843,10 @@ function Pagination({ page, pageCount, onPageChange, className }) {
 }
 
 // src/admin/components/Modal/Modal.tsx
-import { useEffect as useEffect5 } from "react";
-import { jsx as jsx44, jsxs as jsxs22 } from "react/jsx-runtime";
+import { useEffect as useEffect6 } from "react";
+import { jsx as jsx48, jsxs as jsxs24 } from "react/jsx-runtime";
 function Modal({ open, title, children, onClose, footer, className }) {
-  useEffect5(() => {
+  useEffect6(() => {
     if (!open) {
       return;
     }
@@ -3271,8 +3861,8 @@ function Modal({ open, title, children, onClose, footer, className }) {
   if (!open) {
     return null;
   }
-  return /* @__PURE__ */ jsxs22("div", { className: "wh-ui fixed inset-0 z-50 flex items-center justify-center p-4", children: [
-    /* @__PURE__ */ jsx44(
+  return /* @__PURE__ */ jsxs24("div", { className: "wh-ui fixed inset-0 z-50 flex items-center justify-center p-4", children: [
+    /* @__PURE__ */ jsx48(
       "button",
       {
         type: "button",
@@ -3281,7 +3871,7 @@ function Modal({ open, title, children, onClose, footer, className }) {
         onClick: onClose
       }
     ),
-    /* @__PURE__ */ jsxs22(
+    /* @__PURE__ */ jsxs24(
       "div",
       {
         role: "dialog",
@@ -3292,12 +3882,12 @@ function Modal({ open, title, children, onClose, footer, className }) {
           className
         ),
         children: [
-          /* @__PURE__ */ jsxs22("div", { className: "flex items-center justify-between border-b border-[var(--wh-color-line)] px-4 py-3", children: [
-            /* @__PURE__ */ jsx44("h2", { id: "wh-modal-title", className: "font-[family-name:var(--wh-font-display)] text-lg", children: title }),
-            /* @__PURE__ */ jsx44(Button, { variant: "ghost", size: "sm", onClick: onClose, "aria-label": "Close", children: "\xD7" })
+          /* @__PURE__ */ jsxs24("div", { className: "flex items-center justify-between border-b border-[var(--wh-color-line)] px-4 py-3", children: [
+            /* @__PURE__ */ jsx48("h2", { id: "wh-modal-title", className: "font-[family-name:var(--wh-font-display)] text-lg", children: title }),
+            /* @__PURE__ */ jsx48(Button, { variant: "ghost", size: "sm", onClick: onClose, "aria-label": "Close", children: "\xD7" })
           ] }),
-          /* @__PURE__ */ jsx44("div", { className: "px-4 py-4", children }),
-          footer ? /* @__PURE__ */ jsx44("div", { className: "flex justify-end gap-2 border-t border-[var(--wh-color-line)] px-4 py-3", children: footer }) : null
+          /* @__PURE__ */ jsx48("div", { className: "px-4 py-4", children }),
+          footer ? /* @__PURE__ */ jsx48("div", { className: "flex justify-end gap-2 border-t border-[var(--wh-color-line)] px-4 py-3", children: footer }) : null
         ]
       }
     )
@@ -3305,9 +3895,9 @@ function Modal({ open, title, children, onClose, footer, className }) {
 }
 
 // src/admin/components/PageHeader/PageHeader.tsx
-import { jsx as jsx45, jsxs as jsxs23 } from "react/jsx-runtime";
+import { jsx as jsx49, jsxs as jsxs25 } from "react/jsx-runtime";
 function PageHeader({ title, description, actions, className }) {
-  return /* @__PURE__ */ jsxs23(
+  return /* @__PURE__ */ jsxs25(
     "header",
     {
       className: cn(
@@ -3315,20 +3905,20 @@ function PageHeader({ title, description, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsxs23("div", { children: [
-          /* @__PURE__ */ jsx45("h1", { className: "font-[family-name:var(--wh-font-display)] text-3xl tracking-tight text-[var(--wh-color-ink)]", children: title }),
-          description ? /* @__PURE__ */ jsx45("p", { className: "mt-1 max-w-2xl text-[var(--wh-color-muted)]", children: description }) : null
+        /* @__PURE__ */ jsxs25("div", { children: [
+          /* @__PURE__ */ jsx49("h1", { className: "font-[family-name:var(--wh-font-display)] text-3xl tracking-tight text-[var(--wh-color-ink)]", children: title }),
+          description ? /* @__PURE__ */ jsx49("p", { className: "mt-1 max-w-2xl text-[var(--wh-color-muted)]", children: description }) : null
         ] }),
-        actions ? /* @__PURE__ */ jsx45("div", { className: "flex flex-wrap gap-2", children: actions }) : null
+        actions ? /* @__PURE__ */ jsx49("div", { className: "flex flex-wrap gap-2", children: actions }) : null
       ]
     }
   );
 }
 
 // src/admin/components/Sidebar/Sidebar.tsx
-import { jsx as jsx46, jsxs as jsxs24 } from "react/jsx-runtime";
+import { jsx as jsx50, jsxs as jsxs26 } from "react/jsx-runtime";
 function Sidebar({ brand = "WebHemi", items, className }) {
-  return /* @__PURE__ */ jsxs24(
+  return /* @__PURE__ */ jsxs26(
     "aside",
     {
       className: cn(
@@ -3336,11 +3926,11 @@ function Sidebar({ brand = "WebHemi", items, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsxs24("div", { className: "border-b border-white/10 px-5 py-5", children: [
-          /* @__PURE__ */ jsx46("p", { className: "font-[family-name:var(--wh-font-display)] text-2xl tracking-tight", children: brand }),
-          /* @__PURE__ */ jsx46("p", { className: "text-xs uppercase tracking-[0.2em] text-white/60", children: "Admin" })
+        /* @__PURE__ */ jsxs26("div", { className: "border-b border-white/10 px-5 py-5", children: [
+          /* @__PURE__ */ jsx50("p", { className: "font-[family-name:var(--wh-font-display)] text-2xl tracking-tight", children: brand }),
+          /* @__PURE__ */ jsx50("p", { className: "text-xs uppercase tracking-[0.2em] text-white/60", children: "Admin" })
         ] }),
-        /* @__PURE__ */ jsx46("nav", { className: "flex flex-1 flex-col gap-1 p-3", "aria-label": "Admin", children: items.map((item) => /* @__PURE__ */ jsxs24(
+        /* @__PURE__ */ jsx50("nav", { className: "flex flex-1 flex-col gap-1 p-3", "aria-label": "Admin", children: items.map((item) => /* @__PURE__ */ jsxs26(
           "a",
           {
             href: item.href,
@@ -3350,7 +3940,7 @@ function Sidebar({ brand = "WebHemi", items, className }) {
             ),
             "aria-current": item.active ? "page" : void 0,
             children: [
-              item.icon ? /* @__PURE__ */ jsx46(Icon, { name: item.icon }) : null,
+              item.icon ? /* @__PURE__ */ jsx50(Icon, { name: item.icon }) : null,
               item.label
             ]
           },
@@ -3362,9 +3952,9 @@ function Sidebar({ brand = "WebHemi", items, className }) {
 }
 
 // src/admin/components/TopBar/TopBar.tsx
-import { jsx as jsx47, jsxs as jsxs25 } from "react/jsx-runtime";
+import { jsx as jsx51, jsxs as jsxs27 } from "react/jsx-runtime";
 function TopBar({ title, userLabel, actions, className }) {
-  return /* @__PURE__ */ jsxs25(
+  return /* @__PURE__ */ jsxs27(
     "div",
     {
       className: cn(
@@ -3372,10 +3962,10 @@ function TopBar({ title, userLabel, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsx47("p", { className: "text-sm font-medium text-[var(--wh-color-muted)]", children: title ?? "Control panel" }),
-        /* @__PURE__ */ jsxs25("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsx51("p", { className: "text-sm font-medium text-[var(--wh-color-muted)]", children: title ?? "Control panel" }),
+        /* @__PURE__ */ jsxs27("div", { className: "flex items-center gap-3", children: [
           actions,
-          userLabel ? /* @__PURE__ */ jsx47("span", { className: "rounded-[var(--wh-radius-sm)] bg-[var(--wh-color-canvas)] px-3 py-1 text-sm", children: userLabel }) : null
+          userLabel ? /* @__PURE__ */ jsx51("span", { className: "rounded-[var(--wh-radius-sm)] bg-[var(--wh-color-canvas)] px-3 py-1 text-sm", children: userLabel }) : null
         ] })
       ]
     }
@@ -3383,7 +3973,7 @@ function TopBar({ title, userLabel, actions, className }) {
 }
 
 // src/admin/components/AdminLayout/AdminLayout.tsx
-import { jsx as jsx48, jsxs as jsxs26 } from "react/jsx-runtime";
+import { jsx as jsx52, jsxs as jsxs28 } from "react/jsx-runtime";
 function AdminLayout({
   brand,
   navItems,
@@ -3393,23 +3983,22 @@ function AdminLayout({
   children,
   className
 }) {
-  return /* @__PURE__ */ jsxs26("div", { className: cn("wh-ui flex min-h-screen bg-[var(--wh-color-canvas)]", className), children: [
-    /* @__PURE__ */ jsx48(Sidebar, { brand, items: navItems }),
-    /* @__PURE__ */ jsxs26("div", { className: "flex min-w-0 flex-1 flex-col", children: [
-      /* @__PURE__ */ jsx48(TopBar, { title: topBarTitle, userLabel, actions: topBarActions }),
-      /* @__PURE__ */ jsx48("main", { className: "flex-1 p-6", children })
+  return /* @__PURE__ */ jsxs28("div", { className: cn("wh-ui flex min-h-screen bg-[var(--wh-color-canvas)]", className), children: [
+    /* @__PURE__ */ jsx52(Sidebar, { brand, items: navItems }),
+    /* @__PURE__ */ jsxs28("div", { className: "flex min-w-0 flex-1 flex-col", children: [
+      /* @__PURE__ */ jsx52(TopBar, { title: topBarTitle, userLabel, actions: topBarActions }),
+      /* @__PURE__ */ jsx52("main", { className: "flex-1 p-6", children })
     ] })
   ] });
 }
 
 // src/admin/components/LoginForm/LoginForm.tsx
-import { jsx as jsx49, jsxs as jsxs27 } from "react/jsx-runtime";
+import { jsx as jsx53, jsxs as jsxs29 } from "react/jsx-runtime";
 function LoginForm({
   action = "/login",
   method = "post",
   csrfToken,
   csrfFieldName = "_csrf_token",
-  error,
   loading = false,
   emailDefault = "",
   bannerUrl,
@@ -3429,18 +4018,17 @@ function LoginForm({
     });
   };
   const bannerSrc = bannerUrl || adminAsset("system/banner-dialog-login.gif");
-  return /* @__PURE__ */ jsxs27("form", { action, method, onSubmit: handleSubmit, className: cn(className), children: [
-    csrfToken ? /* @__PURE__ */ jsx49("input", { type: "hidden", name: csrfFieldName, value: csrfToken }) : null,
-    /* @__PURE__ */ jsxs27(
+  return /* @__PURE__ */ jsxs29("form", { action, method, onSubmit: handleSubmit, className: cn(className), children: [
+    csrfToken ? /* @__PURE__ */ jsx53("input", { type: "hidden", name: csrfFieldName, value: csrfToken }) : null,
+    /* @__PURE__ */ jsxs29(
       DialogWindow,
       {
         title: "Sign in \u2014 WebHemi CMS Admin",
         titleBarControls: null,
-        banner: /* @__PURE__ */ jsx49("img", { alt: "", className: "dialog-banner", src: bannerSrc }),
-        actions: /* @__PURE__ */ jsx49(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx49(Button2, { type: "submit", isDefault: true, loading, children: "OK" }) }),
+        banner: /* @__PURE__ */ jsx53("img", { alt: "", className: "dialog-banner", src: bannerSrc }),
+        actions: /* @__PURE__ */ jsx53(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx53(Button2, { type: "submit", isDefault: true, loading, children: "OK" }) }),
         children: [
-          error ? /* @__PURE__ */ jsx49("p", { role: "alert", style: { marginTop: 0, marginBottom: 10, color: "#800000" }, children: error }) : null,
-          /* @__PURE__ */ jsx49(FieldRow, { children: /* @__PURE__ */ jsx49(
+          /* @__PURE__ */ jsx53(FieldRow, { children: /* @__PURE__ */ jsx53(
             TextBox,
             {
               id: "email",
@@ -3454,7 +4042,7 @@ function LoginForm({
               className: "w-window-xs"
             }
           ) }),
-          /* @__PURE__ */ jsx49(FieldRow, { children: /* @__PURE__ */ jsx49(
+          /* @__PURE__ */ jsx53(FieldRow, { children: /* @__PURE__ */ jsx53(
             TextBox,
             {
               id: "password",
@@ -3474,8 +4062,8 @@ function LoginForm({
 }
 
 // src/admin/components/ControlPanel/ControlPanel.tsx
-import { useState as useState6 } from "react";
-import { jsx as jsx50, jsxs as jsxs28 } from "react/jsx-runtime";
+import { useState as useState8 } from "react";
+import { jsx as jsx54, jsxs as jsxs30 } from "react/jsx-runtime";
 var ICONS = [
   { kind: "sites", label: "Sites", description: "Manage sites and their contents." },
   { kind: "hosts", label: "Hosts", description: "Add, remove and verify domains." },
@@ -3487,6 +4075,7 @@ var ICONS = [
 ];
 function ControlPanel({
   onClose,
+  onOpenSites,
   onMinimize,
   onMaximize,
   onActivate,
@@ -3497,8 +4086,8 @@ function ControlPanel({
   width = 600,
   paneHeight = 300
 }) {
-  const [selected, setSelected] = useState6(null);
-  return /* @__PURE__ */ jsx50(
+  const [selected, setSelected] = useState8(null);
+  return /* @__PURE__ */ jsx54(
     IconPanelWindow,
     {
       className,
@@ -3509,20 +4098,20 @@ function ControlPanel({
       paneHeight,
       title: "Control Panel",
       titleIcon: "control-panel",
-      titleBarControls: /* @__PURE__ */ jsxs28(TitleBarControls, { children: [
-        /* @__PURE__ */ jsx50(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-        /* @__PURE__ */ jsx50(
+      titleBarControls: /* @__PURE__ */ jsxs30(TitleBarControls, { children: [
+        /* @__PURE__ */ jsx54(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+        /* @__PURE__ */ jsx54(
           TitleBarControl,
           {
             action: maximized ? "Restore" : "Maximize",
             onClick: onMaximize
           }
         ),
-        /* @__PURE__ */ jsx50(TitleBarControl, { action: "Close", onClick: onClose })
+        /* @__PURE__ */ jsx54(TitleBarControl, { action: "Close", onClick: onClose })
       ] }),
       onMouseDown: onActivate,
       infoUnselected: !selected,
-      info: selected ? /* @__PURE__ */ jsx50(
+      info: selected ? /* @__PURE__ */ jsx54(
         IconPanelSelectionInfo,
         {
           kind: selected.kind,
@@ -3530,21 +4119,22 @@ function ControlPanel({
           description: selected.description
         }
       ) : null,
-      statusBar: /* @__PURE__ */ jsxs28(StatusBar, { children: [
-        /* @__PURE__ */ jsxs28(StatusBarField, { children: [
+      statusBar: /* @__PURE__ */ jsxs30(StatusBar, { children: [
+        /* @__PURE__ */ jsxs30(StatusBarField, { children: [
           ICONS.length,
           " items"
         ] }),
-        /* @__PURE__ */ jsx50(StatusBarField, { className: "description", children: selected?.description ?? "" }),
-        /* @__PURE__ */ jsx50(StatusBarField, {})
+        /* @__PURE__ */ jsx54(StatusBarField, { className: "description", children: selected?.description ?? "" }),
+        /* @__PURE__ */ jsx54(StatusBarField, {})
       ] }),
-      children: ICONS.map((icon) => /* @__PURE__ */ jsx50(
+      children: ICONS.map((icon) => /* @__PURE__ */ jsx54(
         SystemIcon,
         {
           kind: icon.kind,
           label: icon.label,
           labelTone: "dark",
-          onActivate: () => setSelected(icon)
+          onActivate: () => setSelected(icon),
+          onOpen: icon.kind === "sites" ? onOpenSites : void 0
         },
         icon.kind
       ))
@@ -3552,24 +4142,483 @@ function ControlPanel({
   );
 }
 
+// src/admin/components/SitesWindow/SitesWindow.tsx
+import { useCallback as useCallback3, useEffect as useEffect8, useRef as useRef6, useState as useState10 } from "react";
+
+// src/admin/components/SitesWindow/SiteFormDialog.tsx
+import { useEffect as useEffect7, useId as useId2, useState as useState9 } from "react";
+import { Fragment as Fragment7, jsx as jsx55, jsxs as jsxs31 } from "react/jsx-runtime";
+function SiteFormDialog({
+  mode,
+  initial,
+  hosts = [],
+  fieldErrors,
+  saving = false,
+  onSave,
+  onError,
+  onClose,
+  onAddHost,
+  className
+}) {
+  const nameId = useId2();
+  const slugId = useId2();
+  const enabledId = useId2();
+  const [tab, setTab] = useState9("general");
+  const [name, setName] = useState9(initial?.name ?? "");
+  const [slug, setSlug] = useState9(initial?.slug ?? "");
+  const [enabled, setEnabled] = useState9(initial?.enabled ?? true);
+  const [hostIds, setHostIds] = useState9(initial?.hostIds ?? []);
+  const [localErrors, setLocalErrors] = useState9(
+    {}
+  );
+  useEffect7(() => {
+    setLocalErrors({});
+  }, [fieldErrors]);
+  const errors = { ...localErrors, ...fieldErrors };
+  const title = mode === "new" ? "New Site" : `${initial?.title ?? initial?.name ?? "Site"} Properties`;
+  const toggleHost = (id, checked) => {
+    setHostIds((prev) => {
+      if (checked) {
+        return prev.includes(id) ? prev : [...prev, id];
+      }
+      return prev.filter((hostId) => hostId !== id);
+    });
+  };
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (saving) {
+      return;
+    }
+    const nextName = name.trim();
+    const nextSlug = slug.trim().toLowerCase();
+    const nextLocal = {};
+    if (!nextName) {
+      nextLocal.name = "Name is required.";
+    }
+    if (!nextSlug) {
+      nextLocal.slug = "Slug is required.";
+    } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(nextSlug)) {
+      nextLocal.slug = "Use lowercase letters, digits, and hyphens.";
+    }
+    setLocalErrors(nextLocal);
+    if (Object.keys(nextLocal).length > 0) {
+      setTab("general");
+      onError?.(Object.values(nextLocal).join("\n"));
+      return;
+    }
+    onSave({
+      mode,
+      siteId: initial?.siteId,
+      name: nextName,
+      slug: nextSlug,
+      enabled,
+      hostIds: [...hostIds]
+    });
+  };
+  return /* @__PURE__ */ jsx55(
+    PaneWindowShell,
+    {
+      className: cn("site-form-dialog", className),
+      width: 480,
+      title,
+      titleIcon: "sites",
+      titleBarControls: /* @__PURE__ */ jsx55(TitleBarControls, { children: /* @__PURE__ */ jsx55(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      children: /* @__PURE__ */ jsxs31("form", { className: "site-form-dialog-form", onSubmit: handleSubmit, children: [
+        /* @__PURE__ */ jsxs31(TabList, { children: [
+          /* @__PURE__ */ jsx55(
+            Tab,
+            {
+              selected: tab === "general",
+              href: "#site-form-general",
+              onClick: (event) => {
+                event.preventDefault();
+                setTab("general");
+              },
+              children: "General"
+            }
+          ),
+          /* @__PURE__ */ jsx55(
+            Tab,
+            {
+              selected: tab === "hosts",
+              href: "#site-form-hosts",
+              onClick: (event) => {
+                event.preventDefault();
+                setTab("hosts");
+              },
+              children: "Hosts"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsx55(TabPanel, { children: /* @__PURE__ */ jsx55(WindowBody, { children: tab === "general" ? /* @__PURE__ */ jsxs31(Fragment7, { children: [
+          /* @__PURE__ */ jsx55(FieldRow, { children: /* @__PURE__ */ jsx55(
+            TextBox,
+            {
+              id: nameId,
+              label: "Name:",
+              accessKey: "n",
+              value: name,
+              disabled: saving,
+              "aria-invalid": Boolean(errors.name) || void 0,
+              onChange: (event) => setName(event.target.value)
+            }
+          ) }),
+          /* @__PURE__ */ jsx55(FieldRow, { children: /* @__PURE__ */ jsx55(
+            TextBox,
+            {
+              id: slugId,
+              label: "Slug:",
+              accessKey: "s",
+              value: slug,
+              disabled: saving,
+              "aria-invalid": Boolean(errors.slug) || void 0,
+              onChange: (event) => setSlug(event.target.value)
+            }
+          ) }),
+          /* @__PURE__ */ jsx55(FieldRow, { children: /* @__PURE__ */ jsx55(
+            Checkbox,
+            {
+              id: enabledId,
+              label: "Enabled",
+              accessKey: "e",
+              checked: enabled,
+              disabled: saving,
+              onChange: (event) => setEnabled(event.target.checked)
+            }
+          ) })
+        ] }) : /* @__PURE__ */ jsxs31(Fragment7, { children: [
+          /* @__PURE__ */ jsx55("p", { style: { marginTop: 0, marginBottom: 8 }, children: "Assign existing hosts to this site. Use Add\u2026 later to open Hosts \u2192 Add." }),
+          /* @__PURE__ */ jsx55("div", { className: "site-form-host-list sunken-panel", role: "group", "aria-label": "Hosts", children: /* @__PURE__ */ jsx55("div", { className: "scrollable-viewport", children: hosts.length === 0 ? /* @__PURE__ */ jsx55("p", { style: { margin: 8 }, children: "No hosts available." }) : hosts.map((option) => {
+            const checkboxId = `${enabledId}-host-${option.id}`;
+            const assignedElsewhere = option.siteId != null && (mode === "new" || option.siteId !== initial?.siteId);
+            return /* @__PURE__ */ jsx55(FieldRow, { children: /* @__PURE__ */ jsx55(
+              Checkbox,
+              {
+                id: checkboxId,
+                label: assignedElsewhere ? `${option.host} (site #${option.siteId})` : option.host,
+                checked: hostIds.includes(option.id),
+                disabled: saving,
+                onChange: (event) => toggleHost(option.id, event.target.checked)
+              }
+            ) }, option.id);
+          }) }) }),
+          /* @__PURE__ */ jsx55(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: /* @__PURE__ */ jsx55(
+            Button2,
+            {
+              type: "button",
+              accessKey: "a",
+              disabled: saving || !onAddHost,
+              title: onAddHost ? "Add a new host" : "Opens Hosts \u2192 Add (coming soon)",
+              onClick: onAddHost,
+              children: "Add\u2026"
+            }
+          ) })
+        ] }) }) }),
+        /* @__PURE__ */ jsxs31(FieldRow, { className: "justify-end site-form-dialog-actions", children: [
+          /* @__PURE__ */ jsx55(Button2, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
+          /* @__PURE__ */ jsx55(Button2, { type: "button", accessKey: "c", disabled: saving, onClick: onClose, children: "Cancel" })
+        ] })
+      ] })
+    }
+  );
+}
+
+// src/admin/components/SitesWindow/SitesWindow.tsx
+import { Fragment as Fragment8, jsx as jsx56, jsxs as jsxs32 } from "react/jsx-runtime";
+function formatSaveErrors(formError, fieldErrors) {
+  const parts = [
+    formError,
+    fieldErrors?.name,
+    fieldErrors?.slug
+  ].filter((part) => Boolean(part && part.trim()));
+  if (parts.length === 0) {
+    return null;
+  }
+  return [...new Set(parts)].join("\n");
+}
+function SitesWindow({
+  sites = [],
+  hosts = [],
+  canEdit = false,
+  loading = false,
+  error = null,
+  fieldErrors,
+  formError = null,
+  saving = false,
+  onSave,
+  onCreate,
+  onDelete,
+  onAddHost,
+  errorSoundUrl,
+  dingSoundUrl,
+  onCancel,
+  onClose,
+  onMinimize,
+  onMaximize,
+  onActivate,
+  inactive = false,
+  maximized = false,
+  className,
+  style,
+  width = 560,
+  tableMinHeight
+}) {
+  const [selectedId, setSelectedId] = useState10(null);
+  const [form, setForm] = useState10({ open: false });
+  const [showFormErrors, setShowFormErrors] = useState10(false);
+  const [alert, setAlert] = useState10(null);
+  const wasSavingRef = useRef6(false);
+  const alertSoundKeyRef = useRef6(null);
+  const showErrorAlert = useCallback3(
+    (message, title = "Error") => {
+      const key = `${title}\0${message}`;
+      setAlert({ title, message });
+      if (alertSoundKeyRef.current === key) {
+        return;
+      }
+      alertSoundKeyRef.current = key;
+      playAdminSound("chord", errorSoundUrl);
+    },
+    [errorSoundUrl]
+  );
+  const closeAlert = useCallback3(() => {
+    setAlert(null);
+    alertSoundKeyRef.current = null;
+  }, []);
+  useEffect8(() => {
+    if (selectedId != null && !sites.some((site) => site.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [sites, selectedId]);
+  useEffect8(() => {
+    const hadErrors = Boolean(formError) || Boolean(fieldErrors && Object.keys(fieldErrors).length > 0);
+    if (wasSavingRef.current && !saving && form.open && !hadErrors) {
+      setForm({ open: false });
+      setShowFormErrors(false);
+    }
+    wasSavingRef.current = saving;
+  }, [saving, form.open, formError, fieldErrors]);
+  useEffect8(() => {
+    if (!form.open || !showFormErrors) {
+      return;
+    }
+    const message = formatSaveErrors(formError, fieldErrors);
+    if (!message) {
+      return;
+    }
+    showErrorAlert(message);
+  }, [formError, fieldErrors, form.open, showFormErrors, showErrorAlert]);
+  const busy = loading || saving;
+  const selected = sites.find((site) => site.id === selectedId) ?? null;
+  const hasSelection = selected != null;
+  const canSave = Boolean(onSave || onCreate);
+  const openNew = () => {
+    if (!canEdit || busy) {
+      return;
+    }
+    setShowFormErrors(false);
+    setForm({
+      open: true,
+      mode: "new",
+      name: "",
+      slug: "",
+      enabled: true,
+      hostIds: []
+    });
+  };
+  const openEdit = (site) => {
+    const target = site ?? selected;
+    if (!canEdit || !target || busy || !canSave) {
+      return;
+    }
+    setSelectedId(target.id);
+    setShowFormErrors(false);
+    const assigned = hosts.filter((host) => host.siteId === target.id).map((host) => host.id);
+    setForm({
+      open: true,
+      mode: "edit",
+      siteId: target.id,
+      name: target.name,
+      slug: target.slug,
+      enabled: target.enabled,
+      hostIds: assigned,
+      title: target.name
+    });
+  };
+  const closeForm = () => {
+    setShowFormErrors(false);
+    setForm({ open: false });
+  };
+  const handleFormSave = (payload) => {
+    setShowFormErrors(true);
+    if (onSave) {
+      onSave(payload);
+      return;
+    }
+    if (payload.mode === "new" && onCreate) {
+      onCreate({ name: payload.name, slug: payload.slug });
+      setForm({ open: false });
+    }
+  };
+  const handleDelete = () => {
+    if (!canEdit || !selected || !onDelete || busy) {
+      return;
+    }
+    onDelete(selected);
+  };
+  const handleCancel = () => {
+    (onCancel ?? onClose)();
+  };
+  const statusLeft = loading ? "Loading\u2026" : `${sites.length} site${sites.length === 1 ? "" : "s"}`;
+  const statusMid = error ?? (selected ? selected.name : canEdit ? "Select a site, or choose New." : "");
+  return /* @__PURE__ */ jsx56(
+    HeadingPanelWindow,
+    {
+      className: cn("sites-window", className),
+      style: { width, minHeight: 420, ...style },
+      inactive,
+      resizable: true,
+      title: "Sites",
+      titleIcon: "sites",
+      titleBarControls: /* @__PURE__ */ jsxs32(TitleBarControls, { children: [
+        /* @__PURE__ */ jsx56(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+        /* @__PURE__ */ jsx56(
+          TitleBarControl,
+          {
+            action: maximized ? "Restore" : "Maximize",
+            onClick: onMaximize
+          }
+        ),
+        /* @__PURE__ */ jsx56(TitleBarControl, { action: "Close", onClick: onClose })
+      ] }),
+      onMouseDown: onActivate,
+      heading: /* @__PURE__ */ jsx56("p", { style: { margin: 0 }, children: "Multi-tenant sites bound to one or more hostnames." }),
+      actions: canEdit ? /* @__PURE__ */ jsxs32(FieldRow, { className: "justify-end", children: [
+        /* @__PURE__ */ jsx56(
+          Button2,
+          {
+            type: "button",
+            isDefault: true,
+            accessKey: "n",
+            disabled: busy || !canSave,
+            onClick: openNew,
+            children: "New"
+          }
+        ),
+        /* @__PURE__ */ jsx56(
+          Button2,
+          {
+            type: "button",
+            accessKey: "e",
+            disabled: busy || !hasSelection || !canSave,
+            onClick: () => openEdit(),
+            children: "Edit"
+          }
+        ),
+        /* @__PURE__ */ jsx56(
+          Button2,
+          {
+            type: "button",
+            accessKey: "d",
+            disabled: busy || !hasSelection || !onDelete,
+            onClick: handleDelete,
+            children: "Delete"
+          }
+        ),
+        /* @__PURE__ */ jsx56(Button2, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" })
+      ] }) : /* @__PURE__ */ jsx56(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx56(Button2, { type: "button", accessKey: "c", onClick: handleCancel, children: "Cancel" }) }),
+      statusBar: /* @__PURE__ */ jsxs32(StatusBar, { children: [
+        /* @__PURE__ */ jsx56(StatusBarField, { children: statusLeft }),
+        /* @__PURE__ */ jsx56(StatusBarField, { className: "description", children: statusMid }),
+        /* @__PURE__ */ jsx56(StatusBarField, {})
+      ] }),
+      children: /* @__PURE__ */ jsxs32(Fragment8, { children: [
+        /* @__PURE__ */ jsx56(
+          SunkenPanel,
+          {
+            scrollable: true,
+            className: "bg-white",
+            style: tableMinHeight != null ? { minHeight: tableMinHeight } : void 0,
+            children: loading && sites.length === 0 ? /* @__PURE__ */ jsx56("p", { style: { margin: 8 }, children: "Loading sites\u2026" }) : sites.length === 0 ? /* @__PURE__ */ jsx56("p", { style: { margin: 8 }, children: "No sites yet." }) : /* @__PURE__ */ jsxs32(Table, { "aria-label": "Sites", children: [
+              /* @__PURE__ */ jsx56("thead", { children: /* @__PURE__ */ jsxs32("tr", { children: [
+                /* @__PURE__ */ jsx56("th", { children: "Name" }),
+                /* @__PURE__ */ jsx56("th", { children: "Slug" }),
+                /* @__PURE__ */ jsx56("th", { children: "Hosts" }),
+                /* @__PURE__ */ jsx56("th", { children: "Status" })
+              ] }) }),
+              /* @__PURE__ */ jsx56("tbody", { children: sites.map((site) => /* @__PURE__ */ jsxs32(
+                TableRow,
+                {
+                  highlighted: selectedId === site.id,
+                  onClick: () => setSelectedId((current) => current === site.id ? null : site.id),
+                  onDoubleClick: () => openEdit(site),
+                  children: [
+                    /* @__PURE__ */ jsx56("td", { children: site.name }),
+                    /* @__PURE__ */ jsx56("td", { children: site.slug }),
+                    /* @__PURE__ */ jsx56("td", { children: site.hostCount }),
+                    /* @__PURE__ */ jsx56("td", { children: site.enabled ? "Enabled" : "Disabled" })
+                  ]
+                },
+                site.id
+              )) })
+            ] })
+          }
+        ),
+        error && !loading ? /* @__PURE__ */ jsx56("p", { role: "alert", style: { marginTop: 10, marginBottom: 0, color: "#800000" }, children: error }) : null,
+        form.open ? /* @__PURE__ */ jsx56(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx56(
+          SiteFormDialog,
+          {
+            mode: form.mode,
+            initial: {
+              siteId: form.siteId,
+              name: form.name,
+              slug: form.slug,
+              enabled: form.enabled,
+              hostIds: form.hostIds,
+              title: form.title
+            },
+            hosts,
+            fieldErrors: showFormErrors ? fieldErrors : void 0,
+            saving,
+            onSave: handleFormSave,
+            onError: showErrorAlert,
+            onClose: closeForm,
+            onAddHost
+          },
+          `${form.mode}-${form.siteId ?? "new"}`
+        ) }) : null,
+        alert ? /* @__PURE__ */ jsx56(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx56(
+          MessageDialog,
+          {
+            type: "error",
+            title: alert.title,
+            message: alert.message,
+            onClose: closeAlert
+          }
+        ) }) : null
+      ] })
+    }
+  );
+}
+
 // src/admin/views/SiteListView.tsx
-import { jsx as jsx51, jsxs as jsxs29 } from "react/jsx-runtime";
+import { jsx as jsx57, jsxs as jsxs33 } from "react/jsx-runtime";
 function SiteListView({
   sites,
   loading = false,
   createHref = "/admin/sites/new",
   editHref = (site) => `/admin/sites/${site.id}`
 }) {
-  return /* @__PURE__ */ jsxs29("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx51(
+  return /* @__PURE__ */ jsxs33("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx57(
       PageHeader,
       {
         title: "Sites",
         description: "Multi-tenant sites bound to one or more hostnames.",
-        actions: /* @__PURE__ */ jsx51("a", { href: createHref, children: /* @__PURE__ */ jsx51(Button, { children: "New site" }) })
+        actions: /* @__PURE__ */ jsx57("a", { href: createHref, children: /* @__PURE__ */ jsx57(Button, { children: "New site" }) })
       }
     ),
-    /* @__PURE__ */ jsx51(
+    /* @__PURE__ */ jsx57(
       DataTable,
       {
         loading,
@@ -3578,7 +4627,7 @@ function SiteListView({
         emptyMessage: "No sites yet. Create the first tenant.",
         columns: [
           { key: "name", header: "Name", render: (row) => row.name },
-          { key: "slug", header: "Slug", render: (row) => /* @__PURE__ */ jsx51("code", { children: row.slug }) },
+          { key: "slug", header: "Slug", render: (row) => /* @__PURE__ */ jsx57("code", { children: row.slug }) },
           {
             key: "hosts",
             header: "Hosts",
@@ -3587,12 +4636,12 @@ function SiteListView({
           {
             key: "status",
             header: "Status",
-            render: (row) => /* @__PURE__ */ jsx51(Badge, { tone: row.enabled ? "success" : "neutral", children: row.enabled ? "Enabled" : "Disabled" })
+            render: (row) => /* @__PURE__ */ jsx57(Badge, { tone: row.enabled ? "success" : "neutral", children: row.enabled ? "Enabled" : "Disabled" })
           },
           {
             key: "actions",
             header: "",
-            render: (row) => /* @__PURE__ */ jsx51("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
+            render: (row) => /* @__PURE__ */ jsx57("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
           }
         ]
       }
@@ -3601,7 +4650,7 @@ function SiteListView({
 }
 
 // src/admin/views/SiteHostListView.tsx
-import { jsx as jsx52, jsxs as jsxs30 } from "react/jsx-runtime";
+import { jsx as jsx58, jsxs as jsxs34 } from "react/jsx-runtime";
 var statusTone = {
   pending: "warning",
   verified: "accent",
@@ -3613,16 +4662,16 @@ function SiteHostListView({
   createHref = "/admin/hosts/new",
   verifyHref = (host) => `/admin/hosts/${host.id}/verify`
 }) {
-  return /* @__PURE__ */ jsxs30("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx52(
+  return /* @__PURE__ */ jsxs34("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx58(
       PageHeader,
       {
         title: "Hosts",
         description: "Domain names mapped to sites and surfaces (admin, site, api).",
-        actions: /* @__PURE__ */ jsx52("a", { href: createHref, children: /* @__PURE__ */ jsx52(Button, { children: "Add host" }) })
+        actions: /* @__PURE__ */ jsx58("a", { href: createHref, children: /* @__PURE__ */ jsx58(Button, { children: "Add host" }) })
       }
     ),
-    /* @__PURE__ */ jsx52(
+    /* @__PURE__ */ jsx58(
       DataTable,
       {
         loading,
@@ -3630,22 +4679,22 @@ function SiteHostListView({
         rowKey: (row) => row.id,
         emptyMessage: "No hosts configured.",
         columns: [
-          { key: "host", header: "Hostname", render: (row) => /* @__PURE__ */ jsx52("code", { children: row.host }) },
+          { key: "host", header: "Hostname", render: (row) => /* @__PURE__ */ jsx58("code", { children: row.host }) },
           { key: "site", header: "Site", render: (row) => row.siteName },
           {
             key: "surface",
             header: "Surface",
-            render: (row) => /* @__PURE__ */ jsx52(Badge, { tone: "accent", children: row.surface })
+            render: (row) => /* @__PURE__ */ jsx58(Badge, { tone: "accent", children: row.surface })
           },
           {
             key: "status",
             header: "Status",
-            render: (row) => /* @__PURE__ */ jsx52(Badge, { tone: statusTone[row.status], children: row.status })
+            render: (row) => /* @__PURE__ */ jsx58(Badge, { tone: statusTone[row.status], children: row.status })
           },
           {
             key: "actions",
             header: "",
-            render: (row) => row.status === "pending" ? /* @__PURE__ */ jsx52("a", { href: verifyHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Verify" }) : "\u2014"
+            render: (row) => row.status === "pending" ? /* @__PURE__ */ jsx58("a", { href: verifyHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Verify" }) : "\u2014"
           }
         ]
       }
@@ -3654,23 +4703,23 @@ function SiteHostListView({
 }
 
 // src/admin/views/UserListView.tsx
-import { jsx as jsx53, jsxs as jsxs31 } from "react/jsx-runtime";
+import { jsx as jsx59, jsxs as jsxs35 } from "react/jsx-runtime";
 function UserListView({
   users,
   loading = false,
   createHref = "/admin/users/new",
   editHref = (user) => `/admin/users/${user.id}`
 }) {
-  return /* @__PURE__ */ jsxs31("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx53(
+  return /* @__PURE__ */ jsxs35("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx59(
       PageHeader,
       {
         title: "Users",
         description: "Accounts with global roles and optional per-site assignments.",
-        actions: /* @__PURE__ */ jsx53("a", { href: createHref, children: /* @__PURE__ */ jsx53(Button, { children: "New user" }) })
+        actions: /* @__PURE__ */ jsx59("a", { href: createHref, children: /* @__PURE__ */ jsx59(Button, { children: "New user" }) })
       }
     ),
-    /* @__PURE__ */ jsx53(
+    /* @__PURE__ */ jsx59(
       DataTable,
       {
         loading,
@@ -3682,12 +4731,12 @@ function UserListView({
           {
             key: "roles",
             header: "Roles",
-            render: (row) => /* @__PURE__ */ jsx53("div", { className: "flex flex-wrap gap-1", children: row.roles.map((role) => /* @__PURE__ */ jsx53(Badge, { children: role }, role)) })
+            render: (row) => /* @__PURE__ */ jsx59("div", { className: "flex flex-wrap gap-1", children: row.roles.map((role) => /* @__PURE__ */ jsx59(Badge, { children: role }, role)) })
           },
           {
             key: "actions",
             header: "",
-            render: (row) => /* @__PURE__ */ jsx53("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
+            render: (row) => /* @__PURE__ */ jsx59("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
           }
         ]
       }
@@ -3696,23 +4745,23 @@ function UserListView({
 }
 
 // src/admin/views/RoleListView.tsx
-import { jsx as jsx54, jsxs as jsxs32 } from "react/jsx-runtime";
+import { jsx as jsx60, jsxs as jsxs36 } from "react/jsx-runtime";
 function RoleListView({
   roles,
   loading = false,
   createHref = "/admin/roles/new",
   editHref = (role) => `/admin/roles/${role.id}`
 }) {
-  return /* @__PURE__ */ jsxs32("div", { className: "wh-ui", children: [
-    /* @__PURE__ */ jsx54(
+  return /* @__PURE__ */ jsxs36("div", { className: "wh-ui", children: [
+    /* @__PURE__ */ jsx60(
       PageHeader,
       {
         title: "Roles & permissions",
         description: "RBAC roles with permission strings such as site.list.",
-        actions: /* @__PURE__ */ jsx54("a", { href: createHref, children: /* @__PURE__ */ jsx54(Button, { children: "New role" }) })
+        actions: /* @__PURE__ */ jsx60("a", { href: createHref, children: /* @__PURE__ */ jsx60(Button, { children: "New role" }) })
       }
     ),
-    /* @__PURE__ */ jsx54(
+    /* @__PURE__ */ jsx60(
       DataTable,
       {
         loading,
@@ -3724,12 +4773,12 @@ function RoleListView({
           {
             key: "permissions",
             header: "Permissions",
-            render: (row) => /* @__PURE__ */ jsx54("div", { className: "flex flex-wrap gap-1", children: row.permissions.map((permission) => /* @__PURE__ */ jsx54(Badge, { tone: "accent", children: permission }, permission)) })
+            render: (row) => /* @__PURE__ */ jsx60("div", { className: "flex flex-wrap gap-1", children: row.permissions.map((permission) => /* @__PURE__ */ jsx60(Badge, { tone: "accent", children: permission }, permission)) })
           },
           {
             key: "actions",
             header: "",
-            render: (row) => /* @__PURE__ */ jsx54("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
+            render: (row) => /* @__PURE__ */ jsx60("a", { href: editHref(row), className: "text-[var(--wh-color-accent)] underline", children: "Edit" })
           }
         ]
       }
@@ -3738,33 +4787,103 @@ function RoleListView({
 }
 
 // src/admin/pages/LoginPage.tsx
-import { jsx as jsx55 } from "react/jsx-runtime";
+import { useEffect as useEffect9, useLayoutEffect as useLayoutEffect3, useRef as useRef7, useState as useState11 } from "react";
+import { jsx as jsx61, jsxs as jsxs37 } from "react/jsx-runtime";
+function normalizeError(error) {
+  if (typeof error === "string") {
+    const trimmed = error.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (error && typeof error === "object" && "message" in error) {
+    const message = error.message;
+    if (typeof message === "string" && message.trim()) {
+      return message.trim();
+    }
+  }
+  return null;
+}
 function LoginPage({
   action,
   csrfToken,
   csrfFieldName,
   emailDefault,
   error,
-  bannerUrl
+  bannerUrl,
+  errorSoundUrl,
+  dingSoundUrl
 }) {
-  return /* @__PURE__ */ jsx55(
-    LoginForm,
-    {
-      action,
-      csrfToken,
-      csrfFieldName,
-      emailDefault: emailDefault || "",
-      error: error || void 0,
-      bannerUrl
+  const dashboardRef = useRef7(null);
+  const modalRootRef = useRef7(null);
+  const soundedFor = useRef7(null);
+  const message = normalizeError(error);
+  const [dismissed, setDismissed] = useState11(false);
+  const [boundsEl, setBoundsEl] = useState11(null);
+  const showAlert = Boolean(message && !dismissed);
+  useLayoutEffect3(() => {
+    setBoundsEl(dashboardRef.current);
+  }, []);
+  useEffect9(() => {
+    setDismissed(false);
+  }, [message]);
+  useEffect9(() => {
+    if (!message || dismissed) {
+      if (!message) {
+        soundedFor.current = null;
+      }
+      return;
     }
-  );
+    if (soundedFor.current === message) {
+      return;
+    }
+    soundedFor.current = message;
+    playAdminSound("chord", errorSoundUrl);
+  }, [message, dismissed, errorSoundUrl]);
+  return /* @__PURE__ */ jsxs37("div", { ref: dashboardRef, className: "dashboard login-desktop", children: [
+    /* @__PURE__ */ jsxs37("div", { className: "login-host", children: [
+      /* @__PURE__ */ jsx61(
+        LoginForm,
+        {
+          action,
+          csrfToken,
+          csrfFieldName,
+          emailDefault: emailDefault || "",
+          bannerUrl
+        }
+      ),
+      showAlert ? /* @__PURE__ */ jsx61(
+        "div",
+        {
+          className: "modal-blocker",
+          "aria-hidden": true,
+          onPointerDown: (event) => {
+            if (event.button !== 0) {
+              return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            flashOwnedModalAttention(modalRootRef.current, { dingSoundUrl });
+          }
+        }
+      ) : null
+    ] }),
+    showAlert ? /* @__PURE__ */ jsx61("div", { className: "desktop-modal-layer is-alert", children: /* @__PURE__ */ jsx61(FloatingModal, { boundsEl, rootRef: modalRootRef, children: /* @__PURE__ */ jsx61(
+      MessageDialog,
+      {
+        type: "error",
+        title: "Error",
+        message,
+        onClose: () => setDismissed(true)
+      }
+    ) }) }) : null
+  ] });
 }
 
 // src/admin/pages/AdminDesktop.tsx
-import { useCallback as useCallback2, useEffect as useEffect9, useRef as useRef7, useState as useState8 } from "react";
+import { useCallback as useCallback4, useEffect as useEffect13, useMemo as useMemo4, useRef as useRef10, useState as useState13 } from "react";
 
 // src/admin/shell/types.ts
 var CONTROL_PANEL_WINDOW_ID = "control-panel";
+var SITES_WINDOW_ID = "sites";
 function siteWindowId(siteId) {
   return `site-${siteId}`;
 }
@@ -3775,49 +4894,9 @@ function parseSiteWindowId(id) {
 
 // src/admin/shell/DesktopWindow.tsx
 import {
-  useEffect as useEffect6,
-  useRef as useRef5
+  useEffect as useEffect10,
+  useRef as useRef8
 } from "react";
-
-// src/admin/shell/geometry.ts
-var DRAG_THRESHOLD_PX = 4;
-var TASKBAR_RESERVE_PX = 40;
-function getDesktopWorkSize(dashboard) {
-  const width = dashboard.clientWidth;
-  const toolbar = dashboard.querySelector("#toolbar");
-  if (toolbar instanceof HTMLElement) {
-    const dashboardTop = dashboard.getBoundingClientRect().top;
-    const toolbarTop = toolbar.getBoundingClientRect().top;
-    const height = Math.max(0, Math.floor(toolbarTop - dashboardTop));
-    return { width, height };
-  }
-  return {
-    width,
-    height: Math.max(0, dashboard.clientHeight - TASKBAR_RESERVE_PX)
-  };
-}
-function clampDesktopPosition(dashboard, width, height, left, top) {
-  const work = getDesktopWorkSize(dashboard);
-  const maxLeft = Math.max(0, work.width - width);
-  const maxTop = Math.max(0, work.height - height);
-  return {
-    left: Math.max(0, Math.min(left, maxLeft)),
-    top: Math.max(0, Math.min(top, maxTop))
-  };
-}
-function findShellProductWindow(host) {
-  const direct = host.querySelector(":scope > .window");
-  if (direct instanceof HTMLElement) {
-    return direct;
-  }
-  const nested = host.querySelector(":scope > .site-file-explorer > .window");
-  return nested instanceof HTMLElement ? nested : null;
-}
-function findShellTitleBar(host) {
-  const win = findShellProductWindow(host);
-  const titleBar = win?.querySelector(":scope > .title-bar");
-  return titleBar instanceof HTMLElement ? titleBar : null;
-}
 
 // src/admin/shell/resize.ts
 var RESIZE_EDGES = ["e", "w", "s", "se", "sw"];
@@ -3832,7 +4911,8 @@ var SHELL_MIN_WIDTH = 500;
 var SHELL_MIN_HEIGHT = 340;
 var DEFAULT_WINDOW_SIZE = {
   "control-panel": { width: 600, height: 380 },
-  site: { width: 640, height: 440 }
+  site: { width: 640, height: 440 },
+  sites: { width: 560, height: 480 }
 };
 function computeResizeBounds(dashboard, edge, start, pointer, minWidth = SHELL_MIN_WIDTH, minHeight = SHELL_MIN_HEIGHT) {
   const dx = pointer.clientX - pointer.startX;
@@ -3882,7 +4962,7 @@ function computeResizeBounds(dashboard, edge, start, pointer, minWidth = SHELL_M
 }
 
 // src/admin/shell/DesktopWindow.tsx
-import { jsx as jsx56, jsxs as jsxs33 } from "react/jsx-runtime";
+import { jsx as jsx62, jsxs as jsxs38 } from "react/jsx-runtime";
 function DesktopWindow({
   windowId,
   left,
@@ -3903,26 +4983,26 @@ function DesktopWindow({
   onPointerDown,
   ...rest
 }) {
-  const rootRef = useRef5(null);
-  const dragRef = useRef5(null);
-  const resizeRef = useRef5(null);
-  const onPositionChangeRef = useRef5(onPositionChange);
-  const onBoundsChangeRef = useRef5(onBoundsChange);
-  const dragDisabledRef = useRef5(dragDisabled);
-  const maximizedRef = useRef5(maximized);
-  useEffect6(() => {
+  const rootRef = useRef8(null);
+  const dragRef = useRef8(null);
+  const resizeRef = useRef8(null);
+  const onPositionChangeRef = useRef8(onPositionChange);
+  const onBoundsChangeRef = useRef8(onBoundsChange);
+  const dragDisabledRef = useRef8(dragDisabled);
+  const maximizedRef = useRef8(maximized);
+  useEffect10(() => {
     onPositionChangeRef.current = onPositionChange;
   }, [onPositionChange]);
-  useEffect6(() => {
+  useEffect10(() => {
     onBoundsChangeRef.current = onBoundsChange;
   }, [onBoundsChange]);
-  useEffect6(() => {
+  useEffect10(() => {
     dragDisabledRef.current = dragDisabled;
   }, [dragDisabled]);
-  useEffect6(() => {
+  useEffect10(() => {
     maximizedRef.current = maximized;
   }, [maximized]);
-  useEffect6(() => {
+  useEffect10(() => {
     const onMove = (event) => {
       const node = rootRef.current;
       if (!node) {
@@ -4107,7 +5187,7 @@ function DesktopWindow({
     ...sized ? { width, height } : null
   };
   const showHandles = resizable && !maximized && !dragDisabled;
-  return /* @__PURE__ */ jsxs33(
+  return /* @__PURE__ */ jsxs38(
     "div",
     {
       ref: rootRef,
@@ -4125,7 +5205,7 @@ function DesktopWindow({
       ...rest,
       children: [
         children,
-        showHandles ? RESIZE_EDGES.map((edge) => /* @__PURE__ */ jsx56(
+        showHandles ? RESIZE_EDGES.map((edge) => /* @__PURE__ */ jsx62(
           "div",
           {
             className: "window-resize-handle",
@@ -4141,31 +5221,32 @@ function DesktopWindow({
 }
 
 // src/admin/shell/TaskbarClock.tsx
-import { useEffect as useEffect7, useState as useState7 } from "react";
-import { jsx as jsx57 } from "react/jsx-runtime";
+import { useEffect as useEffect11, useState as useState12 } from "react";
+import { jsx as jsx63 } from "react/jsx-runtime";
 function formatClock(date) {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
 }
 function TaskbarClock() {
-  const [label, setLabel] = useState7(() => formatClock(/* @__PURE__ */ new Date()));
-  useEffect7(() => {
+  const [label, setLabel] = useState12(() => formatClock(/* @__PURE__ */ new Date()));
+  useEffect11(() => {
     const tick = () => setLabel(formatClock(/* @__PURE__ */ new Date()));
     tick();
     const id = window.setInterval(tick, 1e3);
     return () => window.clearInterval(id);
   }, []);
-  return /* @__PURE__ */ jsx57("div", { className: "sunken-panel clock", "aria-live": "polite", children: label });
+  return /* @__PURE__ */ jsx63("div", { className: "sunken-panel clock", "aria-live": "polite", children: label });
 }
 
 // src/admin/shell/Taskbar.tsx
-import { jsx as jsx58, jsxs as jsxs34 } from "react/jsx-runtime";
+import { jsx as jsx64, jsxs as jsxs39 } from "react/jsx-runtime";
 function taskClassName(win, active) {
   return cn(
     "task",
     win.kind === "control-panel" && "control-panel",
     win.kind === "site" && "site",
+    win.kind === "sites" && "sites",
     active && "active"
   );
 }
@@ -4178,10 +5259,10 @@ function Taskbar({
   startMenu,
   className
 }) {
-  return /* @__PURE__ */ jsxs34("div", { id: "toolbar", className: cn("window", className), children: [
+  return /* @__PURE__ */ jsxs39("div", { id: "toolbar", className: cn("window", className), children: [
     startMenu,
-    /* @__PURE__ */ jsxs34("div", { className: "window-body", children: [
-      /* @__PURE__ */ jsx58(
+    /* @__PURE__ */ jsxs39("div", { className: "window-body", children: [
+      /* @__PURE__ */ jsx64(
         "button",
         {
           type: "button",
@@ -4193,9 +5274,9 @@ function Taskbar({
           children: "Menu"
         }
       ),
-      /* @__PURE__ */ jsx58("div", { className: "task-buttons", children: windows.map((win) => {
+      /* @__PURE__ */ jsx64("div", { className: "task-buttons", children: windows.map((win) => {
         const pressed = win.id === activeId && !win.minimized;
-        return /* @__PURE__ */ jsx58(
+        return /* @__PURE__ */ jsx64(
           "button",
           {
             type: "button",
@@ -4204,27 +5285,27 @@ function Taskbar({
             "aria-pressed": pressed,
             title: win.title,
             onClick: () => onTaskClick(win.id),
-            children: /* @__PURE__ */ jsx58("span", { className: "task-title", children: win.title })
+            children: /* @__PURE__ */ jsx64("span", { className: "task-title", children: win.title })
           },
           win.id
         );
       }) }),
-      /* @__PURE__ */ jsx58(TaskbarClock, {})
+      /* @__PURE__ */ jsx64(TaskbarClock, {})
     ] })
   ] });
 }
 
 // src/admin/shell/StartMenu.tsx
-import { useEffect as useEffect8, useRef as useRef6 } from "react";
-import { jsx as jsx59, jsxs as jsxs35 } from "react/jsx-runtime";
+import { useEffect as useEffect12, useRef as useRef9 } from "react";
+import { jsx as jsx65, jsxs as jsxs40 } from "react/jsx-runtime";
 function StartMenu({
   open,
   onClose,
   onOpenControlPanel,
   logoutHref
 }) {
-  const rootRef = useRef6(null);
-  useEffect8(() => {
+  const rootRef = useRef9(null);
+  useEffect12(() => {
     if (!open) {
       return;
     }
@@ -4278,7 +5359,7 @@ function StartMenu({
       } : void 0
     }
   ];
-  return /* @__PURE__ */ jsxs35(
+  return /* @__PURE__ */ jsxs40(
     "div",
     {
       ref: rootRef,
@@ -4286,18 +5367,18 @@ function StartMenu({
       id: "start-menu",
       hidden: !open,
       children: [
-        /* @__PURE__ */ jsx59("div", { className: "start-menu-banner", "aria-hidden": "true", children: /* @__PURE__ */ jsx59("span", { children: "WebHemi 1.0" }) }),
-        /* @__PURE__ */ jsxs35("ul", { className: "start-menu-list", role: "menu", "aria-label": "Menu", children: [
-          items.slice(0, 4).map((item) => /* @__PURE__ */ jsx59("li", { role: "none", children: /* @__PURE__ */ jsx59(StartMenuItem, { item }) }, item.id)),
-          /* @__PURE__ */ jsx59("li", { className: "separator", role: "separator" }),
-          items.slice(4).map((item) => /* @__PURE__ */ jsx59("li", { role: "none", children: /* @__PURE__ */ jsx59(StartMenuItem, { item }) }, item.id))
+        /* @__PURE__ */ jsx65("div", { className: "start-menu-banner", "aria-hidden": "true", children: /* @__PURE__ */ jsx65("span", { children: "WebHemi 1.0" }) }),
+        /* @__PURE__ */ jsxs40("ul", { className: "start-menu-list", role: "menu", "aria-label": "Menu", children: [
+          items.slice(0, 4).map((item) => /* @__PURE__ */ jsx65("li", { role: "none", children: /* @__PURE__ */ jsx65(StartMenuItem, { item }) }, item.id)),
+          /* @__PURE__ */ jsx65("li", { className: "separator", role: "separator" }),
+          items.slice(4).map((item) => /* @__PURE__ */ jsx65("li", { role: "none", children: /* @__PURE__ */ jsx65(StartMenuItem, { item }) }, item.id))
         ] })
       ]
     }
   );
 }
 function StartMenuItem({ item }) {
-  return /* @__PURE__ */ jsx59(
+  return /* @__PURE__ */ jsx65(
     "button",
     {
       type: "button",
@@ -4339,7 +5420,7 @@ function parseEntry(id, value) {
     return null;
   }
   const raw = value;
-  const kind = raw.kind === "site" || raw.kind === "control-panel" ? raw.kind : null;
+  const kind = raw.kind === "site" || raw.kind === "control-panel" || raw.kind === "sites" ? raw.kind : null;
   if (!kind) {
     return null;
   }
@@ -4348,6 +5429,12 @@ function parseEntry(id, value) {
   }
   const siteId = kind === "site" ? parseSiteWindowId(id) : void 0;
   if (kind === "site" && siteId === null) {
+    return null;
+  }
+  if (kind === "sites" && id !== SITES_WINDOW_ID) {
+    return null;
+  }
+  if (kind === "control-panel" && id !== CONTROL_PANEL_WINDOW_ID) {
     return null;
   }
   return {
@@ -4460,6 +5547,10 @@ function hydrateDesktopFromPersistence(persisted, sites) {
       windows.push(windowFromEntry(entry));
       continue;
     }
+    if (entry.kind === "sites" && entry.id === SITES_WINDOW_ID) {
+      windows.push(windowFromEntry(entry));
+      continue;
+    }
     if (entry.kind === "site" && entry.siteId != null && siteIds.has(entry.siteId)) {
       windows.push({
         ...windowFromEntry(entry),
@@ -4516,7 +5607,7 @@ function geometryFromPersistence(persisted, id, kind) {
 }
 
 // src/admin/pages/AdminDesktop.tsx
-import { jsx as jsx60, jsxs as jsxs36 } from "react/jsx-runtime";
+import { jsx as jsx66, jsxs as jsxs41 } from "react/jsx-runtime";
 var CASCADE_ORIGIN = { left: 48, top: 24 };
 var CASCADE_STEP = 28;
 var PERSIST_DEBOUNCE_MS = 200;
@@ -4526,29 +5617,72 @@ function topVisibleWindowId(windows) {
     null
   )?.id ?? null;
 }
+function toDesktopSite(site) {
+  return {
+    id: site.id,
+    name: site.name,
+    slug: site.slug,
+    enabled: site.enabled
+  };
+}
+function toWindowSite(site) {
+  return {
+    id: site.id,
+    name: site.name,
+    slug: site.slug,
+    enabled: site.enabled,
+    hostCount: site.hostCount
+  };
+}
 function AdminDesktop({
   sites = [],
   explorerTreeForSite = buildEmptySiteExplorerTree,
   logoutHref,
+  apiCsrfToken,
+  errorSoundUrl,
+  dingSoundUrl,
+  apiBaseUrl,
+  apiFetch,
+  sitesApi,
   persistenceKey = DESKTOP_WINDOWS_STORAGE_KEY,
   className
 }) {
   const storageKey = persistenceKey === false ? null : persistenceKey;
-  const persistedRef = useRef7(
+  const persistedRef = useRef10(
     storageKey ? loadPersistedDesktop(storageKey) : null
   );
-  const hydratedRef = useRef7(
+  const hydratedRef = useRef10(
     hydrateDesktopFromPersistence(persistedRef.current, sites)
   );
-  const nextZRef = useRef7(hydratedRef.current.nextZ);
-  const cascadeRef = useRef7(hydratedRef.current.cascade);
-  const dashboardRef = useRef7(null);
-  const [shell, setShell] = useState8(() => ({
+  const nextZRef = useRef10(hydratedRef.current.nextZ);
+  const cascadeRef = useRef10(hydratedRef.current.cascade);
+  const dashboardRef = useRef10(null);
+  const [shell, setShell] = useState13(() => ({
     windows: hydratedRef.current.windows,
     activeId: hydratedRef.current.activeId
   }));
-  const [startMenuOpen, setStartMenuOpen] = useState8(false);
-  useEffect9(() => {
+  const [startMenuOpen, setStartMenuOpen] = useState13(false);
+  const [desktopSites, setDesktopSites] = useState13(sites);
+  const [sitesRows, setSitesRows] = useState13([]);
+  const [sitesLoading, setSitesLoading] = useState13(false);
+  const [sitesCreating, setSitesCreating] = useState13(false);
+  const [sitesError, setSitesError] = useState13(null);
+  const [sitesFormError, setSitesFormError] = useState13(null);
+  const [sitesFieldErrors, setSitesFieldErrors] = useState13({});
+  const api = useMemo4(
+    () => sitesApi ?? createAdminApiClient({
+      csrfToken: apiCsrfToken,
+      baseUrl: apiBaseUrl,
+      fetch: apiFetch
+    }),
+    [sitesApi, apiCsrfToken, apiBaseUrl, apiFetch]
+  );
+  const canEditSites = Boolean(sitesApi) || Boolean(apiCsrfToken);
+  const sitesWindowOpen = shell.windows.some((win) => win.id === SITES_WINDOW_ID);
+  useEffect13(() => {
+    setDesktopSites(sites);
+  }, [sites]);
+  useEffect13(() => {
     if (!storageKey) {
       return;
     }
@@ -4565,8 +5699,35 @@ function AdminDesktop({
     }, PERSIST_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [shell, storageKey]);
-  const closeStartMenu = useCallback2(() => setStartMenuOpen(false), []);
-  const toggleStartMenu = useCallback2(() => {
+  useEffect13(() => {
+    if (!sitesWindowOpen) {
+      return;
+    }
+    let cancelled = false;
+    setSitesLoading(true);
+    setSitesError(null);
+    void (async () => {
+      const result = await api.listSites();
+      if (cancelled) {
+        return;
+      }
+      setSitesLoading(false);
+      if (!result.ok) {
+        setSitesError(result.error.message);
+        if (result.status === 401) {
+          window.location.assign("/login");
+        }
+        return;
+      }
+      setSitesRows(result.data.map(toWindowSite));
+      setDesktopSites(result.data.map(toDesktopSite));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sitesWindowOpen, api]);
+  const closeStartMenu = useCallback4(() => setStartMenuOpen(false), []);
+  const toggleStartMenu = useCallback4(() => {
     setStartMenuOpen((open) => !open);
   }, []);
   const allocatePlacement = () => {
@@ -4699,33 +5860,29 @@ function AdminDesktop({
       };
     });
   };
-  const openControlPanel = () => {
+  const openOrRaiseWindow = (id, kind, title, defaultSize) => {
     setShell((prev) => {
-      const existing = prev.windows.find((win) => win.id === CONTROL_PANEL_WINDOW_ID);
+      const existing = prev.windows.find((win) => win.id === id);
       if (existing) {
         const z = !existing.minimized && existing.z === nextZRef.current ? existing.z : raiseZ();
         return {
-          activeId: CONTROL_PANEL_WINDOW_ID,
+          activeId: id,
           windows: prev.windows.map(
-            (win) => win.id === CONTROL_PANEL_WINDOW_ID ? { ...win, z, minimized: false } : win
+            (win) => win.id === id ? { ...win, z, minimized: false } : win
           )
         };
       }
-      const saved = geometryFromPersistence(
-        persistedRef.current,
-        CONTROL_PANEL_WINDOW_ID,
-        "control-panel"
-      );
+      const saved = geometryFromPersistence(persistedRef.current, id, kind);
       const place = saved ? { left: saved.left, top: saved.top, z: raiseZ() } : allocatePlacement();
-      const size = saved ? { width: saved.width, height: saved.height } : DEFAULT_WINDOW_SIZE["control-panel"];
+      const size = saved ? { width: saved.width, height: saved.height } : defaultSize;
       return {
-        activeId: CONTROL_PANEL_WINDOW_ID,
+        activeId: id,
         windows: [
           ...prev.windows,
           {
-            id: CONTROL_PANEL_WINDOW_ID,
-            kind: "control-panel",
-            title: "Control Panel",
+            id,
+            kind,
+            title,
             left: place.left,
             top: place.top,
             z: place.z,
@@ -4737,6 +5894,22 @@ function AdminDesktop({
         ]
       };
     });
+  };
+  const openControlPanel = () => {
+    openOrRaiseWindow(
+      CONTROL_PANEL_WINDOW_ID,
+      "control-panel",
+      "Control Panel",
+      DEFAULT_WINDOW_SIZE["control-panel"]
+    );
+  };
+  const openSites = () => {
+    openOrRaiseWindow(
+      SITES_WINDOW_ID,
+      "sites",
+      "Sites",
+      DEFAULT_WINDOW_SIZE.sites
+    );
   };
   const openSite = (site) => {
     const id = siteWindowId(site.id);
@@ -4799,9 +5972,56 @@ function AdminDesktop({
       )
     }));
   };
-  return /* @__PURE__ */ jsxs36("div", { ref: dashboardRef, className: cn("dashboard", className), children: [
-    /* @__PURE__ */ jsxs36("div", { className: "icon-list", children: [
-      sites.map((site) => /* @__PURE__ */ jsx60(
+  const handleSaveSite = async (payload) => {
+    if (payload.mode !== "new") {
+      setSitesFormError("Editing a site is not available yet.");
+      return;
+    }
+    setSitesCreating(true);
+    setSitesFormError(null);
+    setSitesFieldErrors({});
+    const result = await api.createSite({
+      name: payload.name,
+      slug: payload.slug,
+      enabled: payload.enabled
+    });
+    setSitesCreating(false);
+    if (!result.ok) {
+      if (result.error.fields) {
+        setSitesFieldErrors({
+          name: result.error.fields.name,
+          slug: result.error.fields.slug
+        });
+      }
+      setSitesFormError(result.error.message);
+      if (result.status === 401) {
+        window.location.assign("/login");
+      }
+      return;
+    }
+    const list = await api.listSites();
+    if (list.ok) {
+      setSitesRows(list.data.map(toWindowSite));
+      setDesktopSites(list.data.map(toDesktopSite));
+      return;
+    }
+    const created = toWindowSite(result.data);
+    setSitesRows(
+      (prev) => [...prev.filter((row) => row.id !== created.id), created].sort(
+        (a, b) => a.name.localeCompare(b.name)
+      )
+    );
+    setDesktopSites((prev) => {
+      const next = [
+        ...prev.filter((row) => row.id !== created.id),
+        toDesktopSite(created)
+      ];
+      return next.sort((a, b) => a.name.localeCompare(b.name));
+    });
+  };
+  return /* @__PURE__ */ jsxs41("div", { ref: dashboardRef, className: cn("dashboard", className), children: [
+    /* @__PURE__ */ jsxs41("div", { className: "icon-list", children: [
+      desktopSites.map((site) => /* @__PURE__ */ jsx66(
         SystemIcon,
         {
           kind: "site",
@@ -4811,7 +6031,7 @@ function AdminDesktop({
         },
         site.id
       )),
-      /* @__PURE__ */ jsx60(
+      /* @__PURE__ */ jsx66(
         SystemIcon,
         {
           kind: "control-panel",
@@ -4824,44 +6044,7 @@ function AdminDesktop({
     shell.windows.map((win) => {
       const active = win.id === shell.activeId && !win.minimized;
       const maximizeAction = win.maximized ? "Restore" : "Maximize";
-      if (win.kind === "control-panel") {
-        return /* @__PURE__ */ jsx60(
-          DesktopWindow,
-          {
-            windowId: win.id,
-            left: win.left,
-            top: win.top,
-            zIndex: win.z,
-            width: win.width,
-            height: win.height,
-            maximized: win.maximized,
-            className: cn(win.minimized && "is-minimized"),
-            dragDisabled: win.minimized || win.maximized,
-            onActivate: () => activateWindow(win.id),
-            onPositionChange: (left, top) => moveWindow(win.id, left, top),
-            onBoundsChange: (bounds) => resizeWindow(win.id, bounds),
-            onToggleMaximize: () => toggleMaximize(win.id),
-            children: /* @__PURE__ */ jsx60(
-              ControlPanel,
-              {
-                className: cn(win.maximized && "is-maximized"),
-                inactive: !active,
-                maximized: win.maximized,
-                onClose: () => closeWindow(win.id),
-                onMinimize: () => minimizeWindow(win.id),
-                onMaximize: () => toggleMaximize(win.id),
-                onActivate: () => activateWindow(win.id)
-              }
-            )
-          },
-          win.id
-        );
-      }
-      const site = sites.find((entry) => entry.id === win.siteId) ?? {
-        id: win.siteId ?? 0,
-        name: win.title
-      };
-      return /* @__PURE__ */ jsx60(
+      const shellFrame = (child) => /* @__PURE__ */ jsx66(
         DesktopWindow,
         {
           windowId: win.id,
@@ -4877,25 +6060,78 @@ function AdminDesktop({
           onPositionChange: (left, top) => moveWindow(win.id, left, top),
           onBoundsChange: (bounds) => resizeWindow(win.id, bounds),
           onToggleMaximize: () => toggleMaximize(win.id),
-          children: /* @__PURE__ */ jsx60(
-            SiteFileExplorer,
-            {
-              className: cn(win.maximized && "is-maximized"),
-              inactive: !active,
-              title: win.title,
-              titleIcon: "site",
-              tree: explorerTreeForSite(site),
-              onClose: () => closeWindow(win.id),
-              onMinimize: () => minimizeWindow(win.id),
-              onMaximize: () => toggleMaximize(win.id),
-              maximizeAction
-            }
-          )
+          children: child
         },
         win.id
       );
+      if (win.kind === "control-panel") {
+        return shellFrame(
+          /* @__PURE__ */ jsx66(
+            ControlPanel,
+            {
+              className: cn(win.maximized && "is-maximized"),
+              inactive: !active,
+              maximized: win.maximized,
+              onClose: () => closeWindow(win.id),
+              onMinimize: () => minimizeWindow(win.id),
+              onMaximize: () => toggleMaximize(win.id),
+              onActivate: () => activateWindow(win.id),
+              onOpenSites: openSites
+            }
+          )
+        );
+      }
+      if (win.kind === "sites") {
+        return shellFrame(
+          /* @__PURE__ */ jsx66(
+            SitesWindow,
+            {
+              className: cn(win.maximized && "is-maximized"),
+              inactive: !active,
+              maximized: win.maximized,
+              sites: sitesRows,
+              canEdit: canEditSites,
+              loading: sitesLoading,
+              saving: sitesCreating,
+              error: sitesError,
+              formError: sitesFormError,
+              fieldErrors: sitesFieldErrors,
+              onSave: handleSaveSite,
+              errorSoundUrl,
+              dingSoundUrl,
+              onClose: () => closeWindow(win.id),
+              onCancel: () => closeWindow(win.id),
+              onMinimize: () => minimizeWindow(win.id),
+              onMaximize: () => toggleMaximize(win.id),
+              onActivate: () => activateWindow(win.id),
+              width: win.width,
+              style: { height: "100%", minHeight: 0, width: "100%" }
+            }
+          )
+        );
+      }
+      const site = desktopSites.find((entry) => entry.id === win.siteId) ?? {
+        id: win.siteId ?? 0,
+        name: win.title
+      };
+      return shellFrame(
+        /* @__PURE__ */ jsx66(
+          SiteFileExplorer,
+          {
+            className: cn(win.maximized && "is-maximized"),
+            inactive: !active,
+            title: win.title,
+            titleIcon: "site",
+            tree: explorerTreeForSite(site),
+            onClose: () => closeWindow(win.id),
+            onMinimize: () => minimizeWindow(win.id),
+            onMaximize: () => toggleMaximize(win.id),
+            maximizeAction
+          }
+        )
+      );
     }),
-    /* @__PURE__ */ jsx60(
+    /* @__PURE__ */ jsx66(
       Taskbar,
       {
         windows: shell.windows,
@@ -4903,7 +6139,7 @@ function AdminDesktop({
         onTaskClick: handleTaskClick,
         onMenuClick: toggleStartMenu,
         menuExpanded: startMenuOpen,
-        startMenu: /* @__PURE__ */ jsx60(
+        startMenu: /* @__PURE__ */ jsx66(
           StartMenu,
           {
             open: startMenuOpen,
@@ -4918,7 +6154,7 @@ function AdminDesktop({
 }
 
 // src/admin/pages/AdminDashboard.tsx
-import { jsx as jsx61, jsxs as jsxs37 } from "react/jsx-runtime";
+import { jsx as jsx67, jsxs as jsxs42 } from "react/jsx-runtime";
 function AdminDashboard({
   userLabel,
   navItems,
@@ -4926,21 +6162,21 @@ function AdminDashboard({
   hostCount = 0,
   flashes
 }) {
-  return /* @__PURE__ */ jsxs37(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Dashboard", children: [
-    /* @__PURE__ */ jsx61(FlashList, { flashes }),
-    /* @__PURE__ */ jsx61(
+  return /* @__PURE__ */ jsxs42(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Dashboard", children: [
+    /* @__PURE__ */ jsx67(FlashList, { flashes }),
+    /* @__PURE__ */ jsx67(
       PageHeader,
       {
         title: "Dashboard",
         description: "Multi-tenant control panel powered by @webhemi/ui."
       }
     ),
-    /* @__PURE__ */ jsxs37("div", { style: { display: "flex", gap: "1.5rem", flexWrap: "wrap" }, children: [
-      /* @__PURE__ */ jsxs37(Alert, { tone: "info", title: "Sites", children: [
+    /* @__PURE__ */ jsxs42("div", { style: { display: "flex", gap: "1.5rem", flexWrap: "wrap" }, children: [
+      /* @__PURE__ */ jsxs42(Alert, { tone: "info", title: "Sites", children: [
         siteCount,
         " configured"
       ] }),
-      /* @__PURE__ */ jsxs37(Alert, { tone: "info", title: "Hosts", children: [
+      /* @__PURE__ */ jsxs42(Alert, { tone: "info", title: "Hosts", children: [
         hostCount,
         " configured"
       ] })
@@ -4949,7 +6185,7 @@ function AdminDashboard({
 }
 
 // src/admin/pages/SitesPage.tsx
-import { jsx as jsx62, jsxs as jsxs38 } from "react/jsx-runtime";
+import { jsx as jsx68, jsxs as jsxs43 } from "react/jsx-runtime";
 function SitesPage({
   userLabel,
   navItems,
@@ -4958,19 +6194,19 @@ function SitesPage({
   createAction,
   flashes
 }) {
-  return /* @__PURE__ */ jsxs38(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Sites", children: [
-    /* @__PURE__ */ jsx62(FlashList, { flashes }),
-    /* @__PURE__ */ jsx62(SiteListView, { sites: sites || [], createHref: "#create-site" }),
-    canEdit ? /* @__PURE__ */ jsxs38("form", { id: "create-site", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
-      /* @__PURE__ */ jsx62(FormField, { label: "Name", htmlFor: "name", required: true, children: /* @__PURE__ */ jsx62(Input, { id: "name", name: "name", required: true }) }),
-      /* @__PURE__ */ jsx62(FormField, { label: "Slug", htmlFor: "slug", required: true, hint: "Lowercase identifier", children: /* @__PURE__ */ jsx62(Input, { id: "slug", name: "slug", required: true }) }),
-      /* @__PURE__ */ jsx62(Button, { type: "submit", children: "Create site" })
+  return /* @__PURE__ */ jsxs43(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Sites", children: [
+    /* @__PURE__ */ jsx68(FlashList, { flashes }),
+    /* @__PURE__ */ jsx68(SiteListView, { sites: sites || [], createHref: "#create-site" }),
+    canEdit ? /* @__PURE__ */ jsxs43("form", { id: "create-site", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
+      /* @__PURE__ */ jsx68(FormField, { label: "Name", htmlFor: "name", required: true, children: /* @__PURE__ */ jsx68(Input, { id: "name", name: "name", required: true }) }),
+      /* @__PURE__ */ jsx68(FormField, { label: "Slug", htmlFor: "slug", required: true, hint: "Lowercase identifier", children: /* @__PURE__ */ jsx68(Input, { id: "slug", name: "slug", required: true }) }),
+      /* @__PURE__ */ jsx68(Button, { type: "submit", children: "Create site" })
     ] }) : null
   ] });
 }
 
 // src/admin/pages/HostsPage.tsx
-import { jsx as jsx63, jsxs as jsxs39 } from "react/jsx-runtime";
+import { jsx as jsx69, jsxs as jsxs44 } from "react/jsx-runtime";
 function HostsPage({
   userLabel,
   navItems,
@@ -4980,34 +6216,34 @@ function HostsPage({
   createAction,
   flashes
 }) {
-  return /* @__PURE__ */ jsxs39(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Hosts", children: [
-    /* @__PURE__ */ jsx63(FlashList, { flashes }),
-    /* @__PURE__ */ jsx63(SiteHostListView, { hosts: hosts || [], createHref: "#create-host" }),
-    canEdit ? /* @__PURE__ */ jsxs39("form", { id: "create-host", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
-      /* @__PURE__ */ jsx63(FormField, { label: "Hostname", htmlFor: "host", required: true, children: /* @__PURE__ */ jsx63(Input, { id: "host", name: "host", placeholder: "www.example.com", required: true }) }),
-      /* @__PURE__ */ jsx63(FormField, { label: "Site", htmlFor: "site_id", required: true, children: /* @__PURE__ */ jsx63(Select, { id: "site_id", name: "site_id", required: true, children: (sites || []).map((site) => /* @__PURE__ */ jsx63("option", { value: site.id, children: site.name }, site.id)) }) }),
-      /* @__PURE__ */ jsx63(FormField, { label: "Surface", htmlFor: "surface", children: /* @__PURE__ */ jsxs39(Select, { id: "surface", name: "surface", defaultValue: "site", children: [
-        /* @__PURE__ */ jsx63("option", { value: "admin", children: "admin" }),
-        /* @__PURE__ */ jsx63("option", { value: "site", children: "site" }),
-        /* @__PURE__ */ jsx63("option", { value: "api", children: "api" })
+  return /* @__PURE__ */ jsxs44(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Hosts", children: [
+    /* @__PURE__ */ jsx69(FlashList, { flashes }),
+    /* @__PURE__ */ jsx69(SiteHostListView, { hosts: hosts || [], createHref: "#create-host" }),
+    canEdit ? /* @__PURE__ */ jsxs44("form", { id: "create-host", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
+      /* @__PURE__ */ jsx69(FormField, { label: "Hostname", htmlFor: "host", required: true, children: /* @__PURE__ */ jsx69(Input, { id: "host", name: "host", placeholder: "www.example.com", required: true }) }),
+      /* @__PURE__ */ jsx69(FormField, { label: "Site", htmlFor: "site_id", required: true, children: /* @__PURE__ */ jsx69(Select, { id: "site_id", name: "site_id", required: true, children: (sites || []).map((site) => /* @__PURE__ */ jsx69("option", { value: site.id, children: site.name }, site.id)) }) }),
+      /* @__PURE__ */ jsx69(FormField, { label: "Surface", htmlFor: "surface", children: /* @__PURE__ */ jsxs44(Select, { id: "surface", name: "surface", defaultValue: "site", children: [
+        /* @__PURE__ */ jsx69("option", { value: "admin", children: "admin" }),
+        /* @__PURE__ */ jsx69("option", { value: "site", children: "site" }),
+        /* @__PURE__ */ jsx69("option", { value: "api", children: "api" })
       ] }) }),
-      /* @__PURE__ */ jsx63(Button, { type: "submit", children: "Add host" })
+      /* @__PURE__ */ jsx69(Button, { type: "submit", children: "Add host" })
     ] }) : null
   ] });
 }
 
 // src/themes/default/components/SiteHeader/SiteHeader.tsx
-import { jsx as jsx64, jsxs as jsxs40 } from "react/jsx-runtime";
+import { jsx as jsx70, jsxs as jsxs45 } from "react/jsx-runtime";
 function SiteHeader({ siteName, navItems = [], actions, className }) {
-  return /* @__PURE__ */ jsx64(
+  return /* @__PURE__ */ jsx70(
     "header",
     {
       className: cn(
         "wh-ui border-b border-[var(--wh-color-line)] bg-[var(--wh-color-surface)]",
         className
       ),
-      children: /* @__PURE__ */ jsxs40("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
-        /* @__PURE__ */ jsx64(
+      children: /* @__PURE__ */ jsxs45("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
+        /* @__PURE__ */ jsx70(
           "a",
           {
             href: "/",
@@ -5015,7 +6251,7 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
             children: siteName
           }
         ),
-        /* @__PURE__ */ jsx64("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx64(
+        /* @__PURE__ */ jsx70("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx70(
           "a",
           {
             href: item.href,
@@ -5027,16 +6263,16 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
           },
           item.href
         )) }),
-        actions ? /* @__PURE__ */ jsx64("div", { className: "flex items-center gap-2", children: actions }) : null
+        actions ? /* @__PURE__ */ jsx70("div", { className: "flex items-center gap-2", children: actions }) : null
       ] })
     }
   );
 }
 
 // src/themes/default/components/Hero/Hero.tsx
-import { jsx as jsx65, jsxs as jsxs41 } from "react/jsx-runtime";
+import { jsx as jsx71, jsxs as jsxs46 } from "react/jsx-runtime";
 function Hero({ title, subtitle, actions, className }) {
-  return /* @__PURE__ */ jsxs41(
+  return /* @__PURE__ */ jsxs46(
     "section",
     {
       className: cn(
@@ -5044,7 +6280,7 @@ function Hero({ title, subtitle, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsx65(
+        /* @__PURE__ */ jsx71(
           "div",
           {
             className: "pointer-events-none absolute inset-0 opacity-40",
@@ -5054,10 +6290,10 @@ function Hero({ title, subtitle, actions, className }) {
             "aria-hidden": true
           }
         ),
-        /* @__PURE__ */ jsxs41("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
-          /* @__PURE__ */ jsx65("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
-          subtitle ? /* @__PURE__ */ jsx65("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
-          actions ? /* @__PURE__ */ jsx65("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
+        /* @__PURE__ */ jsxs46("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
+          /* @__PURE__ */ jsx71("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
+          subtitle ? /* @__PURE__ */ jsx71("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
+          actions ? /* @__PURE__ */ jsx71("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
         ] })
       ]
     }
@@ -5074,6 +6310,7 @@ export {
   Checkbox,
   ControlPanel,
   DataTable,
+  DesktopModal,
   DialogWindow,
   EXPLORER_FIXTURE_ITEMS,
   EXPLORER_FIXTURE_SITE,
@@ -5087,8 +6324,10 @@ export {
   FieldRow,
   FileExplorerWindow,
   FlashList,
+  FloatingModal,
   FormField,
   GroupBox,
+  HeadingPanelWindow,
   Hero,
   HostsPage,
   Icon,
@@ -5098,7 +6337,10 @@ export {
   Label,
   LoginForm,
   LoginPage,
+  MessageDialog,
   Modal,
+  OWNED_MODAL_FLASH_COUNT,
+  OWNED_MODAL_FLASH_INTERVAL_MS,
   PageHeader,
   Pagination,
   PaneWindowShell,
@@ -5109,10 +6351,12 @@ export {
   Select2 as Select,
   Sidebar,
   SiteFileExplorer,
+  SiteFormDialog,
   SiteHeader,
   SiteHostListView,
   SiteListView,
   SitesPage,
+  SitesWindow,
   Slider,
   StatusBar,
   StatusBarField,
@@ -5149,6 +6393,7 @@ export {
   canDeleteExplorerItem,
   canPasteIntoExplorerLocation,
   cloneExplorerForest,
+  createAdminApiClient,
   deleteExplorerItem,
   deleteExplorerItems,
   explorerContentItems,
@@ -5157,6 +6402,9 @@ export {
   findExplorerItem,
   findExplorerParent,
   findExplorerTrashRoot,
+  findTopFloatingModal,
+  findTopOwnedFloatingModal,
+  flashOwnedModalAttention,
   formatExplorerSize,
   isExplorerDocument,
   isExplorerFolder,
@@ -5164,6 +6412,7 @@ export {
   isExplorerTreeExpandable,
   isUnderExplorerTrash,
   pasteExplorerClipboard,
+  playAdminSound,
   promoteTabRow,
   resolveTitleBarIcon,
   undoExplorerAction,

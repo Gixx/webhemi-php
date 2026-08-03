@@ -3,15 +3,15 @@
 {% block title %}Sign in — WebHemi{% endblock %}
 
 {% block body %}
-{# Admin Theme paints the desktop; center the Retro OS login dialog. #}
-<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
-    <div {{ react_component('LoginPage', {
-        action: path('app_login'),
-        csrfToken: csrf_token('authenticate'),
-        csrfFieldName: '_csrf_token',
-        emailDefault: last_username,
-        error: error,
-        bannerUrl: asset('admin/system/banner-dialog-login.gif')
-    }) }}></div>
-</div>
+{# Admin Theme paints the desktop; LoginPage centers the Retro OS dialog. #}
+<div {{ react_component('LoginPage', {
+    action: path('app_login'),
+    csrfToken: csrf_token('authenticate'),
+    csrfFieldName: '_csrf_token',
+    emailDefault: last_username,
+    error: error,
+    bannerUrl: asset('admin/system/banner-dialog-login.gif'),
+    errorSoundUrl: asset('admin/sounds/chord.mp3'),
+    dingSoundUrl: asset('admin/sounds/ding.mp3')
+}) }}></div>
 {% endblock %}

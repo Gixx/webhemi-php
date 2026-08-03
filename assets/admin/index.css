@@ -95,6 +95,10 @@
     visibility: collapse;
   }
 
+  .visible {
+    visibility: visible;
+  }
+
   .absolute {
     position: absolute;
   }
@@ -177,6 +181,10 @@
 
   .hidden {
     display: none;
+  }
+
+  .inline {
+    display: inline;
   }
 
   .inline-block {
@@ -542,6 +550,10 @@
     background-color: #0000;
   }
 
+  .bg-white {
+    background-color: var(--color-white);
+  }
+
   .fill-current {
     fill: currentColor;
   }
@@ -782,6 +794,10 @@
     }
   }
 
+  .lowercase {
+    text-transform: lowercase;
+  }
+
   .uppercase {
     text-transform: uppercase;
   }
@@ -809,6 +825,10 @@
 
   .blur {
     --tw-blur: blur(8px);
+    filter: var(--tw-blur, ) var(--tw-brightness, ) var(--tw-contrast, ) var(--tw-grayscale, ) var(--tw-hue-rotate, ) var(--tw-invert, ) var(--tw-saturate, ) var(--tw-sepia, ) var(--tw-drop-shadow, );
+  }
+
+  .filter {
     filter: var(--tw-blur, ) var(--tw-brightness, ) var(--tw-contrast, ) var(--tw-grayscale, ) var(--tw-hue-rotate, ) var(--tw-invert, ) var(--tw-saturate, ) var(--tw-sepia, ) var(--tw-drop-shadow, );
   }
 
@@ -2448,6 +2468,14 @@ html[data-wh-theme=admin] {
   background-color: var(--desktop, #008284);
   box-sizing: border-box;
 }
+[data-wh-theme=admin] .dashboard.login-desktop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+[data-wh-theme=admin] .login-host {
+  position: relative;
+}
 [data-wh-theme=admin] .dashboard > .icon-list {
   position: static;
   display: flex;
@@ -2745,6 +2773,9 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] #toolbar .task-buttons > .task.site {
   background-image: url("./icons/system/site.svg");
 }
+[data-wh-theme=admin] #toolbar .task-buttons > .task.sites {
+  background-image: url("./icons/system/sites.svg");
+}
 [data-wh-theme=admin] #toolbar .task-buttons > .task.settings {
   background-image: url("./icons/system/settings.svg");
 }
@@ -3025,21 +3056,19 @@ html[data-wh-theme=admin] {
   /* Product: window-pane layouts (icon / wizard / heading / dialog). */
   /* --- Window pane layouts --- */
   /*
-   * Retro OS groove separators between stacked / wizard panels.
+   * Retro OS groove separators between stacked wizard panels.
    * First: bottom only; last: top only; middle: both.
+   * Heading-panel layouts stay flush (no horizontal grooves).
    */
 }
-[data-wh-theme=admin] .wizard-panel-layout > .panel,
-[data-wh-theme=admin] .heading-panel-layout > .panel {
+[data-wh-theme=admin] .wizard-panel-layout > .panel {
   border-top: 1px solid #ffffff;
   border-bottom: 1px solid #868a8e;
 }
-[data-wh-theme=admin] .wizard-panel-layout > .panel:first-child,
-[data-wh-theme=admin] .heading-panel-layout > .panel:first-child {
+[data-wh-theme=admin] .wizard-panel-layout > .panel:first-child {
   border-top: 0;
 }
-[data-wh-theme=admin] .wizard-panel-layout > .panel:last-child,
-[data-wh-theme=admin] .heading-panel-layout > .panel:last-child {
+[data-wh-theme=admin] .wizard-panel-layout > .panel:last-child {
   border-bottom: 0;
 }
 [data-wh-theme=admin] {
@@ -3193,6 +3222,12 @@ html[data-wh-theme=admin] {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+[data-wh-theme=admin] .heading-panel-layout > .panel {
+  padding: 10px 8px;
+  box-sizing: border-box;
 }
 [data-wh-theme=admin] .heading-panel-layout > .panel:first-child {
   margin-top: -7px;
@@ -3200,7 +3235,33 @@ html[data-wh-theme=admin] {
   margin-left: -8px;
   width: calc(100% + 16px);
   max-width: none;
-  box-sizing: border-box;
+  flex: 0 0 auto;
+  /* Offset bleed so first-line captions are not clipped by .window-body overflow. */
+  padding-top: 12px;
+}
+[data-wh-theme=admin] .heading-panel-layout > .panel:not(:first-child):not(.actions) {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+[data-wh-theme=admin] .heading-panel-layout > .panel:not(:first-child):not(.actions) > .sunken-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  /* Prefer shrinking + inner scroll over covering `.panel.actions`. */
+  height: auto;
+}
+[data-wh-theme=admin] .heading-panel-layout > .panel.actions {
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  padding: 10px 8px 8px 8px;
+}
+[data-wh-theme=admin] .heading-panel-layout > .panel.actions > .field-row {
+  gap: 8px;
+}
+[data-wh-theme=admin] .heading-panel-layout > .panel.actions > .field-row > * + * {
+  margin-left: 0;
 }
 [data-wh-theme=admin] {
   /* dialog-panel-layout: compact column (login / alert / message) */
@@ -3316,6 +3377,12 @@ html[data-wh-theme=admin] {
 }
 [data-wh-theme=admin] .sunken-panel {
   background-color: silver;
+}
+[data-wh-theme=admin] {
+  /* List-view inset: whole sunk host is white (not only table rows). */
+}
+[data-wh-theme=admin] .sunken-panel:has(table) {
+  background-color: #fff;
 }
 [data-wh-theme=admin] .bg-white {
   background-color: #fff;
@@ -3904,17 +3971,6 @@ html[data-wh-theme=admin] {
   display: inline-block;
   max-width: 100%;
 }
-[data-wh-theme=admin] .explorer-properties-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  box-sizing: border-box;
-  background: rgba(0, 0, 0, 0.08);
-}
 [data-wh-theme=admin] .explorer-properties-dialog {
   max-width: 100%;
 }
@@ -3950,6 +4006,121 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .explorer-properties-list dd {
   margin: 0;
   word-break: break-word;
+}
+[data-wh-theme=admin] {
+  /* Sites window + New/Edit form dialog overlay */
+}
+[data-wh-theme=admin] .sites-window.window {
+  position: relative;
+}
+[data-wh-theme=admin] {
+  /* Shell-sized Sites window: fill DesktopWindow; body pane flexes. */
+}
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized .sites-window.window,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .sites-window.window {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized .sites-window .heading-panel-layout,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .sites-window .heading-panel-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+[data-wh-theme=admin] {
+  /* Host / parent-modal dim while a DesktopModal is open. */
+}
+[data-wh-theme=admin] .modal-blocker {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.08);
+}
+[data-wh-theme=admin] .floating-modal > .modal-blocker {
+  z-index: 20;
+}
+[data-wh-theme=admin] {
+  /*
+   * Owned modals portal as `.dashboard > .floating-modal.desktop-owned-modal`
+   * with inline z-index = owner shell z (same integer). A raised sibling window
+   * (nextZ = top+1) stacks above; equal z + later DOM keeps the dialog above its owner.
+   */
+}
+[data-wh-theme=admin] .floating-modal {
+  position: absolute;
+  z-index: 1;
+  pointer-events: auto;
+}
+[data-wh-theme=admin] {
+  /* Storybook / no-dashboard fallback: stay inside the host window only. */
+}
+[data-wh-theme=admin] .desktop-modal-layer.is-local {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+[data-wh-theme=admin] .desktop-modal-layer.is-local.is-alert {
+  z-index: 50;
+}
+[data-wh-theme=admin] .desktop-modal-layer.is-local .floating-modal {
+  pointer-events: auto;
+}
+[data-wh-theme=admin] {
+  /* Login page still uses a local layer on `.dashboard.login-desktop`. */
+}
+[data-wh-theme=admin] .dashboard.login-desktop > .desktop-modal-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+[data-wh-theme=admin] .site-form-dialog {
+  max-width: 100%;
+}
+[data-wh-theme=admin] .site-form-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+[data-wh-theme=admin] .site-form-dialog-actions {
+  margin-top: 10px;
+}
+[data-wh-theme=admin] {
+  /* Align Name/Slug (and similar) inputs: equal-width captions before controls. */
+}
+[data-wh-theme=admin] .site-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+}
+[data-wh-theme=admin] .site-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > label {
+  flex: 0 0 4.5em;
+  box-sizing: border-box;
+  width: 4.5em;
+  min-width: 4.5em;
+}
+[data-wh-theme=admin] .site-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > input,
+[data-wh-theme=admin] .site-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > select,
+[data-wh-theme=admin] .site-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > textarea {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+}
+[data-wh-theme=admin] .site-form-host-list {
+  max-height: 160px;
+  min-height: 96px;
+}
+[data-wh-theme=admin] .site-form-host-list > .scrollable-viewport {
+  padding: 6px 8px;
+  box-sizing: border-box;
+  max-height: 160px;
+  overflow: auto;
 }/* Default frontend theme — swappable public-site tokens */
 
 [data-wh-theme="default"] {

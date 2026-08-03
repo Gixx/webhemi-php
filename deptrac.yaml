@@ -12,6 +12,10 @@ deptrac:
       collectors:
         - type: directory
           value: src/Repository/.*
+    - name: Api
+      collectors:
+        - type: directory
+          value: src/Api/.*
     - name: Controller
       collectors:
         - type: directory
@@ -37,11 +41,15 @@ deptrac:
       - Repository
     Repository:
       - Entity
+    Api:
+      - Entity
+      - Repository
     Controller:
       - Entity
       - Repository
       - SiteHost
       - Routing
+      - Api
     Security:
       - Entity
       - Repository
