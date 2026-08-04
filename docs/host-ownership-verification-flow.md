@@ -1,13 +1,16 @@
-# Host ownership verification
+# Host ownership verification (probe mechanics)
 
-When a `site` surface host is created (or manually re-verified), WebHemi proves ownership by:
+**Product lifecycle (source of truth):** [`docs/plan/Host_Ownership_Verification.md`](../../docs/plan/Host_Ownership_Verification.md) — pending → verified → assign to site → active. That plan supersedes older “create-with-site / admin·api skip probe” product rules.
+
+## Probe (domain service)
+
+When ownership is checked (`HostOwnershipVerifier`), WebHemi proves the hostname resolves to this install by:
 
 1. Writing a short-lived token file under `public/`
 2. Fetching that file via the submitted hostname
 3. Matching the response body to `webhemi-host-verification:<token>`
-4. Setting status to `verified` on match, otherwise `pending`
-5. Always deleting the temporary file
-
-Admin and API surface hosts skip the HTTP probe and start as `active`.
+4. Always deleting the temporary file
 
 See `App\SiteHost\Verification\HostOwnershipVerifier`.
+
+Status transitions and “only verified hosts may be assigned to a site” are defined in the hub plan above — not in this file.

@@ -5,11 +5,17 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Api\ApiJson;
+use App\Api\CreateHostInput;
 use App\Api\CreateSiteInput;
+use App\Api\HostApiMapper;
+use App\Api\HostCreator;
+use App\Api\HostHostTakenException;
+use App\Api\HostSiteNotFoundException;
 use App\Api\SiteApiMapper;
 use App\Api\SiteCreator;
 use App\Api\SiteSlugTakenException;
 use App\Entity\Site;
+use App\Entity\SiteHost;
 use App\Repository\SiteHostRepository;
 use App\Repository\SiteRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -73,18 +79,54 @@ final class AdminApiController extends AbstractController
     #[IsGranted('host.list')]
     public function hosts(SiteHostRepository $hosts): JsonResponse
     {
-        $data = array_map(static function ($host): array {
-            return [
-                'id' => $host->getId(),
-                'host' => $host->getHost(),
-                'site' => $host->getSite()->getSlug(),
-                'surface' => $host->getSurface()->value,
-                'status' => $host->getStatus(),
-                'active' => $host->isActive(),
-            ];
-        }, $hosts->findAll());
+        $data = array_map(
+            static fn (SiteHost $host): array => HostApiMapper::toArray($host),
+            $hosts->findBy([], ['host' => 'ASC']),
+        );
 
         return ApiJson::data($data);
+    }
+
+    #[Route('/hosts', name: 'api_admin_hosts_create', methods: ['POST'])]
+    #[IsGranted('host.edit')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function createHost(Request $request, HostCreator $creator): JsonResponse
+    {
+        try {
+            $payload = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return ApiJson::error('invalid_json', 'Request body must be valid JSON.', 400);
+        }
+
+        $input = CreateHostInput::fromPayload($payload);
+        if (!$input->isValid()) {
+            return ApiJson::error(
+                'validation_failed',
+                'Host could not be created.',
+                422,
+                $input->fieldErrors,
+            );
+        }
+
+        try {
+            $host = $creator->create($input);
+        } catch (HostSiteNotFoundException) {
+            return ApiJson::error(
+                'site_not_found',
+                'The selected site does not exist.',
+                404,
+                ['siteId' => 'Site not found.'],
+            );
+        } catch (HostHostTakenException) {
+            return ApiJson::error(
+                'host_taken',
+                'A host with this hostname already exists.',
+                409,
+                ['host' => 'Hostname is already taken.'],
+            );
+        }
+
+        return ApiJson::data(HostApiMapper::toArray($host), 201);
     }
 
     #[Route('/me', name: 'api_admin_me', methods: ['GET'])]
