@@ -18,8 +18,8 @@ class SiteHost
     private ?int $id = null;
 
     #[ORM\ManyToOne(targetEntity: Site::class, inversedBy: 'hosts')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    private Site $site;
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    private ?Site $site = null;
 
     #[ORM\Column(length: 191)]
     private string $host = '';
@@ -38,12 +38,12 @@ class SiteHost
         return $this->id;
     }
 
-    public function getSite(): Site
+    public function getSite(): ?Site
     {
         return $this->site;
     }
 
-    public function setSite(Site $site): self
+    public function setSite(?Site $site): self
     {
         $this->site = $site;
 

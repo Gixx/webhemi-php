@@ -909,14 +909,20 @@ function Scrollable({
 import { jsx as jsx24 } from "react/jsx-runtime";
 function SunkenPanel({
   scrollable = false,
+  tone = "system",
   className,
   children,
   ...rest
 }) {
+  const panelClassName = cn(
+    "sunken-panel",
+    tone === "white" && "sunken-panel-white",
+    className
+  );
   if (scrollable) {
-    return /* @__PURE__ */ jsx24(Scrollable, { className: cn("sunken-panel", className), ...rest, children });
+    return /* @__PURE__ */ jsx24(Scrollable, { className: panelClassName, ...rest, children });
   }
-  return /* @__PURE__ */ jsx24("div", { className: cn("sunken-panel", className), ...rest, children: /* @__PURE__ */ jsx24("div", { className: "scrollable-viewport", children }) });
+  return /* @__PURE__ */ jsx24("div", { className: panelClassName, ...rest, children: /* @__PURE__ */ jsx24("div", { className: "scrollable-viewport", children }) });
 }
 
 // src/admin/chrome/FieldBorder/FieldBorder.tsx
@@ -3741,6 +3747,13 @@ function createAdminApiClient(options = {}) {
     createHost: (body) => request("/hosts", {
       method: "POST",
       body: JSON.stringify(body)
+    }),
+    updateHost: (id, body) => request(`/hosts/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body)
+    }),
+    unassignHost: (id) => request(`/hosts/${id}/unassign`, {
+      method: "POST"
     })
   };
 }
@@ -4166,7 +4179,7 @@ function ControlPanel({
 import { useCallback as useCallback3, useEffect as useEffect8, useRef as useRef6, useState as useState10 } from "react";
 
 // src/admin/components/SitesWindow/SiteFormDialog.tsx
-import { useEffect as useEffect7, useId as useId2, useState as useState9 } from "react";
+import { useEffect as useEffect7, useId as useId2, useMemo as useMemo4, useState as useState9 } from "react";
 import { Fragment as Fragment7, jsx as jsx55, jsxs as jsxs31 } from "react/jsx-runtime";
 function SiteFormDialog({
   mode,
@@ -4174,10 +4187,12 @@ function SiteFormDialog({
   hosts = [],
   fieldErrors,
   saving = false,
+  unassigning = false,
   onSave,
   onError,
   onClose,
   onAddHost,
+  onUnassignHost,
   className
 }) {
   const nameId = useId2();
@@ -4187,26 +4202,31 @@ function SiteFormDialog({
   const [name, setName] = useState9(initial?.name ?? "");
   const [slug, setSlug] = useState9(initial?.slug ?? "");
   const [enabled, setEnabled] = useState9(initial?.enabled ?? true);
-  const [hostIds, setHostIds] = useState9(initial?.hostIds ?? []);
+  const [selectedHostId, setSelectedHostId] = useState9(null);
   const [localErrors, setLocalErrors] = useState9(
     {}
   );
+  const assignedHosts = useMemo4(() => {
+    if (initial?.siteId == null) {
+      return [];
+    }
+    return hosts.filter((host) => host.siteId === initial.siteId);
+  }, [hosts, initial?.siteId]);
   useEffect7(() => {
     setLocalErrors({});
   }, [fieldErrors]);
+  useEffect7(() => {
+    if (selectedHostId != null && !assignedHosts.some((host) => host.id === selectedHostId)) {
+      setSelectedHostId(null);
+    }
+  }, [assignedHosts, selectedHostId]);
   const errors = { ...localErrors, ...fieldErrors };
   const title = mode === "new" ? "New Site" : `${initial?.title ?? initial?.name ?? "Site"} Properties`;
-  const toggleHost = (id, checked) => {
-    setHostIds((prev) => {
-      if (checked) {
-        return prev.includes(id) ? prev : [...prev, id];
-      }
-      return prev.filter((hostId) => hostId !== id);
-    });
-  };
+  const busy = saving || unassigning;
+  const canRemove = Boolean(onUnassignHost) && selectedHostId != null && initial?.siteId != null && !busy;
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (saving) {
+    if (busy) {
       return;
     }
     const nextName = name.trim();
@@ -4231,9 +4251,14 @@ function SiteFormDialog({
       siteId: initial?.siteId,
       name: nextName,
       slug: nextSlug,
-      enabled,
-      hostIds: [...hostIds]
+      enabled
     });
+  };
+  const handleRemove = () => {
+    if (!canRemove || selectedHostId == null) {
+      return;
+    }
+    onUnassignHost?.(selectedHostId);
   };
   return /* @__PURE__ */ jsx55(
     PaneWindowShell,
@@ -4278,7 +4303,7 @@ function SiteFormDialog({
               label: "Name:",
               accessKey: "n",
               value: name,
-              disabled: saving,
+              disabled: busy,
               "aria-invalid": Boolean(errors.name) || void 0,
               onChange: (event) => setName(event.target.value)
             }
@@ -4290,7 +4315,7 @@ function SiteFormDialog({
               label: "Slug:",
               accessKey: "s",
               value: slug,
-              disabled: saving,
+              disabled: busy,
               "aria-invalid": Boolean(errors.slug) || void 0,
               onChange: (event) => setSlug(event.target.value)
             }
@@ -4302,41 +4327,68 @@ function SiteFormDialog({
               label: "Enabled",
               accessKey: "e",
               checked: enabled,
-              disabled: saving,
+              disabled: busy,
               onChange: (event) => setEnabled(event.target.checked)
             }
           ) })
         ] }) : /* @__PURE__ */ jsxs31(Fragment7, { children: [
-          /* @__PURE__ */ jsx55("p", { style: { marginTop: 0, marginBottom: 8 }, children: "Assign existing hosts to this site. Use Add\u2026 later to open Hosts \u2192 Add." }),
-          /* @__PURE__ */ jsx55("div", { className: "site-form-host-list sunken-panel", role: "group", "aria-label": "Hosts", children: /* @__PURE__ */ jsx55("div", { className: "scrollable-viewport", children: hosts.length === 0 ? /* @__PURE__ */ jsx55("p", { style: { margin: 8 }, children: "No hosts available." }) : hosts.map((option) => {
-            const checkboxId = `${enabledId}-host-${option.id}`;
-            const assignedElsewhere = option.siteId != null && (mode === "new" || option.siteId !== initial?.siteId);
-            return /* @__PURE__ */ jsx55(FieldRow, { children: /* @__PURE__ */ jsx55(
-              Checkbox,
-              {
-                id: checkboxId,
-                label: assignedElsewhere ? `${option.host} (site #${option.siteId})` : option.host,
-                checked: hostIds.includes(option.id),
-                disabled: saving,
-                onChange: (event) => toggleHost(option.id, event.target.checked)
-              }
-            ) }, option.id);
-          }) }) }),
-          /* @__PURE__ */ jsx55(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: /* @__PURE__ */ jsx55(
-            Button2,
+          /* @__PURE__ */ jsx55("p", { style: { marginTop: 0, marginBottom: 8 }, children: initial?.siteId == null ? "Save the site first, then assign hosts from Hosts (Edit) or add new ones here." : "Hosts assigned to this site. Remove unassigns without deleting the host." }),
+          /* @__PURE__ */ jsx55(
+            SunkenPanel,
             {
-              type: "button",
-              accessKey: "a",
-              disabled: saving || !onAddHost,
-              title: onAddHost ? "Add a new host" : "Opens Hosts \u2192 Add (coming soon)",
-              onClick: onAddHost,
-              children: "Add\u2026"
+              scrollable: true,
+              tone: "white",
+              className: "site-form-host-list",
+              children: assignedHosts.length === 0 ? /* @__PURE__ */ jsx55("p", { style: { margin: 8 }, children: initial?.siteId == null ? "No hosts until this site is saved." : "No hosts assigned." }) : /* @__PURE__ */ jsxs31(Table, { "aria-label": "Assigned hosts", children: [
+                /* @__PURE__ */ jsx55("thead", { children: /* @__PURE__ */ jsxs31("tr", { children: [
+                  /* @__PURE__ */ jsx55("th", { children: "Name" }),
+                  /* @__PURE__ */ jsx55("th", { children: "Status" })
+                ] }) }),
+                /* @__PURE__ */ jsx55("tbody", { children: assignedHosts.map((row) => /* @__PURE__ */ jsxs31(
+                  TableRow,
+                  {
+                    highlighted: selectedHostId === row.id,
+                    onClick: () => setSelectedHostId(
+                      (current) => current === row.id ? null : row.id
+                    ),
+                    children: [
+                      /* @__PURE__ */ jsx55("td", { children: row.host }),
+                      /* @__PURE__ */ jsx55("td", { children: row.status })
+                    ]
+                  },
+                  row.id
+                )) })
+              ] })
             }
-          ) })
+          ),
+          /* @__PURE__ */ jsxs31(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: [
+            /* @__PURE__ */ jsx55(
+              Button2,
+              {
+                type: "button",
+                accessKey: "a",
+                disabled: busy || !onAddHost,
+                title: onAddHost ? "Add a new host" : "Opens Hosts \u2192 Add (coming soon)",
+                onClick: onAddHost,
+                children: "Add\u2026"
+              }
+            ),
+            /* @__PURE__ */ jsx55(
+              Button2,
+              {
+                type: "button",
+                accessKey: "r",
+                disabled: !canRemove,
+                title: "Unassign selected host from this site",
+                onClick: handleRemove,
+                children: "Remove"
+              }
+            )
+          ] })
         ] }) }) }),
         /* @__PURE__ */ jsxs31(FieldRow, { className: "justify-end site-form-dialog-actions", children: [
           /* @__PURE__ */ jsx55(Button2, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
-          /* @__PURE__ */ jsx55(Button2, { type: "button", accessKey: "c", disabled: saving, onClick: onClose, children: "Cancel" })
+          /* @__PURE__ */ jsx55(Button2, { type: "button", accessKey: "c", disabled: busy, onClick: onClose, children: "Cancel" })
         ] })
       ] })
     }
@@ -4369,6 +4421,8 @@ function SitesWindow({
   onCreate,
   onDelete,
   onAddHost,
+  onUnassignHost,
+  unassigning = false,
   errorSoundUrl,
   dingSoundUrl,
   onCancel,
@@ -4429,7 +4483,7 @@ function SitesWindow({
     }
     showErrorAlert(message);
   }, [formError, fieldErrors, form.open, showFormErrors, showErrorAlert]);
-  const busy = loading || saving;
+  const busy = loading || saving || unassigning;
   const selected = sites.find((site) => site.id === selectedId) ?? null;
   const hasSelection = selected != null;
   const canSave = Boolean(onSave || onCreate);
@@ -4443,8 +4497,7 @@ function SitesWindow({
       mode: "new",
       name: "",
       slug: "",
-      enabled: true,
-      hostIds: []
+      enabled: true
     });
   };
   const openEdit = (site) => {
@@ -4454,7 +4507,6 @@ function SitesWindow({
     }
     setSelectedId(target.id);
     setShowFormErrors(false);
-    const assigned = hosts.filter((host) => host.siteId === target.id).map((host) => host.id);
     setForm({
       open: true,
       mode: "edit",
@@ -4462,7 +4514,6 @@ function SitesWindow({
       name: target.name,
       slug: target.slug,
       enabled: target.enabled,
-      hostIds: assigned,
       title: target.name
     });
   };
@@ -4558,7 +4609,7 @@ function SitesWindow({
           SunkenPanel,
           {
             scrollable: true,
-            className: "bg-white",
+            tone: "white",
             style: tableMinHeight != null ? { minHeight: tableMinHeight } : void 0,
             children: loading && sites.length === 0 ? /* @__PURE__ */ jsx56("p", { style: { margin: 8 }, children: "Loading sites\u2026" }) : sites.length === 0 ? /* @__PURE__ */ jsx56("p", { style: { margin: 8 }, children: "No sites yet." }) : /* @__PURE__ */ jsxs32(Table, { "aria-label": "Sites", children: [
               /* @__PURE__ */ jsx56("thead", { children: /* @__PURE__ */ jsxs32("tr", { children: [
@@ -4595,16 +4646,17 @@ function SitesWindow({
               name: form.name,
               slug: form.slug,
               enabled: form.enabled,
-              hostIds: form.hostIds,
               title: form.title
             },
             hosts,
             fieldErrors: showFormErrors ? fieldErrors : void 0,
             saving,
+            unassigning,
             onSave: handleFormSave,
             onError: showErrorAlert,
             onClose: closeForm,
-            onAddHost
+            onAddHost,
+            onUnassignHost
           },
           `${form.mode}-${form.siteId ?? "new"}`
         ) }) : null,
@@ -4665,9 +4717,6 @@ function HostFormDialog({
     } else if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(nextHost)) {
       nextLocal.host = "Use a valid domain name.";
     }
-    if (siteId == null || siteId < 1) {
-      nextLocal.siteId = "Site is required.";
-    }
     setLocalErrors(nextLocal);
     if (Object.keys(nextLocal).length > 0) {
       onError?.(Object.values(nextLocal).join("\n"));
@@ -4711,14 +4760,14 @@ function HostFormDialog({
               label: "Site:",
               accessKey: "s",
               value: siteId != null ? String(siteId) : "",
-              disabled: saving || sites.length === 0,
+              disabled: saving,
               "aria-invalid": Boolean(errors.siteId) || void 0,
               onChange: (event) => {
                 const value = event.target.value;
                 setSiteId(value === "" ? null : Number(value));
               },
               children: [
-                /* @__PURE__ */ jsx57("option", { value: "", children: "Select a site\u2026" }),
+                /* @__PURE__ */ jsx57("option", { value: "", children: "None" }),
                 sites.map((site) => /* @__PURE__ */ jsx57("option", { value: site.id, children: site.name }, site.id))
               ]
             }
@@ -4860,7 +4909,7 @@ function HostsWindow({
       open: true,
       mode: "new",
       host: "",
-      siteId: sites[0]?.id ?? null,
+      siteId: null,
       surface: "site",
       active: true
     });
@@ -4968,7 +5017,7 @@ function HostsWindow({
           SunkenPanel,
           {
             scrollable: true,
-            className: "bg-white",
+            tone: "white",
             style: tableMinHeight != null ? { minHeight: tableMinHeight } : void 0,
             children: loading && hosts.length === 0 ? /* @__PURE__ */ jsx58("p", { style: { margin: 8 }, children: "Loading hosts\u2026" }) : hosts.length === 0 ? /* @__PURE__ */ jsx58("p", { style: { margin: 8 }, children: "No hosts yet." }) : /* @__PURE__ */ jsxs34(Table, { "aria-label": "Hosts", children: [
               /* @__PURE__ */ jsx58("thead", { children: /* @__PURE__ */ jsxs34("tr", { children: [
@@ -4986,7 +5035,7 @@ function HostsWindow({
                   onDoubleClick: () => openEdit(row),
                   children: [
                     /* @__PURE__ */ jsx58("td", { children: row.host }),
-                    /* @__PURE__ */ jsx58("td", { children: row.siteName }),
+                    /* @__PURE__ */ jsx58("td", { children: row.siteName?.trim() ? row.siteName : "\u2014" }),
                     /* @__PURE__ */ jsx58("td", { children: row.surface }),
                     /* @__PURE__ */ jsx58("td", { children: row.status }),
                     /* @__PURE__ */ jsx58("td", { children: row.active ? "Yes" : "No" })
@@ -5311,7 +5360,7 @@ function LoginPage({
 }
 
 // src/admin/pages/AdminDesktop.tsx
-import { useCallback as useCallback5, useEffect as useEffect15, useMemo as useMemo4, useRef as useRef11, useState as useState15 } from "react";
+import { useCallback as useCallback5, useEffect as useEffect15, useMemo as useMemo5, useRef as useRef11, useState as useState15 } from "react";
 
 // src/admin/shell/types.ts
 var CONTROL_PANEL_WINDOW_ID = "control-panel";
@@ -6092,7 +6141,9 @@ function toSiteFormHostOption(host) {
   return {
     id: host.id,
     host: host.host,
-    siteId: host.siteId
+    siteId: host.siteId,
+    siteName: host.siteName,
+    status: host.status === "pending" || host.status === "verified" || host.status === "active" ? host.status : "pending"
   };
 }
 function AdminDesktop({
@@ -6133,10 +6184,11 @@ function AdminDesktop({
   const [hostsRows, setHostsRows] = useState15([]);
   const [hostsLoading, setHostsLoading] = useState15(false);
   const [hostsCreating, setHostsCreating] = useState15(false);
+  const [hostsUnassigning, setHostsUnassigning] = useState15(false);
   const [hostsError, setHostsError] = useState15(null);
   const [hostsFormError, setHostsFormError] = useState15(null);
   const [hostsFieldErrors, setHostsFieldErrors] = useState15({});
-  const api = useMemo4(
+  const api = useMemo5(
     () => sitesApi ?? createAdminApiClient({
       csrfToken: apiCsrfToken,
       baseUrl: apiBaseUrl,
@@ -6148,11 +6200,11 @@ function AdminDesktop({
   const canEditHosts = canEditSites;
   const sitesWindowOpen = shell.windows.some((win) => win.id === SITES_WINDOW_ID);
   const hostsWindowOpen = shell.windows.some((win) => win.id === HOSTS_WINDOW_ID);
-  const siteFormHosts = useMemo4(
+  const siteFormHosts = useMemo5(
     () => hostsRows.map(toSiteFormHostOption),
     [hostsRows]
   );
-  const hostFormSites = useMemo4(
+  const hostFormSites = useMemo5(
     () => desktopSites.map((site) => ({
       id: site.id,
       name: site.name,
@@ -6541,25 +6593,25 @@ function AdminDesktop({
     });
   };
   const handleSaveHost = async (payload) => {
-    if (payload.mode !== "new") {
-      setHostsFormError("Editing a host is not available yet.");
-      return;
-    }
-    if (payload.siteId == null) {
-      setHostsFormError("Site is required.");
-      setHostsFieldErrors({ siteId: "Site is required." });
-      return;
-    }
     setHostsCreating(true);
     setHostsFormError(null);
     setHostsFieldErrors({});
-    const result = await api.createHost({
+    const result = payload.mode === "new" ? await api.createHost({
       host: payload.host,
       siteId: payload.siteId,
       surface: payload.surface,
       active: payload.active
-    });
+    }) : payload.hostId != null ? await api.updateHost(payload.hostId, {
+      host: payload.host,
+      siteId: payload.siteId,
+      surface: payload.surface,
+      active: payload.active
+    }) : null;
     setHostsCreating(false);
+    if (!result) {
+      setHostsFormError("Editing a host is not available yet.");
+      return;
+    }
     if (!result.ok) {
       if (result.error.fields) {
         setHostsFieldErrors({
@@ -6579,10 +6631,44 @@ function AdminDesktop({
     if (list.ok) {
       setHostsRows(list.data.map(toWindowHost));
     } else {
-      const created = toWindowHost(result.data);
+      const saved = toWindowHost(result.data);
       setHostsRows(
-        (prev) => [...prev.filter((row) => row.id !== created.id), created].sort(
+        (prev) => [...prev.filter((row) => row.id !== saved.id), saved].sort(
           (a, b) => a.host.localeCompare(b.host)
+        )
+      );
+    }
+    const sitesList = await api.listSites();
+    if (sitesList.ok) {
+      setSitesRows(sitesList.data.map(toWindowSite));
+      setDesktopSites(sitesList.data.map(toDesktopSite));
+    }
+  };
+  const handleUnassignHost = async (hostId) => {
+    setHostsUnassigning(true);
+    setSitesFormError(null);
+    const result = await api.unassignHost(hostId);
+    setHostsUnassigning(false);
+    if (!result.ok) {
+      setSitesFormError(result.error.message);
+      if (result.status === 401) {
+        window.location.assign("/login");
+      }
+      return;
+    }
+    const list = await api.listHosts();
+    if (list.ok) {
+      setHostsRows(list.data.map(toWindowHost));
+    } else {
+      setHostsRows(
+        (prev) => prev.map(
+          (row) => row.id === hostId ? {
+            ...row,
+            siteId: null,
+            siteSlug: null,
+            siteName: null,
+            status: row.status === "active" ? "verified" : row.status
+          } : row
         )
       );
     }
@@ -6673,6 +6759,8 @@ function AdminDesktop({
               fieldErrors: sitesFieldErrors,
               onSave: handleSaveSite,
               onAddHost: openHosts,
+              onUnassignHost: handleUnassignHost,
+              unassigning: hostsUnassigning,
               errorSoundUrl,
               dingSoundUrl,
               onClose: () => closeWindow(win.id),

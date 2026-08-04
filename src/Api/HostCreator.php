@@ -31,9 +31,12 @@ final class HostCreator
             throw new \InvalidArgumentException('CreateHostInput must be valid before create().');
         }
 
-        $site = $this->sites->find($input->siteId);
-        if (!$site instanceof Site) {
-            throw new HostSiteNotFoundException();
+        $site = null;
+        if (null !== $input->siteId) {
+            $site = $this->sites->find($input->siteId);
+            if (!$site instanceof Site) {
+                throw new HostSiteNotFoundException();
+            }
         }
 
         if ($this->hosts->findOneBy(['host' => $input->host]) instanceof SiteHost) {

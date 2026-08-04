@@ -12,9 +12,9 @@ final class HostApiMapper
      * @return array{
      *     id: int,
      *     host: string,
-     *     siteId: int,
-     *     siteSlug: string,
-     *     siteName: string,
+     *     siteId: int|null,
+     *     siteSlug: string|null,
+     *     siteName: string|null,
      *     surface: string,
      *     status: string,
      *     active: bool
@@ -27,9 +27,9 @@ final class HostApiMapper
         return [
             'id' => (int) $host->getId(),
             'host' => $host->getHost(),
-            'siteId' => (int) $site->getId(),
-            'siteSlug' => $site->getSlug(),
-            'siteName' => $site->getName(),
+            'siteId' => $site?->getId(),
+            'siteSlug' => $site?->getSlug(),
+            'siteName' => $site?->getName(),
             'surface' => $host->getSurface()->value,
             'status' => $host->getStatus(),
             'active' => $host->isActive(),

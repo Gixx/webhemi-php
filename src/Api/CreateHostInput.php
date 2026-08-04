@@ -6,12 +6,13 @@ namespace App\Api;
 
 /**
  * Parsed + validated body for POST /admin/api/hosts.
+ * `siteId` is optional (null = unassigned host).
  */
 final class CreateHostInput
 {
     private function __construct(
         public readonly string $host,
-        public readonly int $siteId,
+        public readonly ?int $siteId,
         public readonly string $surface,
         public readonly bool $active,
         /** @var array<string, string> */
@@ -25,16 +26,19 @@ final class CreateHostInput
     public static function fromPayload(mixed $payload): self
     {
         if (!\is_array($payload)) {
-            return new self('', 0, 'site', true, [
+            return new self('', null, 'site', true, [
                 '_body' => 'JSON object required.',
             ]);
         }
 
         $host = strtolower(trim((string) ($payload['host'] ?? '')));
-        $siteIdRaw = $payload['siteId'] ?? null;
-        $siteId = filter_var($siteIdRaw, FILTER_VALIDATE_INT, [
-            'options' => ['min_range' => 1],
-        ]);
+        $siteId = null;
+        if (\array_key_exists('siteId', $payload) && null !== $payload['siteId'] && '' !== $payload['siteId']) {
+            $parsed = filter_var($payload['siteId'], FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 1],
+            ]);
+            $siteId = false === $parsed ? false : (int) $parsed;
+        }
         $surfaceRaw = strtolower(trim((string) ($payload['surface'] ?? 'site')));
         $active = \array_key_exists('active', $payload)
             ? filter_var($payload['active'], FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE)
@@ -51,8 +55,8 @@ final class CreateHostInput
         }
 
         if (false === $siteId) {
-            $fields['siteId'] = 'Site is required.';
-            $siteId = 0;
+            $fields['siteId'] = 'Site must be a positive integer or omitted.';
+            $siteId = null;
         }
 
         if (!\in_array($surfaceRaw, ['admin', 'site', 'api'], true)) {
@@ -65,7 +69,7 @@ final class CreateHostInput
             $active = true;
         }
 
-        return new self($host, (int) $siteId, $surfaceRaw, $active, $fields);
+        return new self($host, $siteId, $surfaceRaw, $active, $fields);
     }
 
     public function isValid(): bool

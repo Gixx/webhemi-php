@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 final class HostApiMapperTest extends TestCase
 {
-    public function testToArray(): void
+    public function testToArrayWithSite(): void
     {
         $site = (new Site())->setName('Main')->setSlug('main');
         $siteRef = new \ReflectionProperty(Site::class, 'id');
@@ -35,6 +35,31 @@ final class HostApiMapperTest extends TestCase
                 'siteSlug' => 'main',
                 'siteName' => 'Main',
                 'surface' => 'admin',
+                'status' => 'pending',
+                'active' => true,
+            ],
+            HostApiMapper::toArray($host),
+        );
+    }
+
+    public function testToArrayWithoutSite(): void
+    {
+        $host = (new SiteHost())
+            ->setHost('orphan.example.test')
+            ->setSurface(SurfaceType::Site)
+            ->setStatus('pending')
+            ->setIsActive(true);
+        $hostRef = new \ReflectionProperty(SiteHost::class, 'id');
+        $hostRef->setValue($host, 3);
+
+        self::assertSame(
+            [
+                'id' => 3,
+                'host' => 'orphan.example.test',
+                'siteId' => null,
+                'siteSlug' => null,
+                'siteName' => null,
+                'surface' => 'site',
                 'status' => 'pending',
                 'active' => true,
             ],

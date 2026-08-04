@@ -550,10 +550,6 @@
     background-color: #0000;
   }
 
-  .bg-white {
-    background-color: var(--color-white);
-  }
-
   .fill-current {
     fill: currentColor;
   }
@@ -3382,8 +3378,9 @@ html[data-wh-theme=admin] {
   background-color: silver;
 }
 [data-wh-theme=admin] {
-  /* List-view inset: whole sunk host is white (not only table rows). */
+  /* Explicit white face (prop `tone="white"`) or list/table inset. */
 }
+[data-wh-theme=admin] .sunken-panel.sunken-panel-white,
 [data-wh-theme=admin] .sunken-panel:has(table) {
   background-color: #fff;
 }
@@ -4121,14 +4118,19 @@ html[data-wh-theme=admin] {
   max-width: none;
 }
 [data-wh-theme=admin] .site-form-host-list {
-  max-height: 160px;
+  /* Fixed height so `.scrollable` grid + custom rails get a definite viewport. */
+  height: 160px;
   min-height: 96px;
+  box-sizing: border-box;
 }
 [data-wh-theme=admin] .site-form-host-list > .scrollable-viewport {
   padding: 6px 8px;
   box-sizing: border-box;
-  max-height: 160px;
-  overflow: auto;
+  /* Override chrome sunken padding/min-height for the dense host checklist. */
+  min-height: 0;
+}
+[data-wh-theme=admin] .site-form-host-list > .scrollable-viewport:has(> table) {
+  padding: 0;
 }/* Default frontend theme — swappable public-site tokens */
 
 [data-wh-theme="default"] {

@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 final class CreateHostInputTest extends TestCase
 {
-    public function testValidPayload(): void
+    public function testValidPayloadWithSite(): void
     {
         $input = CreateHostInput::fromPayload([
             'host' => ' WWW.Example.COM ',
@@ -25,16 +25,27 @@ final class CreateHostInputTest extends TestCase
         self::assertFalse($input->active);
     }
 
-    public function testDefaults(): void
+    public function testValidPayloadWithoutSite(): void
     {
         $input = CreateHostInput::fromPayload([
             'host' => 'blog.example.test',
-            'siteId' => 1,
         ]);
 
         self::assertTrue($input->isValid());
+        self::assertNull($input->siteId);
         self::assertSame('site', $input->surface);
         self::assertTrue($input->active);
+    }
+
+    public function testExplicitNullSiteId(): void
+    {
+        $input = CreateHostInput::fromPayload([
+            'host' => 'blog.example.test',
+            'siteId' => null,
+        ]);
+
+        self::assertTrue($input->isValid());
+        self::assertNull($input->siteId);
     }
 
     public function testValidationErrors(): void

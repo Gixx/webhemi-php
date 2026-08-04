@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 
 final class HostCreatorTest extends TestCase
 {
-    public function testCreatesHost(): void
+    public function testCreatesHostWithSite(): void
     {
         $input = CreateHostInput::fromPayload([
             'host' => 'www.example.test',
@@ -45,7 +45,8 @@ final class HostCreatorTest extends TestCase
                 return 'www.example.test' === $host->getHost()
                     && 'pending' === $host->getStatus()
                     && $host->isActive()
-                    && 'site' === $host->getSurface()->value;
+                    && 'site' === $host->getSurface()->value
+                    && null !== $host->getSite();
             },
         ));
         $em->expects(self::once())->method('flush');
@@ -54,6 +55,32 @@ final class HostCreatorTest extends TestCase
 
         self::assertSame('www.example.test', $created->getHost());
         self::assertSame($site, $created->getSite());
+    }
+
+    public function testCreatesHostWithoutSite(): void
+    {
+        $input = CreateHostInput::fromPayload([
+            'host' => 'orphan.example.test',
+        ]);
+        self::assertTrue($input->isValid());
+
+        $sites = $this->createMock(SiteRepository::class);
+        $sites->expects(self::never())->method('find');
+
+        $hosts = $this->createStub(SiteHostRepository::class);
+        $hosts->method('findOneBy')->willReturn(null);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::once())->method('persist')->with(self::callback(
+            static function (SiteHost $host): bool {
+                return null === $host->getSite();
+            },
+        ));
+        $em->expects(self::once())->method('flush');
+
+        $created = (new HostCreator($sites, $hosts, $em))->create($input);
+
+        self::assertNull($created->getSite());
     }
 
     public function testDuplicateHostThrows(): void

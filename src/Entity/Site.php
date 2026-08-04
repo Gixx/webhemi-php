@@ -29,7 +29,7 @@ class Site
     private bool $isEnabled = true;
 
     /** @var Collection<int, SiteHost> */
-    #[ORM\OneToMany(targetEntity: SiteHost::class, mappedBy: 'site', cascade: ['persist'], orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: SiteHost::class, mappedBy: 'site', cascade: ['persist'])]
     private Collection $hosts;
 
     public function __construct()
