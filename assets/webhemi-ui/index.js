@@ -4018,47 +4018,55 @@ function LoginForm({
     });
   };
   const bannerSrc = bannerUrl || adminAsset("system/banner-dialog-login.gif");
-  return /* @__PURE__ */ jsxs29("form", { action, method, onSubmit: handleSubmit, className: cn(className), children: [
-    csrfToken ? /* @__PURE__ */ jsx53("input", { type: "hidden", name: csrfFieldName, value: csrfToken }) : null,
-    /* @__PURE__ */ jsxs29(
-      DialogWindow,
-      {
-        title: "Sign in \u2014 WebHemi CMS Admin",
-        titleBarControls: null,
-        banner: /* @__PURE__ */ jsx53("img", { alt: "", className: "dialog-banner", src: bannerSrc }),
-        actions: /* @__PURE__ */ jsx53(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx53(Button2, { type: "submit", isDefault: true, loading, children: "OK" }) }),
-        children: [
-          /* @__PURE__ */ jsx53(FieldRow, { children: /* @__PURE__ */ jsx53(
-            TextBox,
-            {
-              id: "email",
-              name: "email",
-              type: "email",
-              label: "Email:",
-              accessKey: "e",
-              autoComplete: "username",
-              defaultValue: emailDefault,
-              required: true,
-              className: "w-window-xs"
-            }
-          ) }),
-          /* @__PURE__ */ jsx53(FieldRow, { children: /* @__PURE__ */ jsx53(
-            TextBox,
-            {
-              id: "password",
-              name: "password",
-              type: "password",
-              label: "Password:",
-              accessKey: "p",
-              autoComplete: "current-password",
-              required: true,
-              className: "w-window-xs"
-            }
-          ) })
-        ]
-      }
-    )
-  ] });
+  return /* @__PURE__ */ jsxs29(
+    "form",
+    {
+      action,
+      method,
+      onSubmit: handleSubmit,
+      noValidate: true,
+      className: cn(className),
+      children: [
+        csrfToken ? /* @__PURE__ */ jsx53("input", { type: "hidden", name: csrfFieldName, value: csrfToken }) : null,
+        /* @__PURE__ */ jsxs29(
+          DialogWindow,
+          {
+            title: "Sign in \u2014 WebHemi CMS Admin",
+            titleBarControls: null,
+            banner: /* @__PURE__ */ jsx53("img", { alt: "", className: "dialog-banner", src: bannerSrc }),
+            actions: /* @__PURE__ */ jsx53(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx53(Button2, { type: "submit", isDefault: true, loading, children: "OK" }) }),
+            children: [
+              /* @__PURE__ */ jsx53(FieldRow, { children: /* @__PURE__ */ jsx53(
+                TextBox,
+                {
+                  id: "email",
+                  name: "email",
+                  type: "email",
+                  label: "Email:",
+                  accessKey: "e",
+                  autoComplete: "username",
+                  defaultValue: emailDefault,
+                  className: "w-window-xs"
+                }
+              ) }),
+              /* @__PURE__ */ jsx53(FieldRow, { children: /* @__PURE__ */ jsx53(
+                TextBox,
+                {
+                  id: "password",
+                  name: "password",
+                  type: "password",
+                  label: "Password:",
+                  accessKey: "p",
+                  autoComplete: "current-password",
+                  className: "w-window-xs"
+                }
+              ) })
+            ]
+          }
+        )
+      ]
+    }
+  );
 }
 
 // src/admin/components/ControlPanel/ControlPanel.tsx
@@ -4223,7 +4231,7 @@ function SiteFormDialog({
       title,
       titleIcon: "sites",
       titleBarControls: /* @__PURE__ */ jsx55(TitleBarControls, { children: /* @__PURE__ */ jsx55(TitleBarControl, { action: "Close", onClick: onClose }) }),
-      children: /* @__PURE__ */ jsxs31("form", { className: "site-form-dialog-form", onSubmit: handleSubmit, children: [
+      children: /* @__PURE__ */ jsxs31("form", { className: "site-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
         /* @__PURE__ */ jsxs31(TabList, { children: [
           /* @__PURE__ */ jsx55(
             Tab,
@@ -6197,11 +6205,21 @@ function SitesPage({
   return /* @__PURE__ */ jsxs43(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Sites", children: [
     /* @__PURE__ */ jsx68(FlashList, { flashes }),
     /* @__PURE__ */ jsx68(SiteListView, { sites: sites || [], createHref: "#create-site" }),
-    canEdit ? /* @__PURE__ */ jsxs43("form", { id: "create-site", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
-      /* @__PURE__ */ jsx68(FormField, { label: "Name", htmlFor: "name", required: true, children: /* @__PURE__ */ jsx68(Input, { id: "name", name: "name", required: true }) }),
-      /* @__PURE__ */ jsx68(FormField, { label: "Slug", htmlFor: "slug", required: true, hint: "Lowercase identifier", children: /* @__PURE__ */ jsx68(Input, { id: "slug", name: "slug", required: true }) }),
-      /* @__PURE__ */ jsx68(Button, { type: "submit", children: "Create site" })
-    ] }) : null
+    canEdit ? /* @__PURE__ */ jsxs43(
+      "form",
+      {
+        id: "create-site",
+        action: createAction,
+        method: "post",
+        noValidate: true,
+        style: { marginTop: "2rem" },
+        children: [
+          /* @__PURE__ */ jsx68(FormField, { label: "Name", htmlFor: "name", required: true, children: /* @__PURE__ */ jsx68(Input, { id: "name", name: "name" }) }),
+          /* @__PURE__ */ jsx68(FormField, { label: "Slug", htmlFor: "slug", required: true, hint: "Lowercase identifier", children: /* @__PURE__ */ jsx68(Input, { id: "slug", name: "slug" }) }),
+          /* @__PURE__ */ jsx68(Button, { type: "submit", children: "Create site" })
+        ]
+      }
+    ) : null
   ] });
 }
 
@@ -6219,16 +6237,26 @@ function HostsPage({
   return /* @__PURE__ */ jsxs44(AdminLayout, { navItems: navItems || [], userLabel, topBarTitle: "Hosts", children: [
     /* @__PURE__ */ jsx69(FlashList, { flashes }),
     /* @__PURE__ */ jsx69(SiteHostListView, { hosts: hosts || [], createHref: "#create-host" }),
-    canEdit ? /* @__PURE__ */ jsxs44("form", { id: "create-host", action: createAction, method: "post", style: { marginTop: "2rem" }, children: [
-      /* @__PURE__ */ jsx69(FormField, { label: "Hostname", htmlFor: "host", required: true, children: /* @__PURE__ */ jsx69(Input, { id: "host", name: "host", placeholder: "www.example.com", required: true }) }),
-      /* @__PURE__ */ jsx69(FormField, { label: "Site", htmlFor: "site_id", required: true, children: /* @__PURE__ */ jsx69(Select, { id: "site_id", name: "site_id", required: true, children: (sites || []).map((site) => /* @__PURE__ */ jsx69("option", { value: site.id, children: site.name }, site.id)) }) }),
-      /* @__PURE__ */ jsx69(FormField, { label: "Surface", htmlFor: "surface", children: /* @__PURE__ */ jsxs44(Select, { id: "surface", name: "surface", defaultValue: "site", children: [
-        /* @__PURE__ */ jsx69("option", { value: "admin", children: "admin" }),
-        /* @__PURE__ */ jsx69("option", { value: "site", children: "site" }),
-        /* @__PURE__ */ jsx69("option", { value: "api", children: "api" })
-      ] }) }),
-      /* @__PURE__ */ jsx69(Button, { type: "submit", children: "Add host" })
-    ] }) : null
+    canEdit ? /* @__PURE__ */ jsxs44(
+      "form",
+      {
+        id: "create-host",
+        action: createAction,
+        method: "post",
+        noValidate: true,
+        style: { marginTop: "2rem" },
+        children: [
+          /* @__PURE__ */ jsx69(FormField, { label: "Hostname", htmlFor: "host", required: true, children: /* @__PURE__ */ jsx69(Input, { id: "host", name: "host", placeholder: "www.example.com" }) }),
+          /* @__PURE__ */ jsx69(FormField, { label: "Site", htmlFor: "site_id", required: true, children: /* @__PURE__ */ jsx69(Select, { id: "site_id", name: "site_id", children: (sites || []).map((site) => /* @__PURE__ */ jsx69("option", { value: site.id, children: site.name }, site.id)) }) }),
+          /* @__PURE__ */ jsx69(FormField, { label: "Surface", htmlFor: "surface", children: /* @__PURE__ */ jsxs44(Select, { id: "surface", name: "surface", defaultValue: "site", children: [
+            /* @__PURE__ */ jsx69("option", { value: "admin", children: "admin" }),
+            /* @__PURE__ */ jsx69("option", { value: "site", children: "site" }),
+            /* @__PURE__ */ jsx69("option", { value: "api", children: "api" })
+          ] }) }),
+          /* @__PURE__ */ jsx69(Button, { type: "submit", children: "Add host" })
+        ]
+      }
+    ) : null
   ] });
 }
 
