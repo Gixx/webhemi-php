@@ -4229,7 +4229,7 @@ function ControlPanel({
 }
 
 // src/admin/components/SitesWindow/SitesWindow.tsx
-import { useCallback as useCallback3, useEffect as useEffect8, useRef as useRef6, useState as useState10 } from "react";
+import { useCallback as useCallback3, useEffect as useEffect8, useLayoutEffect as useLayoutEffect3, useRef as useRef6, useState as useState10 } from "react";
 
 // src/admin/components/SitesWindow/SiteFormDialog.tsx
 import { useEffect as useEffect7, useId as useId2, useMemo as useMemo4, useState as useState9 } from "react";
@@ -4584,7 +4584,7 @@ function SitesWindow({
     }
     wasSavingRef.current = saving;
   }, [saving, form.open, formError, fieldErrors]);
-  useEffect8(() => {
+  useLayoutEffect3(() => {
     if (!error || loading) {
       return;
     }
@@ -4799,7 +4799,7 @@ function SitesWindow({
 }
 
 // src/admin/components/HostsWindow/HostsWindow.tsx
-import { useCallback as useCallback4, useEffect as useEffect10, useRef as useRef7, useState as useState12 } from "react";
+import { useCallback as useCallback4, useEffect as useEffect10, useLayoutEffect as useLayoutEffect4, useRef as useRef7, useState as useState12 } from "react";
 
 // src/admin/components/HostsWindow/HostFormDialog.tsx
 import { useEffect as useEffect9, useId as useId3, useState as useState11 } from "react";
@@ -5016,7 +5016,7 @@ function HostsWindow({
     }
     wasSavingRef.current = saving;
   }, [saving, form.open, formError, fieldErrors]);
-  useEffect10(() => {
+  useLayoutEffect4(() => {
     if (!error || loading) {
       return;
     }
@@ -5429,7 +5429,7 @@ function RoleListView({
 }
 
 // src/admin/pages/LoginPage.tsx
-import { useEffect as useEffect11, useLayoutEffect as useLayoutEffect3, useRef as useRef8, useState as useState13 } from "react";
+import { useEffect as useEffect11, useLayoutEffect as useLayoutEffect5, useRef as useRef8, useState as useState13 } from "react";
 import { jsx as jsx63, jsxs as jsxs39 } from "react/jsx-runtime";
 function normalizeError(error) {
   if (typeof error === "string") {
@@ -5461,7 +5461,7 @@ function LoginPage({
   const [dismissed, setDismissed] = useState13(false);
   const [boundsEl, setBoundsEl] = useState13(null);
   const showAlert = Boolean(message && !dismissed);
-  useLayoutEffect3(() => {
+  useLayoutEffect5(() => {
     setBoundsEl(dashboardRef.current);
   }, []);
   useEffect11(() => {
