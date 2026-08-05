@@ -3800,6 +3800,10 @@ function createAdminApiClient(options = {}) {
     }),
     verifyHost: (id) => request(`/hosts/${id}/verify`, {
       method: "POST"
+    }),
+    assignHost: (id, body) => request(`/hosts/${id}/assign`, {
+      method: "POST",
+      body: JSON.stringify(body)
     })
   };
 }
@@ -4237,21 +4241,25 @@ function SiteFormDialog({
   fieldErrors,
   saving = false,
   unassigning = false,
+  assigning = false,
   onSave,
   onError,
   onClose,
   onAddHost,
+  onAssignHost,
   onUnassignHost,
   className
 }) {
   const nameId = useId2();
   const slugId = useId2();
   const enabledId = useId2();
+  const assignSelectId = useId2();
   const [tab, setTab] = useState9("general");
   const [name, setName] = useState9(initial?.name ?? "");
   const [slug, setSlug] = useState9(initial?.slug ?? "");
   const [enabled, setEnabled] = useState9(initial?.enabled ?? true);
   const [selectedHostId, setSelectedHostId] = useState9(null);
+  const [assignHostId, setAssignHostId] = useState9(null);
   const [localErrors, setLocalErrors] = useState9(
     {}
   );
@@ -4261,6 +4269,12 @@ function SiteFormDialog({
     }
     return hosts.filter((host) => host.siteId === initial.siteId);
   }, [hosts, initial?.siteId]);
+  const assignableHosts = useMemo4(
+    () => hosts.filter(
+      (host) => host.status === "verified" && (host.siteId == null || host.siteId === void 0)
+    ),
+    [hosts]
+  );
   useEffect7(() => {
     setLocalErrors({});
   }, [fieldErrors]);
@@ -4269,10 +4283,16 @@ function SiteFormDialog({
       setSelectedHostId(null);
     }
   }, [assignedHosts, selectedHostId]);
+  useEffect7(() => {
+    if (assignHostId != null && !assignableHosts.some((host) => host.id === assignHostId)) {
+      setAssignHostId(null);
+    }
+  }, [assignableHosts, assignHostId]);
   const errors = { ...localErrors, ...fieldErrors };
   const title = mode === "new" ? "New Site" : `${initial?.title ?? initial?.name ?? "Site"} Properties`;
-  const busy = saving || unassigning;
+  const busy = saving || unassigning || assigning;
   const canRemove = Boolean(onUnassignHost) && selectedHostId != null && initial?.siteId != null && !busy;
+  const canAssign = Boolean(onAssignHost) && assignHostId != null && initial?.siteId != null && !busy;
   const handleSubmit = (event) => {
     event.preventDefault();
     if (busy) {
@@ -4308,6 +4328,12 @@ function SiteFormDialog({
       return;
     }
     onUnassignHost?.(selectedHostId);
+  };
+  const handleAssign = () => {
+    if (!canAssign || assignHostId == null) {
+      return;
+    }
+    onAssignHost?.(assignHostId);
   };
   return /* @__PURE__ */ jsx55(
     PaneWindowShell,
@@ -4381,7 +4407,7 @@ function SiteFormDialog({
             }
           ) })
         ] }) : /* @__PURE__ */ jsxs31(Fragment7, { children: [
-          /* @__PURE__ */ jsx55("p", { style: { marginTop: 0, marginBottom: 8 }, children: initial?.siteId == null ? "Save the site first, then assign hosts from Hosts (Edit) or add new ones here." : "Hosts assigned to this site. Remove unassigns without deleting the host." }),
+          /* @__PURE__ */ jsx55("p", { style: { marginTop: 0, marginBottom: 8 }, children: initial?.siteId == null ? "Save the site first, then assign verified hosts here or from Hosts." : "Assigned hosts below. Assign only verified, unassigned hosts; Remove unassigns without deleting." }),
           /* @__PURE__ */ jsx55(
             SunkenPanel,
             {
@@ -4410,6 +4436,38 @@ function SiteFormDialog({
               ] })
             }
           ),
+          initial?.siteId != null ? /* @__PURE__ */ jsxs31(FieldRow, { style: { marginTop: 8 }, children: [
+            /* @__PURE__ */ jsxs31(
+              Select2,
+              {
+                id: assignSelectId,
+                label: "Assign:",
+                accessKey: "i",
+                value: assignHostId != null ? String(assignHostId) : "",
+                disabled: busy || !onAssignHost || assignableHosts.length === 0,
+                title: assignableHosts.length === 0 ? "No verified, unassigned hosts available" : "Verified hosts not bound to a site",
+                onChange: (event) => {
+                  const value = event.target.value;
+                  setAssignHostId(value === "" ? null : Number(value));
+                },
+                children: [
+                  /* @__PURE__ */ jsx55("option", { value: "", children: assignableHosts.length === 0 ? "None available" : "Select a host\u2026" }),
+                  assignableHosts.map((host) => /* @__PURE__ */ jsx55("option", { value: host.id, children: host.host }, host.id))
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsx55(
+              Button2,
+              {
+                type: "button",
+                accessKey: "g",
+                disabled: !canAssign,
+                title: "Assign selected verified host to this site",
+                onClick: handleAssign,
+                children: "Assign"
+              }
+            )
+          ] }) : null,
           /* @__PURE__ */ jsxs31(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: [
             /* @__PURE__ */ jsx55(
               Button2,
@@ -4470,8 +4528,10 @@ function SitesWindow({
   onCreate,
   onDelete,
   onAddHost,
+  onAssignHost,
   onUnassignHost,
   unassigning = false,
+  assigning = false,
   errorSoundUrl,
   dingSoundUrl,
   onAlertClose,
@@ -4546,7 +4606,7 @@ function SitesWindow({
     }
     showErrorAlert(message);
   }, [formError, fieldErrors, form.open, showFormErrors, showErrorAlert]);
-  const busy = loading || saving || unassigning;
+  const busy = loading || saving || unassigning || assigning;
   const selected = sites.find((site) => site.id === selectedId) ?? null;
   const hasSelection = selected != null;
   const canSave = Boolean(onSave || onCreate);
@@ -4714,10 +4774,12 @@ function SitesWindow({
             fieldErrors: showFormErrors ? fieldErrors : void 0,
             saving,
             unassigning,
+            assigning,
             onSave: handleFormSave,
             onError: showErrorAlert,
             onClose: closeForm,
             onAddHost,
+            onAssignHost: onAssignHost && form.open && form.siteId != null ? (hostId) => onAssignHost(hostId, form.siteId) : void 0,
             onUnassignHost
           },
           `${form.mode}-${form.siteId ?? "new"}`
@@ -4767,6 +4829,7 @@ function HostFormDialog({
   }, [fieldErrors]);
   const errors = { ...localErrors, ...fieldErrors };
   const title = mode === "new" ? "New Host" : `${initial?.title ?? initial?.host ?? "Host"} Properties`;
+  const siteSelectLocked = mode === "edit" && initial?.status === "pending";
   const handleSubmit = (event) => {
     event.preventDefault();
     if (saving) {
@@ -4822,7 +4885,8 @@ function HostFormDialog({
               label: "Site:",
               accessKey: "s",
               value: siteId != null ? String(siteId) : "",
-              disabled: saving,
+              disabled: saving || siteSelectLocked,
+              title: siteSelectLocked ? "Verify ownership before assigning a site" : void 0,
               "aria-invalid": Boolean(errors.siteId) || void 0,
               onChange: (event) => {
                 const value = event.target.value;
@@ -5008,6 +5072,7 @@ function HostsWindow({
       siteId: target.siteId,
       surface: target.surface,
       active: target.active,
+      status: target.status,
       title: target.host
     });
   };
@@ -5152,6 +5217,7 @@ function HostsWindow({
               siteId: form.siteId,
               surface: form.surface,
               active: form.active,
+              status: form.status,
               title: form.title
             },
             sites,
@@ -6280,6 +6346,7 @@ function AdminDesktop({
   const [hostsLoading, setHostsLoading] = useState15(false);
   const [hostsCreating, setHostsCreating] = useState15(false);
   const [hostsUnassigning, setHostsUnassigning] = useState15(false);
+  const [hostsAssigning, setHostsAssigning] = useState15(false);
   const [hostsVerifying, setHostsVerifying] = useState15(false);
   const [hostsError, setHostsError] = useState15(null);
   const [hostsFormError, setHostsFormError] = useState15(null);
@@ -6787,6 +6854,30 @@ function AdminDesktop({
       setDesktopSites(sitesList.data.map(toDesktopSite));
     }
   };
+  const handleAssignHost = async (hostId, siteId) => {
+    setHostsAssigning(true);
+    setSitesFormError(null);
+    const result = await api.assignHost(hostId, { siteId });
+    setHostsAssigning(false);
+    if (!result.ok) {
+      handleApiFailure(result, setSitesFormError);
+      return;
+    }
+    const list = await api.listHosts();
+    if (list.ok) {
+      setHostsRows(list.data.map(toWindowHost));
+    } else {
+      const assigned = toWindowHost(result.data);
+      setHostsRows(
+        (prev) => prev.map((row) => row.id === assigned.id ? assigned : row)
+      );
+    }
+    const sitesList = await api.listSites();
+    if (sitesList.ok) {
+      setSitesRows(sitesList.data.map(toWindowSite));
+      setDesktopSites(sitesList.data.map(toDesktopSite));
+    }
+  };
   const handleVerifyHost = async (host) => {
     setHostsVerifying(true);
     setHostsError(null);
@@ -6887,8 +6978,10 @@ function AdminDesktop({
               fieldErrors: sitesFieldErrors,
               onSave: handleSaveSite,
               onAddHost: openHosts,
+              onAssignHost: handleAssignHost,
               onUnassignHost: handleUnassignHost,
               unassigning: hostsUnassigning,
+              assigning: hostsAssigning,
               errorSoundUrl,
               dingSoundUrl,
               onAlertClose: handleAlertClose,

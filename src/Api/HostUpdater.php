@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace App\Api;
 
-use App\Entity\Site;
 use App\Entity\SiteHost;
 use App\Entity\SurfaceType;
-use App\Repository\SiteRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 final class HostUpdater
 {
     public function __construct(
-        private readonly SiteRepository $sites,
         private readonly EntityManagerInterface $em,
         private readonly HostUnassigner $unassigner,
+        private readonly HostAssigner $assigner,
     ) {
     }
 
     /**
      * @throws HostSiteNotFoundException
+     * @throws HostNotVerifiedForAssignException
+     * @throws HostAlreadyAssignedException
      */
     public function update(SiteHost $host, UpdateHostInput $input): SiteHost
     {
@@ -41,20 +41,12 @@ final class HostUpdater
         }
 
         if ($input->siteIdProvided) {
+            // Flush host/surface/active first via assign/unassign helpers.
             if (null === $input->siteId) {
-                $this->unassigner->unassign($host);
-
-                return $host;
+                return $this->unassigner->unassign($host);
             }
 
-            $site = $this->sites->find($input->siteId);
-            if (!$site instanceof Site) {
-                throw new HostSiteNotFoundException();
-            }
-            $host->setSite($site);
-            if ('verified' === $host->getStatus()) {
-                $host->setStatus('active');
-            }
+            return $this->assigner->assign($host, $input->siteId);
         }
 
         $this->em->flush();

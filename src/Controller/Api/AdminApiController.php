@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Api\ApiJson;
+use App\Api\AssignHostInput;
 use App\Api\CreateHostInput;
 use App\Api\CreateSiteInput;
+use App\Api\HostAlreadyAssignedException;
 use App\Api\HostApiMapper;
+use App\Api\HostAssigner;
 use App\Api\HostCreator;
 use App\Api\HostHostTakenException;
-use App\Api\HostSiteNotFoundException;
 use App\Api\HostNotPendingException;
+use App\Api\HostNotVerifiedForAssignException;
+use App\Api\HostSiteNotFoundException;
 use App\Api\HostUnassigner;
 use App\Api\HostUpdater;
 use App\Api\HostVerificationFailedException;
@@ -168,6 +172,70 @@ final class AdminApiController extends AbstractController
                 'The selected site does not exist.',
                 404,
                 ['siteId' => 'Site not found.'],
+            );
+        } catch (HostNotVerifiedForAssignException) {
+            return ApiJson::error(
+                'not_assignable',
+                'Only verified, unassigned hosts can be assigned to a site.',
+                422,
+                ['siteId' => 'Host must be verified and unassigned.'],
+            );
+        } catch (HostAlreadyAssignedException) {
+            return ApiJson::error(
+                'already_assigned',
+                'Host is already assigned to a site.',
+                422,
+                ['siteId' => 'Host is already assigned.'],
+            );
+        }
+
+        return ApiJson::data(HostApiMapper::toArray($updated));
+    }
+
+    #[Route('/hosts/{id}/assign', name: 'api_admin_hosts_assign', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('host.edit')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function assignHost(
+        #[MapEntity(id: 'id')] SiteHost $host,
+        Request $request,
+        HostAssigner $assigner,
+    ): JsonResponse {
+        try {
+            $payload = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return ApiJson::error('invalid_json', 'Request body must be valid JSON.', 400);
+        }
+
+        $input = AssignHostInput::fromPayload($payload);
+        if (!$input->isValid()) {
+            return ApiJson::error(
+                'validation_failed',
+                'Host could not be assigned.',
+                422,
+                $input->fieldErrors,
+            );
+        }
+
+        try {
+            $updated = $assigner->assign($host, (int) $input->siteId);
+        } catch (HostSiteNotFoundException) {
+            return ApiJson::error(
+                'site_not_found',
+                'The selected site does not exist.',
+                404,
+                ['siteId' => 'Site not found.'],
+            );
+        } catch (HostNotVerifiedForAssignException) {
+            return ApiJson::error(
+                'not_assignable',
+                'Only verified, unassigned hosts can be assigned to a site.',
+                422,
+            );
+        } catch (HostAlreadyAssignedException) {
+            return ApiJson::error(
+                'already_assigned',
+                'Host is already assigned to a site.',
+                422,
             );
         }
 
