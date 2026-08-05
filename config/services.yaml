@@ -23,5 +23,8 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
 
+    App\SiteHost\Verification\HostOwnershipProbe:
+        alias: App\SiteHost\Verification\HostOwnershipVerifier
+
     App\Routing\HostContextHolder:
         public: true

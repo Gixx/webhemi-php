@@ -7,9 +7,11 @@
 When ownership is checked (`HostOwnershipVerifier`), WebHemi proves the hostname resolves to this install by:
 
 1. Writing a short-lived token file under `public/`
-2. Fetching that file via the submitted hostname
+2. Fetching that file via the submitted hostname (same port as the admin request; HTTP and HTTPS)
 3. Matching the response body to `webhemi-host-verification:<token>`
 4. Always deleting the temporary file
+
+TLS certificate name checks are **not** required for the probe: a new hostname is often verified before it appears on the cert. The probe only needs the Host to reach this install and return the token body.
 
 See `App\SiteHost\Verification\HostOwnershipVerifier`.
 

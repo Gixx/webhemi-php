@@ -11,8 +11,11 @@ use App\Api\HostApiMapper;
 use App\Api\HostCreator;
 use App\Api\HostHostTakenException;
 use App\Api\HostSiteNotFoundException;
+use App\Api\HostNotPendingException;
 use App\Api\HostUnassigner;
 use App\Api\HostUpdater;
+use App\Api\HostVerificationFailedException;
+use App\Api\HostVerifier;
 use App\Api\SiteApiMapper;
 use App\Api\SiteCreator;
 use App\Api\SiteSlugTakenException;
@@ -179,6 +182,32 @@ final class AdminApiController extends AbstractController
         HostUnassigner $unassigner,
     ): JsonResponse {
         $updated = $unassigner->unassign($host);
+
+        return ApiJson::data(HostApiMapper::toArray($updated));
+    }
+
+    #[Route('/hosts/{id}/verify', name: 'api_admin_hosts_verify', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted('host.verify')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function verifyHost(
+        #[MapEntity(id: 'id')] SiteHost $host,
+        HostVerifier $verifier,
+    ): JsonResponse {
+        try {
+            $updated = $verifier->verify($host);
+        } catch (HostNotPendingException) {
+            return ApiJson::error(
+                'not_pending',
+                'Only pending hosts can be verified.',
+                422,
+            );
+        } catch (HostVerificationFailedException) {
+            return ApiJson::error(
+                'verification_failed',
+                'Ownership could not be verified. Ensure the hostname points at this install and try again.',
+                422,
+            );
+        }
 
         return ApiJson::data(HostApiMapper::toArray($updated));
     }

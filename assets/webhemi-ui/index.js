@@ -3679,14 +3679,55 @@ function buildDemoSiteExplorerTree(site) {
 
 // src/admin/api/client.ts
 var DEFAULT_BASE = "/admin/api";
+var SESSION_EXPIRED_MESSAGE = "Your session has expired. Please sign in again.";
 function normalizeBase(baseUrl) {
   return baseUrl.replace(/\/+$/, "");
 }
+function unauthorizedResult() {
+  return {
+    ok: false,
+    status: 401,
+    error: {
+      code: "unauthorized",
+      message: SESSION_EXPIRED_MESSAGE
+    }
+  };
+}
+function pathLooksLikeLogin(urlOrPath) {
+  try {
+    const path = new URL(urlOrPath, "http://localhost").pathname;
+    return path === "/login" || path.endsWith("/login");
+  } catch {
+    return /\/login(?:\?|$)/.test(urlOrPath);
+  }
+}
+function isAuthFailureResponse(response) {
+  if (response.status === 401) {
+    return true;
+  }
+  if (response.type === "opaqueredirect") {
+    return true;
+  }
+  if ([301, 302, 303, 307, 308].includes(response.status)) {
+    const location = response.headers.get("Location");
+    return location != null && pathLooksLikeLogin(location);
+  }
+  if (response.url && pathLooksLikeLogin(response.url)) {
+    return true;
+  }
+  return false;
+}
 async function parseResult(response) {
+  if (isAuthFailureResponse(response)) {
+    return unauthorizedResult();
+  }
   let payload;
   try {
     payload = await response.json();
   } catch {
+    if (response.status === 401 || response.url && pathLooksLikeLogin(response.url)) {
+      return unauthorizedResult();
+    }
     return {
       ok: false,
       status: response.status,
@@ -3733,7 +3774,9 @@ function createAdminApiClient(options = {}) {
     const response = await fetchImpl(`${baseUrl}${path}`, {
       ...init,
       headers,
-      credentials: "same-origin"
+      credentials: "same-origin",
+      // Detect form_login bounce to /login instead of parsing HTML as JSON.
+      redirect: "manual"
     });
     return parseResult(response);
   }
@@ -3754,8 +3797,14 @@ function createAdminApiClient(options = {}) {
     }),
     unassignHost: (id) => request(`/hosts/${id}/unassign`, {
       method: "POST"
+    }),
+    verifyHost: (id) => request(`/hosts/${id}/verify`, {
+      method: "POST"
     })
   };
+}
+function isUnauthorizedResult(result) {
+  return !result.ok && (result.status === 401 || result.error.code === "unauthorized");
 }
 
 // src/admin/components/FlashList/FlashList.tsx
@@ -4425,6 +4474,7 @@ function SitesWindow({
   unassigning = false,
   errorSoundUrl,
   dingSoundUrl,
+  onAlertClose,
   onCancel,
   onClose,
   onMinimize,
@@ -4459,7 +4509,8 @@ function SitesWindow({
   const closeAlert = useCallback3(() => {
     setAlert(null);
     alertSoundKeyRef.current = null;
-  }, []);
+    onAlertClose?.();
+  }, [onAlertClose]);
   useEffect8(() => {
     if (selectedId != null && !sites.some((site) => site.id === selectedId)) {
       setSelectedId(null);
@@ -4474,10 +4525,22 @@ function SitesWindow({
     wasSavingRef.current = saving;
   }, [saving, form.open, formError, fieldErrors]);
   useEffect8(() => {
-    if (!form.open || !showFormErrors) {
+    if (!error || loading) {
       return;
     }
-    const message = formatSaveErrors(formError, fieldErrors);
+    showErrorAlert(error);
+  }, [error, loading, showErrorAlert]);
+  useEffect8(() => {
+    if (!form.open) {
+      return;
+    }
+    if (!formError && !showFormErrors) {
+      return;
+    }
+    const message = formatSaveErrors(
+      formError,
+      showFormErrors ? fieldErrors : void 0
+    );
     if (!message) {
       return;
     }
@@ -4636,7 +4699,6 @@ function SitesWindow({
             ] })
           }
         ),
-        error && !loading ? /* @__PURE__ */ jsx56("p", { role: "alert", style: { marginTop: 10, marginBottom: 0, color: "#800000" }, children: error }) : null,
         form.open ? /* @__PURE__ */ jsx56(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx56(
           SiteFormDialog,
           {
@@ -4834,10 +4896,13 @@ function HostsWindow({
   fieldErrors,
   formError = null,
   saving = false,
+  verifying = false,
   onSave,
+  onVerify,
   onDelete,
   errorSoundUrl,
   dingSoundUrl,
+  onAlertClose,
   onCancel,
   onClose,
   onMinimize,
@@ -4872,7 +4937,8 @@ function HostsWindow({
   const closeAlert = useCallback4(() => {
     setAlert(null);
     alertSoundKeyRef.current = null;
-  }, []);
+    onAlertClose?.();
+  }, [onAlertClose]);
   useEffect10(() => {
     if (selectedId != null && !hosts.some((row) => row.id === selectedId)) {
       setSelectedId(null);
@@ -4887,19 +4953,32 @@ function HostsWindow({
     wasSavingRef.current = saving;
   }, [saving, form.open, formError, fieldErrors]);
   useEffect10(() => {
-    if (!form.open || !showFormErrors) {
+    if (!error || loading) {
       return;
     }
-    const message = formatSaveErrors2(formError, fieldErrors);
+    showErrorAlert(error);
+  }, [error, loading, showErrorAlert]);
+  useEffect10(() => {
+    if (!form.open) {
+      return;
+    }
+    if (!formError && !showFormErrors) {
+      return;
+    }
+    const message = formatSaveErrors2(
+      formError,
+      showFormErrors ? fieldErrors : void 0
+    );
     if (!message) {
       return;
     }
     showErrorAlert(message);
   }, [formError, fieldErrors, form.open, showFormErrors, showErrorAlert]);
-  const busy = loading || saving;
+  const busy = loading || saving || verifying;
   const selected = hosts.find((row) => row.id === selectedId) ?? null;
   const hasSelection = selected != null;
   const canSave = Boolean(onSave);
+  const canVerifySelected = Boolean(onVerify) && selected?.status === "pending" && !busy;
   const openNew = () => {
     if (!canEdit || busy) {
       return;
@@ -4945,6 +5024,12 @@ function HostsWindow({
       return;
     }
     onDelete(selected);
+  };
+  const handleVerify = () => {
+    if (!canVerifySelected || !selected || !onVerify) {
+      return;
+    }
+    onVerify(selected);
   };
   const handleCancel = () => {
     (onCancel ?? onClose)();
@@ -4999,6 +5084,17 @@ function HostsWindow({
           Button2,
           {
             type: "button",
+            accessKey: "v",
+            disabled: !canVerifySelected,
+            title: selected?.status === "pending" ? "Verify hostname ownership" : "Select a pending host to verify",
+            onClick: handleVerify,
+            children: "Verify"
+          }
+        ),
+        /* @__PURE__ */ jsx58(
+          Button2,
+          {
+            type: "button",
             accessKey: "d",
             disabled: busy || !hasSelection || !onDelete,
             onClick: handleDelete,
@@ -5046,7 +5142,6 @@ function HostsWindow({
             ] })
           }
         ),
-        error && !loading ? /* @__PURE__ */ jsx58("p", { role: "alert", style: { marginTop: 10, marginBottom: 0, color: "#800000" }, children: error }) : null,
         form.open ? /* @__PURE__ */ jsx58(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx58(
           HostFormDialog,
           {
@@ -6185,9 +6280,11 @@ function AdminDesktop({
   const [hostsLoading, setHostsLoading] = useState15(false);
   const [hostsCreating, setHostsCreating] = useState15(false);
   const [hostsUnassigning, setHostsUnassigning] = useState15(false);
+  const [hostsVerifying, setHostsVerifying] = useState15(false);
   const [hostsError, setHostsError] = useState15(null);
   const [hostsFormError, setHostsFormError] = useState15(null);
   const [hostsFieldErrors, setHostsFieldErrors] = useState15({});
+  const pendingLoginRedirectRef = useRef11(false);
   const api = useMemo5(
     () => sitesApi ?? createAdminApiClient({
       csrfToken: apiCsrfToken,
@@ -6198,6 +6295,29 @@ function AdminDesktop({
   );
   const canEditSites = Boolean(sitesApi) || Boolean(apiCsrfToken);
   const canEditHosts = canEditSites;
+  const noteUnauthorized = useCallback5((setError, message) => {
+    pendingLoginRedirectRef.current = true;
+    setError(message);
+  }, []);
+  const handleApiFailure = useCallback5(
+    (result, setError) => {
+      if (result.ok) {
+        return;
+      }
+      if (isUnauthorizedResult(result)) {
+        noteUnauthorized(setError, result.error.message);
+        return;
+      }
+      pendingLoginRedirectRef.current = false;
+      setError(result.error.message);
+    },
+    [noteUnauthorized]
+  );
+  const handleAlertClose = useCallback5(() => {
+    if (pendingLoginRedirectRef.current) {
+      window.location.assign("/login");
+    }
+  }, []);
   const sitesWindowOpen = shell.windows.some((win) => win.id === SITES_WINDOW_ID);
   const hostsWindowOpen = shell.windows.some((win) => win.id === HOSTS_WINDOW_ID);
   const siteFormHosts = useMemo5(
@@ -6246,19 +6366,17 @@ function AdminDesktop({
       }
       setSitesLoading(false);
       if (!result.ok) {
-        setSitesError(result.error.message);
-        if (result.status === 401) {
-          window.location.assign("/login");
-        }
+        handleApiFailure(result, setSitesError);
         return;
       }
+      pendingLoginRedirectRef.current = false;
       setSitesRows(result.data.map(toWindowSite));
       setDesktopSites(result.data.map(toDesktopSite));
     })();
     return () => {
       cancelled = true;
     };
-  }, [sitesWindowOpen, api]);
+  }, [sitesWindowOpen, api, handleApiFailure]);
   useEffect15(() => {
     if (!hostsWindowOpen && !sitesWindowOpen) {
       return;
@@ -6278,19 +6396,19 @@ function AdminDesktop({
       }
       if (!result.ok) {
         if (hostsWindowOpen) {
-          setHostsError(result.error.message);
-        }
-        if (result.status === 401) {
-          window.location.assign("/login");
+          handleApiFailure(result, setHostsError);
+        } else if (isUnauthorizedResult(result)) {
+          noteUnauthorized(setSitesError, result.error.message);
         }
         return;
       }
+      pendingLoginRedirectRef.current = false;
       setHostsRows(result.data.map(toWindowHost));
     })();
     return () => {
       cancelled = true;
     };
-  }, [hostsWindowOpen, sitesWindowOpen, api]);
+  }, [hostsWindowOpen, sitesWindowOpen, api, handleApiFailure, noteUnauthorized]);
   const closeStartMenu = useCallback5(() => setStartMenuOpen(false), []);
   const toggleStartMenu = useCallback5(() => {
     setStartMenuOpen((open) => !open);
@@ -6566,10 +6684,7 @@ function AdminDesktop({
           slug: result.error.fields.slug
         });
       }
-      setSitesFormError(result.error.message);
-      if (result.status === 401) {
-        window.location.assign("/login");
-      }
+      handleApiFailure(result, setSitesFormError);
       return;
     }
     const list = await api.listSites();
@@ -6621,10 +6736,7 @@ function AdminDesktop({
           active: result.error.fields.active
         });
       }
-      setHostsFormError(result.error.message);
-      if (result.status === 401) {
-        window.location.assign("/login");
-      }
+      handleApiFailure(result, setHostsFormError);
       return;
     }
     const list = await api.listHosts();
@@ -6650,10 +6762,7 @@ function AdminDesktop({
     const result = await api.unassignHost(hostId);
     setHostsUnassigning(false);
     if (!result.ok) {
-      setSitesFormError(result.error.message);
-      if (result.status === 401) {
-        window.location.assign("/login");
-      }
+      handleApiFailure(result, setSitesFormError);
       return;
     }
     const list = await api.listHosts();
@@ -6676,6 +6785,25 @@ function AdminDesktop({
     if (sitesList.ok) {
       setSitesRows(sitesList.data.map(toWindowSite));
       setDesktopSites(sitesList.data.map(toDesktopSite));
+    }
+  };
+  const handleVerifyHost = async (host) => {
+    setHostsVerifying(true);
+    setHostsError(null);
+    const result = await api.verifyHost(host.id);
+    setHostsVerifying(false);
+    if (!result.ok) {
+      handleApiFailure(result, setHostsError);
+      return;
+    }
+    const list = await api.listHosts();
+    if (list.ok) {
+      setHostsRows(list.data.map(toWindowHost));
+    } else {
+      const verified = toWindowHost(result.data);
+      setHostsRows(
+        (prev) => prev.map((row) => row.id === verified.id ? verified : row)
+      );
     }
   };
   return /* @__PURE__ */ jsxs43("div", { ref: dashboardRef, className: cn("dashboard", className), children: [
@@ -6763,6 +6891,7 @@ function AdminDesktop({
               unassigning: hostsUnassigning,
               errorSoundUrl,
               dingSoundUrl,
+              onAlertClose: handleAlertClose,
               onClose: () => closeWindow(win.id),
               onCancel: () => closeWindow(win.id),
               onMinimize: () => minimizeWindow(win.id),
@@ -6787,12 +6916,15 @@ function AdminDesktop({
               canEdit: canEditHosts,
               loading: hostsLoading,
               saving: hostsCreating,
+              verifying: hostsVerifying,
               error: hostsError,
               formError: hostsFormError,
               fieldErrors: hostsFieldErrors,
               onSave: handleSaveHost,
+              onVerify: handleVerifyHost,
               errorSoundUrl,
               dingSoundUrl,
+              onAlertClose: handleAlertClose,
               onClose: () => closeWindow(win.id),
               onCancel: () => closeWindow(win.id),
               onMinimize: () => minimizeWindow(win.id),
@@ -7063,6 +7195,7 @@ export {
   Progress,
   Radio,
   RoleListView,
+  SESSION_EXPIRED_MESSAGE,
   Scrollable,
   Select2 as Select,
   Sidebar,
@@ -7126,6 +7259,7 @@ export {
   isExplorerFolder,
   isExplorerLocation,
   isExplorerTreeExpandable,
+  isUnauthorizedResult,
   isUnderExplorerTrash,
   pasteExplorerClipboard,
   playAdminSound,

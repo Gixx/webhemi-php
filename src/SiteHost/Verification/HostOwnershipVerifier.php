@@ -6,7 +6,7 @@ namespace App\SiteHost\Verification;
 
 use Symfony\Component\HttpFoundation\RequestStack;
 
-final class HostOwnershipVerifier
+final class HostOwnershipVerifier implements HostOwnershipProbe
 {
     private const CONNECT_TIMEOUT_SECONDS = 2;
 
@@ -38,6 +38,12 @@ final class HostOwnershipVerifier
                         'ignore_errors' => true,
                         'user_agent' => 'WebHemiHostVerifier/1.0',
                     ],
+                    // Candidate hostnames often are not on the TLS cert yet; the
+                    // probe proves the Host header reaches this install + token body.
+                    'ssl' => [
+                        'verify_peer' => false,
+                        'verify_peer_name' => false,
+                    ],
                 ]);
 
                 $responseBody = @file_get_contents($verificationUrl, false, $context);
@@ -61,16 +67,22 @@ final class HostOwnershipVerifier
     /**
      * @return list<string>
      */
-    private function buildVerificationUrls(string $host, string $fileName): array
+    public function buildVerificationUrls(string $host, string $fileName): array
     {
         $currentRequest = $this->requestStack->getCurrentRequest();
         $scheme = $currentRequest?->getScheme();
         $port = $currentRequest?->getPort();
 
         if ('http' === $scheme || 'https' === $scheme) {
+            $alternate = 'http' === $scheme ? 'https' : 'http';
+            // Propagate only custom ports (e.g. :8000). Default 80/443 stay scheme-native.
+            $explicitPort = null !== $port && $this->defaultPortForScheme($scheme) !== $port
+                ? $port
+                : null;
+
             return array_values(array_unique([
-                $this->buildVerificationUrl($scheme, $host, $fileName, $port),
-                $this->buildVerificationUrl('http' === $scheme ? 'https' : 'http', $host, $fileName),
+                $this->buildVerificationUrl($scheme, $host, $fileName, $explicitPort),
+                $this->buildVerificationUrl($alternate, $host, $fileName, $explicitPort),
             ]));
         }
 
