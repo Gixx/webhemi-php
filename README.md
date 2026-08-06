@@ -37,9 +37,12 @@ symfony server:start   # or php -S 127.0.0.1:8000 -t public
 Default seed:
 
 - Admin: `admin@webhemi.local` / `admin`
-- Hosts: `admin.webhemi.local` (admin), `www.webhemi.local` (site)
+- Site: `main` / Main site
+- Hosts: `admin.webhemi.local` (admin surface), `www.webhemi.local` (site surface) — both **already `active` and assigned** to `main` (probe skipped for local fixtures)
 
 Map those hosts to `127.0.0.1` in `/etc/hosts` (or Windows hosts file) for multi-domain smoke tests.
+
+Operator-created hosts in admin follow pending → verify → assign → active ([hub plan](../docs/plan/Host_Ownership_Verification.md)); see [probe mechanics](docs/host-ownership-verification-flow.md).
 
 ## Local UI workflow
 

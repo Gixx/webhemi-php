@@ -1,6 +1,8 @@
 # Host ownership verification (probe mechanics)
 
-**Product lifecycle (source of truth):** [`docs/plan/Host_Ownership_Verification.md`](../../docs/plan/Host_Ownership_Verification.md) — pending → verified → assign to site → active. That plan supersedes older “create-with-site / admin·api skip probe” product rules.
+**Product lifecycle (source of truth):** hub [`docs/plan/Host_Ownership_Verification.md`](../../docs/plan/Host_Ownership_Verification.md) — create without site → `pending` → ownership probe → `verified` → assign to site → `active`. That plan supersedes older “create-with-site / admin·api skip probe” product rules.
+
+This file documents **probe mechanics only**. Status transitions and assign rules live in the hub plan.
 
 ## Probe (domain service)
 
@@ -13,6 +15,10 @@ When ownership is checked (`HostOwnershipVerifier`), WebHemi proves the hostname
 
 TLS certificate name checks are **not** required for the probe: a new hostname is often verified before it appears on the cert. The probe only needs the Host to reach this install and return the token body.
 
-See `App\SiteHost\Verification\HostOwnershipVerifier`.
+See `App\SiteHost\Verification\HostOwnershipVerifier`. Operator-triggered API: `POST /admin/api/hosts/{id}/verify`.
 
-Status transitions and “only verified hosts may be assigned to a site” are defined in the hub plan above — not in this file.
+## Dev seed (`app:seed`)
+
+Local fixtures **skip the ownership probe**. `app:seed` upserts `admin.webhemi.local` (admin surface) and `www.webhemi.local` (site surface) already bound to the `main` site with status `active` and `is_active=true`, so routing and login work immediately after migrate + seed.
+
+That is **dev-only convenience**. Production / UI-created hosts must follow pending → verify → assign → active.

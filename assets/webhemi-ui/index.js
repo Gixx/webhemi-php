@@ -4523,6 +4523,8 @@ function SitesWindow({
   error = null,
   fieldErrors,
   formError = null,
+  statusMessage = null,
+  onClearStatusMessage,
   saving = false,
   onSave,
   onCreate,
@@ -4591,15 +4593,12 @@ function SitesWindow({
     showErrorAlert(error);
   }, [error, loading, showErrorAlert]);
   useEffect8(() => {
-    if (!form.open) {
-      return;
-    }
-    if (!formError && !showFormErrors) {
+    if (!formError && !(form.open && showFormErrors)) {
       return;
     }
     const message = formatSaveErrors(
       formError,
-      showFormErrors ? fieldErrors : void 0
+      form.open && showFormErrors ? fieldErrors : void 0
     );
     if (!message) {
       return;
@@ -4610,10 +4609,15 @@ function SitesWindow({
   const selected = sites.find((site) => site.id === selectedId) ?? null;
   const hasSelection = selected != null;
   const canSave = Boolean(onSave || onCreate);
+  const selectSite = (id) => {
+    onClearStatusMessage?.();
+    setSelectedId((current) => current === id ? null : id);
+  };
   const openNew = () => {
     if (!canEdit || busy) {
       return;
     }
+    onClearStatusMessage?.();
     setShowFormErrors(false);
     setForm({
       open: true,
@@ -4627,6 +4631,9 @@ function SitesWindow({
     const target = site ?? selected;
     if (!canEdit || !target || busy || !canSave) {
       return;
+    }
+    if (selectedId !== target.id) {
+      onClearStatusMessage?.();
     }
     setSelectedId(target.id);
     setShowFormErrors(false);
@@ -4665,7 +4672,7 @@ function SitesWindow({
     (onCancel ?? onClose)();
   };
   const statusLeft = loading ? "Loading\u2026" : `${sites.length} site${sites.length === 1 ? "" : "s"}`;
-  const statusMid = error ?? (selected ? selected.name : canEdit ? "Select a site, or choose New." : "");
+  const statusMid = statusMessage ?? (selected ? selected.name : canEdit ? "Select a site, or choose New." : "");
   return /* @__PURE__ */ jsx56(
     HeadingPanelWindow,
     {
@@ -4745,7 +4752,7 @@ function SitesWindow({
                 TableRow,
                 {
                   highlighted: selectedId === site.id,
-                  onClick: () => setSelectedId((current) => current === site.id ? null : site.id),
+                  onClick: () => selectSite(site.id),
                   onDoubleClick: () => openEdit(site),
                   children: [
                     /* @__PURE__ */ jsx56("td", { children: site.name }),
@@ -4959,6 +4966,8 @@ function HostsWindow({
   error = null,
   fieldErrors,
   formError = null,
+  statusMessage = null,
+  onClearStatusMessage,
   saving = false,
   verifying = false,
   onSave,
@@ -5023,15 +5032,12 @@ function HostsWindow({
     showErrorAlert(error);
   }, [error, loading, showErrorAlert]);
   useEffect10(() => {
-    if (!form.open) {
-      return;
-    }
-    if (!formError && !showFormErrors) {
+    if (!formError && !(form.open && showFormErrors)) {
       return;
     }
     const message = formatSaveErrors2(
       formError,
-      showFormErrors ? fieldErrors : void 0
+      form.open && showFormErrors ? fieldErrors : void 0
     );
     if (!message) {
       return;
@@ -5043,10 +5049,15 @@ function HostsWindow({
   const hasSelection = selected != null;
   const canSave = Boolean(onSave);
   const canVerifySelected = Boolean(onVerify) && selected?.status === "pending" && !busy;
+  const selectHost = (id) => {
+    onClearStatusMessage?.();
+    setSelectedId((current) => current === id ? null : id);
+  };
   const openNew = () => {
     if (!canEdit || busy) {
       return;
     }
+    onClearStatusMessage?.();
     setShowFormErrors(false);
     setForm({
       open: true,
@@ -5061,6 +5072,9 @@ function HostsWindow({
     const target = row ?? selected;
     if (!canEdit || !target || busy || !canSave) {
       return;
+    }
+    if (selectedId !== target.id) {
+      onClearStatusMessage?.();
     }
     setSelectedId(target.id);
     setShowFormErrors(false);
@@ -5094,13 +5108,14 @@ function HostsWindow({
     if (!canVerifySelected || !selected || !onVerify) {
       return;
     }
+    onClearStatusMessage?.();
     onVerify(selected);
   };
   const handleCancel = () => {
     (onCancel ?? onClose)();
   };
   const statusLeft = loading ? "Loading\u2026" : `${hosts.length} host${hosts.length === 1 ? "" : "s"}`;
-  const statusMid = error ?? (selected ? selected.host : canEdit ? "Select a host, or choose New." : "");
+  const statusMid = statusMessage ?? (selected ? selected.host : canEdit ? "Select a host, or choose New." : "");
   return /* @__PURE__ */ jsx58(
     HeadingPanelWindow,
     {
@@ -5192,7 +5207,7 @@ function HostsWindow({
                 TableRow,
                 {
                   highlighted: selectedId === row.id,
-                  onClick: () => setSelectedId((current) => current === row.id ? null : row.id),
+                  onClick: () => selectHost(row.id),
                   onDoubleClick: () => openEdit(row),
                   children: [
                     /* @__PURE__ */ jsx58("td", { children: row.host }),
@@ -6351,7 +6366,11 @@ function AdminDesktop({
   const [hostsError, setHostsError] = useState15(null);
   const [hostsFormError, setHostsFormError] = useState15(null);
   const [hostsFieldErrors, setHostsFieldErrors] = useState15({});
+  const [sitesStatusMessage, setSitesStatusMessage] = useState15(null);
+  const [hostsStatusMessage, setHostsStatusMessage] = useState15(null);
   const pendingLoginRedirectRef = useRef11(false);
+  const sitesStatusTimerRef = useRef11(null);
+  const hostsStatusTimerRef = useRef11(null);
   const api = useMemo5(
     () => sitesApi ?? createAdminApiClient({
       csrfToken: apiCsrfToken,
@@ -6362,6 +6381,52 @@ function AdminDesktop({
   );
   const canEditSites = Boolean(sitesApi) || Boolean(apiCsrfToken);
   const canEditHosts = canEditSites;
+  const clearSitesStatusMessage = useCallback5(() => {
+    if (sitesStatusTimerRef.current != null) {
+      clearTimeout(sitesStatusTimerRef.current);
+      sitesStatusTimerRef.current = null;
+    }
+    setSitesStatusMessage(null);
+  }, []);
+  const clearHostsStatusMessage = useCallback5(() => {
+    if (hostsStatusTimerRef.current != null) {
+      clearTimeout(hostsStatusTimerRef.current);
+      hostsStatusTimerRef.current = null;
+    }
+    setHostsStatusMessage(null);
+  }, []);
+  const flashSitesStatus = useCallback5(
+    (message) => {
+      clearSitesStatusMessage();
+      setSitesStatusMessage(message);
+      sitesStatusTimerRef.current = setTimeout(() => {
+        sitesStatusTimerRef.current = null;
+        setSitesStatusMessage(null);
+      }, 4e3);
+    },
+    [clearSitesStatusMessage]
+  );
+  const flashHostsStatus = useCallback5(
+    (message) => {
+      clearHostsStatusMessage();
+      setHostsStatusMessage(message);
+      hostsStatusTimerRef.current = setTimeout(() => {
+        hostsStatusTimerRef.current = null;
+        setHostsStatusMessage(null);
+      }, 4e3);
+    },
+    [clearHostsStatusMessage]
+  );
+  useEffect15(() => {
+    return () => {
+      if (sitesStatusTimerRef.current != null) {
+        clearTimeout(sitesStatusTimerRef.current);
+      }
+      if (hostsStatusTimerRef.current != null) {
+        clearTimeout(hostsStatusTimerRef.current);
+      }
+    };
+  }, []);
   const noteUnauthorized = useCallback5((setError, message) => {
     pendingLoginRedirectRef.current = true;
     setError(message);
@@ -6426,6 +6491,7 @@ function AdminDesktop({
     let cancelled = false;
     setSitesLoading(true);
     setSitesError(null);
+    clearSitesStatusMessage();
     void (async () => {
       const result = await api.listSites();
       if (cancelled) {
@@ -6443,7 +6509,7 @@ function AdminDesktop({
     return () => {
       cancelled = true;
     };
-  }, [sitesWindowOpen, api, handleApiFailure]);
+  }, [sitesWindowOpen, api, handleApiFailure, clearSitesStatusMessage]);
   useEffect15(() => {
     if (!hostsWindowOpen && !sitesWindowOpen) {
       return;
@@ -6452,6 +6518,7 @@ function AdminDesktop({
     if (hostsWindowOpen) {
       setHostsLoading(true);
       setHostsError(null);
+      clearHostsStatusMessage();
     }
     void (async () => {
       const result = await api.listHosts();
@@ -6475,7 +6542,14 @@ function AdminDesktop({
     return () => {
       cancelled = true;
     };
-  }, [hostsWindowOpen, sitesWindowOpen, api, handleApiFailure, noteUnauthorized]);
+  }, [
+    hostsWindowOpen,
+    sitesWindowOpen,
+    api,
+    handleApiFailure,
+    noteUnauthorized,
+    clearHostsStatusMessage
+  ]);
   const closeStartMenu = useCallback5(() => setStartMenuOpen(false), []);
   const toggleStartMenu = useCallback5(() => {
     setStartMenuOpen((open) => !open);
@@ -6731,6 +6805,7 @@ function AdminDesktop({
     }));
   };
   const handleSaveSite = async (payload) => {
+    clearSitesStatusMessage();
     if (payload.mode !== "new") {
       setSitesFormError("Editing a site is not available yet.");
       return;
@@ -6754,6 +6829,7 @@ function AdminDesktop({
       handleApiFailure(result, setSitesFormError);
       return;
     }
+    flashSitesStatus("Site created.");
     const list = await api.listSites();
     if (list.ok) {
       setSitesRows(list.data.map(toWindowSite));
@@ -6775,6 +6851,7 @@ function AdminDesktop({
     });
   };
   const handleSaveHost = async (payload) => {
+    clearHostsStatusMessage();
     setHostsCreating(true);
     setHostsFormError(null);
     setHostsFieldErrors({});
@@ -6806,6 +6883,7 @@ function AdminDesktop({
       handleApiFailure(result, setHostsFormError);
       return;
     }
+    flashHostsStatus(payload.mode === "new" ? "Host created." : "Host updated.");
     const list = await api.listHosts();
     if (list.ok) {
       setHostsRows(list.data.map(toWindowHost));
@@ -6824,6 +6902,7 @@ function AdminDesktop({
     }
   };
   const handleUnassignHost = async (hostId) => {
+    clearSitesStatusMessage();
     setHostsUnassigning(true);
     setSitesFormError(null);
     const result = await api.unassignHost(hostId);
@@ -6832,6 +6911,7 @@ function AdminDesktop({
       handleApiFailure(result, setSitesFormError);
       return;
     }
+    flashSitesStatus("Host removed from site.");
     const list = await api.listHosts();
     if (list.ok) {
       setHostsRows(list.data.map(toWindowHost));
@@ -6855,6 +6935,7 @@ function AdminDesktop({
     }
   };
   const handleAssignHost = async (hostId, siteId) => {
+    clearSitesStatusMessage();
     setHostsAssigning(true);
     setSitesFormError(null);
     const result = await api.assignHost(hostId, { siteId });
@@ -6863,6 +6944,7 @@ function AdminDesktop({
       handleApiFailure(result, setSitesFormError);
       return;
     }
+    flashSitesStatus("Host assigned.");
     const list = await api.listHosts();
     if (list.ok) {
       setHostsRows(list.data.map(toWindowHost));
@@ -6879,6 +6961,7 @@ function AdminDesktop({
     }
   };
   const handleVerifyHost = async (host) => {
+    clearHostsStatusMessage();
     setHostsVerifying(true);
     setHostsError(null);
     const result = await api.verifyHost(host.id);
@@ -6887,6 +6970,7 @@ function AdminDesktop({
       handleApiFailure(result, setHostsError);
       return;
     }
+    flashHostsStatus("Host verified.");
     const list = await api.listHosts();
     if (list.ok) {
       setHostsRows(list.data.map(toWindowHost));
@@ -6976,6 +7060,8 @@ function AdminDesktop({
               error: sitesError,
               formError: sitesFormError,
               fieldErrors: sitesFieldErrors,
+              statusMessage: sitesStatusMessage,
+              onClearStatusMessage: clearSitesStatusMessage,
               onSave: handleSaveSite,
               onAddHost: openHosts,
               onAssignHost: handleAssignHost,
@@ -7013,6 +7099,8 @@ function AdminDesktop({
               error: hostsError,
               formError: hostsFormError,
               fieldErrors: hostsFieldErrors,
+              statusMessage: hostsStatusMessage,
+              onClearStatusMessage: clearHostsStatusMessage,
               onSave: handleSaveHost,
               onVerify: handleVerifyHost,
               errorSoundUrl,
