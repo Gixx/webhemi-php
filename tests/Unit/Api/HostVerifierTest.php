@@ -17,7 +17,7 @@ final class HostVerifierTest extends TestCase
 {
     public function testVerifySetsVerifiedOnSuccess(): void
     {
-        $host = (new SiteHost())->setHost('pending.example.test')->setStatus('pending');
+        $host = (new SiteHost())->setHost('pending.example.test')->setVerification('pending');
 
         $probe = new class () implements HostOwnershipProbe {
             public function verify(string $host): HostVerificationResult
@@ -31,12 +31,12 @@ final class HostVerifierTest extends TestCase
 
         $updated = (new HostVerifier($probe, $em))->verify($host);
 
-        self::assertSame('verified', $updated->getStatus());
+        self::assertSame('verified', $updated->getVerification());
     }
 
     public function testVerifyRejectsNonPending(): void
     {
-        $host = (new SiteHost())->setHost('done.example.test')->setStatus('verified');
+        $host = (new SiteHost())->setHost('done.example.test')->setVerification('verified');
 
         $probe = new class () implements HostOwnershipProbe {
             public function verify(string $host): HostVerificationResult
@@ -53,7 +53,7 @@ final class HostVerifierTest extends TestCase
 
     public function testVerifyLeavesPendingOnProbeFailure(): void
     {
-        $host = (new SiteHost())->setHost('fail.example.test')->setStatus('pending');
+        $host = (new SiteHost())->setHost('fail.example.test')->setVerification('pending');
 
         $probe = new class () implements HostOwnershipProbe {
             public function verify(string $host): HostVerificationResult
@@ -69,7 +69,7 @@ final class HostVerifierTest extends TestCase
             (new HostVerifier($probe, $em))->verify($host);
             self::fail('Expected HostVerificationFailedException');
         } catch (HostVerificationFailedException) {
-            self::assertSame('pending', $host->getStatus());
+            self::assertSame('pending', $host->getVerification());
         }
     }
 }

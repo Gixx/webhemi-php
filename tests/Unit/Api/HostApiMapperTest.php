@@ -22,8 +22,8 @@ final class HostApiMapperTest extends TestCase
             ->setSite($site)
             ->setHost('www.example.test')
             ->setSurface(SurfaceType::Admin)
-            ->setStatus('pending')
-            ->setIsActive(true);
+            ->setVerification('pending')
+            ->setIsEnabled(true);
         $hostRef = new \ReflectionProperty(SiteHost::class, 'id');
         $hostRef->setValue($host, 12);
 
@@ -35,8 +35,8 @@ final class HostApiMapperTest extends TestCase
                 'siteSlug' => 'main',
                 'siteName' => 'Main',
                 'surface' => 'admin',
-                'status' => 'pending',
-                'active' => true,
+                'verification' => 'pending',
+                'enabled' => true,
             ],
             HostApiMapper::toArray($host),
         );
@@ -47,8 +47,8 @@ final class HostApiMapperTest extends TestCase
         $host = (new SiteHost())
             ->setHost('orphan.example.test')
             ->setSurface(SurfaceType::Site)
-            ->setStatus('pending')
-            ->setIsActive(true);
+            ->setVerification('pending')
+            ->setIsEnabled(true);
         $hostRef = new \ReflectionProperty(SiteHost::class, 'id');
         $hostRef->setValue($host, 3);
 
@@ -60,8 +60,8 @@ final class HostApiMapperTest extends TestCase
                 'siteSlug' => null,
                 'siteName' => null,
                 'surface' => 'site',
-                'status' => 'pending',
-                'active' => true,
+                'verification' => 'pending',
+                'enabled' => true,
             ],
             HostApiMapper::toArray($host),
         );

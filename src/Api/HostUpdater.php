@@ -6,18 +6,22 @@ namespace App\Api;
 
 use App\Entity\SiteHost;
 use App\Entity\SurfaceType;
+use App\Repository\SiteHostRepository;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 
 final class HostUpdater
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
+        private readonly SiteHostRepository $hosts,
         private readonly HostUnassigner $unassigner,
         private readonly HostAssigner $assigner,
     ) {
     }
 
     /**
+     * @throws HostHostTakenException
      * @throws HostSiteNotFoundException
      * @throws HostNotVerifiedForAssignException
      * @throws HostAlreadyAssignedException
@@ -29,6 +33,10 @@ final class HostUpdater
         }
 
         if (null !== $input->host) {
+            $other = $this->hosts->findOneBy(['host' => $input->host]);
+            if ($other instanceof SiteHost && $other->getId() !== $host->getId()) {
+                throw new HostHostTakenException();
+            }
             $host->setHost($input->host);
         }
 
@@ -36,20 +44,35 @@ final class HostUpdater
             $host->setSurface(SurfaceType::from($input->surface));
         }
 
-        if (null !== $input->active) {
-            $host->setIsActive($input->active);
+        if (null !== $input->enabled) {
+            $host->setIsEnabled($input->enabled);
         }
 
         if ($input->siteIdProvided) {
-            // Flush host/surface/active first via assign/unassign helpers.
             if (null === $input->siteId) {
                 return $this->unassigner->unassign($host);
+            }
+
+            $currentSiteId = $host->getSite()?->getId();
+            if ($currentSiteId === $input->siteId) {
+                // Same site already bound — do not re-assign.
+                try {
+                    $this->em->flush();
+                } catch (UniqueConstraintViolationException $e) {
+                    throw new HostHostTakenException(previous: $e);
+                }
+
+                return $host;
             }
 
             return $this->assigner->assign($host, $input->siteId);
         }
 
-        $this->em->flush();
+        try {
+            $this->em->flush();
+        } catch (UniqueConstraintViolationException $e) {
+            throw new HostHostTakenException(previous: $e);
+        }
 
         return $host;
     }

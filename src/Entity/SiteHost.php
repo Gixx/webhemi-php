@@ -18,7 +18,7 @@ class SiteHost
     private ?int $id = null;
 
     #[ORM\ManyToOne(targetEntity: Site::class, inversedBy: 'hosts')]
-    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Site $site = null;
 
     #[ORM\Column(length: 191)]
@@ -27,11 +27,13 @@ class SiteHost
     #[ORM\Column(length: 16, enumType: SurfaceType::class)]
     private SurfaceType $surface = SurfaceType::Site;
 
+    /** Ownership probe: pending | verified. */
     #[ORM\Column(length: 16)]
-    private string $status = 'pending';
+    private string $verification = 'pending';
 
+    /** Kill switch (Enabled / Disabled), same idea as Site::$isEnabled. */
     #[ORM\Column]
-    private bool $isActive = true;
+    private bool $isEnabled = true;
 
     public function getId(): ?int
     {
@@ -74,29 +76,29 @@ class SiteHost
         return $this;
     }
 
-    public function getStatus(): string
+    public function getVerification(): string
     {
-        return $this->status;
+        return $this->verification;
     }
 
-    public function setStatus(string $status): self
+    public function setVerification(string $verification): self
     {
-        if (!in_array($status, ['pending', 'verified', 'active'], true)) {
-            throw new \InvalidArgumentException(sprintf('Invalid status: %s', $status));
+        if (!\in_array($verification, ['pending', 'verified'], true)) {
+            throw new \InvalidArgumentException(sprintf('Invalid host verification "%s".', $verification));
         }
-        $this->status = $status;
+        $this->verification = $verification;
 
         return $this;
     }
 
-    public function isActive(): bool
+    public function isEnabled(): bool
     {
-        return $this->isActive;
+        return $this->isEnabled;
     }
 
-    public function setIsActive(bool $isActive): self
+    public function setIsEnabled(bool $isEnabled): self
     {
-        $this->isActive = $isActive;
+        $this->isEnabled = $isEnabled;
 
         return $this;
     }

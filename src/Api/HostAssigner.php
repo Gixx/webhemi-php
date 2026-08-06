@@ -18,7 +18,7 @@ final class HostAssigner
     }
 
     /**
-     * Bind a verified, unassigned host to a site and set status active.
+     * Bind a verified, unassigned host to a site.
      *
      * @throws HostNotVerifiedForAssignException
      * @throws HostAlreadyAssignedException
@@ -26,7 +26,7 @@ final class HostAssigner
      */
     public function assign(SiteHost $host, int $siteId): SiteHost
     {
-        if ('verified' !== $host->getStatus()) {
+        if ('verified' !== $host->getVerification()) {
             throw new HostNotVerifiedForAssignException();
         }
 
@@ -40,7 +40,6 @@ final class HostAssigner
         }
 
         $host->setSite($site);
-        $host->setStatus('active');
         $this->em->flush();
 
         return $host;

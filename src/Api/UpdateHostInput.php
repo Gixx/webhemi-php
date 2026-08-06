@@ -14,7 +14,7 @@ final class UpdateHostInput
         public readonly bool $siteIdProvided,
         public readonly ?int $siteId,
         public readonly ?string $surface,
-        public readonly ?bool $active,
+        public readonly ?bool $enabled,
         /** @var array<string, string> */
         public readonly array $fieldErrors,
     ) {
@@ -67,15 +67,16 @@ final class UpdateHostInput
             }
         }
 
-        $active = null;
-        if (\array_key_exists('active', $payload)) {
-            $active = filter_var($payload['active'], FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
-            if (null === $active) {
-                $fields['active'] = 'Active must be a boolean.';
+        $enabled = null;
+        if (\array_key_exists('enabled', $payload) || \array_key_exists('active', $payload)) {
+            $raw = \array_key_exists('enabled', $payload) ? $payload['enabled'] : $payload['active'];
+            $enabled = filter_var($raw, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+            if (null === $enabled) {
+                $fields['enabled'] = 'Enabled must be a boolean.';
             }
         }
 
-        return new self($host, $siteIdProvided, $siteId, $surface, $active, $fields);
+        return new self($host, $siteIdProvided, $siteId, $surface, $enabled, $fields);
     }
 
     public function isValid(): bool

@@ -17,14 +17,14 @@ final class HostVerifier
     }
 
     /**
-     * Run the ownership probe; on success set status to verified.
+     * Run the ownership probe; on success set verification to verified.
      *
      * @throws HostNotPendingException
      * @throws HostVerificationFailedException
      */
     public function verify(SiteHost $host): SiteHost
     {
-        if ('pending' !== $host->getStatus()) {
+        if ('pending' !== $host->getVerification()) {
             throw new HostNotPendingException();
         }
 
@@ -33,7 +33,7 @@ final class HostVerifier
             throw new HostVerificationFailedException();
         }
 
-        $host->setStatus('verified');
+        $host->setVerification('verified');
         $this->em->flush();
 
         return $host;

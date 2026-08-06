@@ -18,6 +18,6 @@ class SiteHostRepository extends ServiceEntityRepository
 
     public function findOneByHost(string $host): ?SiteHost
     {
-        return $this->findOneBy(['host' => strtolower(trim($host)), 'isActive' => true]);
+        return $this->findOneBy(['host' => strtolower(trim($host)), 'isEnabled' => true]);
     }
 }

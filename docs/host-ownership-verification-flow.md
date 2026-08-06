@@ -19,6 +19,6 @@ See `App\SiteHost\Verification\HostOwnershipVerifier`. Operator-triggered API: `
 
 ## Dev seed (`app:seed`)
 
-Local fixtures **skip the ownership probe**. `app:seed` upserts `admin.webhemi.local` (admin surface) and `www.webhemi.local` (site surface) already bound to the `main` site with status `active` and `is_active=true`, so routing and login work immediately after migrate + seed.
+Local fixtures **skip the ownership probe**. `app:seed` upserts `admin.webhemi.local` (admin surface) and `www.webhemi.local` (site surface) already bound to the `main` site with verification `verified` and enabled, so routing and login work immediately after migrate + seed.
 
 That is **dev-only convenience**. Production / UI-created hosts must follow pending → verify → assign → active.

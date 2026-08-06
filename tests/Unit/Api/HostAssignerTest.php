@@ -16,9 +16,9 @@ use PHPUnit\Framework\TestCase;
 
 final class HostAssignerTest extends TestCase
 {
-    public function testAssignSetsSiteAndActive(): void
+    public function testAssignSetsSiteAndKeepsVerified(): void
     {
-        $host = (new SiteHost())->setHost('ok.example.test')->setStatus('verified');
+        $host = (new SiteHost())->setHost('ok.example.test')->setVerification('verified');
         $site = (new Site())->setName('Main')->setSlug('main');
         $siteRef = new \ReflectionProperty(Site::class, 'id');
         $siteRef->setValue($site, 3);
@@ -32,12 +32,12 @@ final class HostAssignerTest extends TestCase
         $updated = (new HostAssigner($sites, $em))->assign($host, 3);
 
         self::assertSame($site, $updated->getSite());
-        self::assertSame('active', $updated->getStatus());
+        self::assertSame('verified', $updated->getVerification());
     }
 
     public function testAssignRejectsPending(): void
     {
-        $host = (new SiteHost())->setHost('pending.example.test')->setStatus('pending');
+        $host = (new SiteHost())->setHost('pending.example.test')->setVerification('pending');
         $sites = $this->createStub(SiteRepository::class);
         $em = $this->createStub(EntityManagerInterface::class);
 
@@ -50,7 +50,7 @@ final class HostAssignerTest extends TestCase
         $site = (new Site())->setName('Bound')->setSlug('bound');
         $host = (new SiteHost())
             ->setHost('bound.example.test')
-            ->setStatus('verified')
+            ->setVerification('verified')
             ->setSite($site);
 
         $sites = $this->createStub(SiteRepository::class);
@@ -62,7 +62,7 @@ final class HostAssignerTest extends TestCase
 
     public function testAssignRejectsMissingSite(): void
     {
-        $host = (new SiteHost())->setHost('ok.example.test')->setStatus('verified');
+        $host = (new SiteHost())->setHost('ok.example.test')->setVerification('verified');
         $sites = $this->createMock(SiteRepository::class);
         $sites->expects(self::once())->method('find')->with(99)->willReturn(null);
         $em = $this->createStub(EntityManagerInterface::class);

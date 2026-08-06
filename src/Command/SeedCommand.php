@@ -98,21 +98,21 @@ final class SeedCommand extends Command
         $adminHostName = (string) $input->getOption('admin-host');
         $siteHostName = (string) $input->getOption('site-host');
 
-        // Dev fixtures: skip ownership probe; land already active + assigned
+        // Dev fixtures: skip ownership probe; land verified + enabled + assigned
         // see docs/host-ownership-verification-flow.md
         $adminHost = $this->hosts->findOneBy(['host' => $adminHostName]) ?? (new SiteHost())->setHost($adminHostName);
         $adminHost
             ->setSurface(SurfaceType::Admin)
-            ->setStatus('active')
-            ->setIsActive(true)
+            ->setVerification('verified')
+            ->setIsEnabled(true)
             ->setSite($site);
         $this->em->persist($adminHost);
 
         $publicHost = $this->hosts->findOneBy(['host' => $siteHostName]) ?? (new SiteHost())->setHost($siteHostName);
         $publicHost
             ->setSurface(SurfaceType::Site)
-            ->setStatus('active')
-            ->setIsActive(true)
+            ->setVerification('verified')
+            ->setIsEnabled(true)
             ->setSite($site);
         $this->em->persist($publicHost);
 

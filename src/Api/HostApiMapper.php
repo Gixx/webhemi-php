@@ -16,8 +16,8 @@ final class HostApiMapper
      *     siteSlug: string|null,
      *     siteName: string|null,
      *     surface: string,
-     *     status: string,
-     *     active: bool
+     *     verification: string,
+     *     enabled: bool
      * }
      */
     public static function toArray(SiteHost $host): array
@@ -31,8 +31,8 @@ final class HostApiMapper
             'siteSlug' => $site?->getSlug(),
             'siteName' => $site?->getName(),
             'surface' => $host->getSurface()->value,
-            'status' => $host->getStatus(),
-            'active' => $host->isActive(),
+            'verification' => $host->getVerification(),
+            'enabled' => $host->isEnabled(),
         ];
     }
 }

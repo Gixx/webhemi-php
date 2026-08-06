@@ -17,16 +17,12 @@ final class HostUnassigner
 
     /**
      * Detach host from its site without deleting the row.
-     * Active hosts become verified so they can be assigned again later.
+     * Verification stays verified so the host can be assigned again.
      */
     public function unassign(SiteHost $host): SiteHost
     {
         if (!$host->getSite() instanceof Site) {
             return $host;
-        }
-
-        if ('active' === $host->getStatus()) {
-            $host->setStatus('verified');
         }
 
         $host->setSite(null);
