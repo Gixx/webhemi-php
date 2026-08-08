@@ -1,0 +1,19 @@
+# WebHemi install config template.
+# Copy to var/config/webhemi.yaml (gitignored) or let app:seed / Settings create it.
+#
+# access.admin:
+#   path   — admin UI at {main-site-host}/admin, protected API at /admin/api (default)
+#   domain — admin UI on a Main-site host with surface=admin (verified + enabled)
+#
+# Public API is always {site-host}/api (no domain mode, no api host surface).
+# See hub docs/plan/Admin_API_Access_Mode.md
+
+webhemi:
+  access:
+    admin: path
+  paths:
+    admin: /admin
+    admin_api: /admin/api
+    public_api: /api
+    login: /login
+    register: /register

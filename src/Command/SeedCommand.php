@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Config\AdminAccessMode;
+use App\Config\WebhemiConfig;
+use App\Config\WebhemiConfigLoader;
 use App\Entity\Permission;
 use App\Entity\Role;
 use App\Entity\Site;
@@ -35,6 +38,7 @@ final class SeedCommand extends Command
         private readonly SiteRepository $sites,
         private readonly SiteHostRepository $hosts,
         private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly WebhemiConfigLoader $webhemiConfig,
     ) {
         parent::__construct();
     }
@@ -124,8 +128,19 @@ final class SeedCommand extends Command
 
         $this->em->flush();
 
+        // Local seed creates an admin-surface host → domain access matches routing intent.
+        $defaults = WebhemiConfig::defaults();
+        $this->webhemiConfig->ensureFileExists(new WebhemiConfig(
+            adminAccess: AdminAccessMode::Domain,
+            adminPath: $defaults->adminPath,
+            adminApiPath: $defaults->adminApiPath,
+            publicApiPath: $defaults->publicApiPath,
+            loginPath: $defaults->loginPath,
+            registerPath: $defaults->registerPath,
+        ));
+
         $io->success(sprintf(
-            'Seeded admin %s / hosts %s + %s',
+            'Seeded admin %s / hosts %s + %s (var/config/webhemi.yaml access.admin=domain if newly created)',
             $email,
             $adminHostName,
             $siteHostName,

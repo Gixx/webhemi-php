@@ -39,8 +39,13 @@ Default seed:
 - Admin: `admin@webhemi.local` / `admin`
 - Site: `main` / Main site
 - Hosts: `admin.webhemi.local` (admin surface), `www.webhemi.local` (site surface) — both **already `active` and assigned** to `main` (probe skipped for local fixtures)
+- If missing, writes `var/config/webhemi.yaml` with `access.admin: domain` (template: `config/webhemi.yaml.dist`)
 
 Map those hosts to `127.0.0.1` in `/etc/hosts` (or Windows hosts file) for multi-domain smoke tests.
+
+### Install config (`var/config/webhemi.yaml`)
+
+Gitignored runtime settings (defaults if the file is absent: `access.admin: path`). See hub [Admin_API_Access_Mode.md](../docs/plan/Admin_API_Access_Mode.md). Copy from `config/webhemi.yaml.dist` or rely on `app:seed`.
 
 Operator-created hosts in admin follow pending → verify → assign → active ([hub plan](../docs/plan/Host_Ownership_Verification.md)); see [probe mechanics](docs/host-ownership-verification-flow.md).
 

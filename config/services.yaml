@@ -26,5 +26,9 @@ services:
     App\SiteHost\Verification\HostOwnershipProbe:
         alias: App\SiteHost\Verification\HostOwnershipVerifier
 
+    App\Config\WebhemiConfigLoader:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
     App\Routing\HostContextHolder:
         public: true
