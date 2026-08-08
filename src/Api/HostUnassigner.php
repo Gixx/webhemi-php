@@ -12,6 +12,7 @@ final class HostUnassigner
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
+        private readonly AdminAccessModeResetter $accessModeResetter,
     ) {
     }
 
@@ -27,6 +28,7 @@ final class HostUnassigner
 
         $host->setSite(null);
         $this->em->flush();
+        $this->accessModeResetter->resetToPathIfNeeded();
 
         return $host;
     }

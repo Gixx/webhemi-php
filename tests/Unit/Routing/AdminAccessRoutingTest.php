@@ -116,6 +116,26 @@ final class AdminAccessRoutingTest extends TestCase
         self::assertSame('https://admin.example.test:8000/login', $response->getTargetUrl());
     }
 
+    public function testDomainModeDoesNotRedirectAdminApiOnAdminHost(): void
+    {
+        $main = $this->siteHost('www.example.test', SurfaceType::Site, true);
+        $admin = $this->siteHost('admin.example.test', SurfaceType::Admin, true);
+
+        $holder = new HostContextHolder();
+        $holder->set(new HostContext($admin));
+
+        $entry = $this->entry(AdminAccessMode::Domain, $main, $admin);
+        $resolver = $this->resolverReturning($entry);
+
+        $kernel = $this->createStub(HttpKernelInterface::class);
+        $request = Request::create('https://admin.example.test:8000/admin/api/settings');
+        $event = new RequestEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST);
+
+        (new AdminAccessRedirectSubscriber($holder, $resolver))->onKernelRequest($event);
+
+        self::assertNull($event->getResponse());
+    }
+
     public function testPathModeRedirectsAdminHostToMainAdmin(): void
     {
         $main = $this->siteHost('www.example.test', SurfaceType::Site, true);

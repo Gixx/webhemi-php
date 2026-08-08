@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Api;
 
+use App\Api\AdminAccessModeResetter;
 use App\Api\HostAdminSurfaceNotAllowedException;
 use App\Api\HostAlreadyAssignedException;
 use App\Api\HostAssigner;
 use App\Api\HostUnassigner;
 use App\Api\HostUpdater;
 use App\Api\UpdateHostInput;
+use App\Config\WebhemiConfig;
+use App\Config\WebhemiConfigLoader;
 use App\Entity\Site;
 use App\Entity\SiteHost;
 use App\Entity\SurfaceType;
@@ -20,6 +23,29 @@ use PHPUnit\Framework\TestCase;
 
 final class HostUpdaterTest extends TestCase
 {
+    /** @var list<string> */
+    private array $tempDirs = [];
+
+    protected function tearDown(): void
+    {
+        foreach ($this->tempDirs as $dir) {
+            $this->removeTree($dir);
+        }
+        $this->tempDirs = [];
+    }
+
+    private function resetter(): AdminAccessModeResetter
+    {
+        $dir = sys_get_temp_dir() . '/webhemi-upd-' . bin2hex(random_bytes(4));
+        mkdir($dir . '/var/config', 0775, true);
+        $this->tempDirs[] = $dir;
+        $loader = new WebhemiConfigLoader($dir);
+        $loader->save(WebhemiConfig::defaults());
+        $hosts = $this->createStub(SiteHostRepository::class);
+
+        return new AdminAccessModeResetter($loader, $hosts);
+    }
+
     public function testSameSiteIdDoesNotReassign(): void
     {
         $site = (new Site())->setName('Main')->setSlug('main');
@@ -38,6 +64,7 @@ final class HostUpdaterTest extends TestCase
         $sites = $this->createStub(SiteRepository::class);
         $em = $this->createMock(EntityManagerInterface::class);
         $em->expects(self::once())->method('flush');
+        $resetter = $this->resetter();
 
         $input = UpdateHostInput::fromPayload([
             'host' => 'www.example.test',
@@ -50,8 +77,9 @@ final class HostUpdaterTest extends TestCase
         $updated = (new HostUpdater(
             $em,
             $hosts,
-            new HostUnassigner($em),
+            new HostUnassigner($em, $resetter),
             new HostAssigner($sites, $em),
+            $resetter,
         ))->update($host, $input);
 
         self::assertSame('verified', $updated->getVerification());
@@ -74,6 +102,7 @@ final class HostUpdaterTest extends TestCase
         $hosts = $this->createStub(SiteHostRepository::class);
         $sites = $this->createStub(SiteRepository::class);
         $em = $this->createStub(EntityManagerInterface::class);
+        $resetter = $this->resetter();
 
         $input = UpdateHostInput::fromPayload(['surface' => 'admin']);
         self::assertTrue($input->isValid());
@@ -82,8 +111,9 @@ final class HostUpdaterTest extends TestCase
         (new HostUpdater(
             $em,
             $hosts,
-            new HostUnassigner($em),
+            new HostUnassigner($em, $resetter),
             new HostAssigner($sites, $em),
+            $resetter,
         ))->update($host, $input);
     }
 
@@ -101,6 +131,7 @@ final class HostUpdaterTest extends TestCase
         $hosts = $this->createStub(SiteHostRepository::class);
         $sites = $this->createStub(SiteRepository::class);
         $em = $this->createStub(EntityManagerInterface::class);
+        $resetter = $this->resetter();
 
         $input = UpdateHostInput::fromPayload(['siteId' => 5]);
         self::assertTrue($input->isValid());
@@ -109,8 +140,24 @@ final class HostUpdaterTest extends TestCase
         (new HostUpdater(
             $em,
             $hosts,
-            new HostUnassigner($em),
+            new HostUnassigner($em, $resetter),
             new HostAssigner($sites, $em),
+            $resetter,
         ))->update($host, $input);
+    }
+
+    private function removeTree(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+        foreach (scandir($dir) ?: [] as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $path = $dir . '/' . $item;
+            is_dir($path) ? $this->removeTree($path) : unlink($path);
+        }
+        rmdir($dir);
     }
 }

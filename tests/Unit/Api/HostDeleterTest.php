@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Api;
 
+use App\Api\AdminAccessModeResetter;
 use App\Api\HostDeleter;
+use App\Config\WebhemiConfig;
+use App\Config\WebhemiConfigLoader;
 use App\Entity\SiteHost;
+use App\Repository\SiteHostRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -19,6 +23,30 @@ final class HostDeleterTest extends TestCase
         $em->expects(self::once())->method('remove')->with($host);
         $em->expects(self::once())->method('flush');
 
-        (new HostDeleter($em))->delete($host);
+        $dir = sys_get_temp_dir() . '/webhemi-del-' . bin2hex(random_bytes(4));
+        mkdir($dir . '/var/config', 0775, true);
+        $loader = new WebhemiConfigLoader($dir);
+        $loader->save(WebhemiConfig::defaults());
+        $hosts = $this->createStub(SiteHostRepository::class);
+        $resetter = new AdminAccessModeResetter($loader, $hosts);
+
+        (new HostDeleter($em, $resetter))->delete($host);
+
+        $this->removeTree($dir);
+    }
+
+    private function removeTree(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+        foreach (scandir($dir) ?: [] as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $path = $dir . '/' . $item;
+            is_dir($path) ? $this->removeTree($path) : unlink($path);
+        }
+        rmdir($dir);
     }
 }

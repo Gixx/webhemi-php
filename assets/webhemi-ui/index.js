@@ -1407,7 +1407,7 @@ function findHostBlockTarget(anchor) {
     return null;
   }
   const host = anchor.closest(
-    ".sites-window, .site-file-explorer, .login-host, [data-shell-window], .desktop-window"
+    ".sites-window, .hosts-window, .settings-window, .site-file-explorer, .login-host, [data-shell-window], .desktop-window"
   );
   return host instanceof HTMLElement ? host : null;
 }
@@ -3764,6 +3764,11 @@ function createAdminApiClient(options = {}) {
     assignHost: (id, body) => request(`/hosts/${id}/assign`, {
       method: "POST",
       body: JSON.stringify(body)
+    }),
+    getSettings: () => request("/settings"),
+    updateSettings: (body) => request("/settings", {
+      method: "PATCH",
+      body: JSON.stringify(body)
     })
   };
 }
@@ -3864,6 +3869,7 @@ function ControlPanel({
   onClose,
   onOpenSites,
   onOpenHosts,
+  onOpenSettings,
   onMinimize,
   onMaximize,
   onActivate,
@@ -3917,7 +3923,7 @@ function ControlPanel({
         /* @__PURE__ */ jsx44(StatusBarField, {})
       ] }),
       children: ICONS.map((icon) => {
-        const onOpen = icon.kind === "sites" ? onOpenSites : icon.kind === "hosts" ? onOpenHosts : void 0;
+        const onOpen = icon.kind === "sites" ? onOpenSites : icon.kind === "hosts" ? onOpenHosts : icon.kind === "settings" ? onOpenSettings : void 0;
         return /* @__PURE__ */ jsx44(
           SystemIcon,
           {
@@ -5065,9 +5071,193 @@ function HostsWindow({
   );
 }
 
-// src/admin/pages/LoginPage.tsx
+// src/admin/components/SettingsWindow/SettingsWindow.tsx
 import { useEffect as useEffect10, useLayoutEffect as useLayoutEffect5, useRef as useRef8, useState as useState13 } from "react";
 import { jsx as jsx49, jsxs as jsxs28 } from "react/jsx-runtime";
+var ACCESS_SWITCH_WARNING = "Changing admin access mode will discard unfinished work in this session.\nYou will need to sign in again on the new admin login page.";
+function SettingsWindow({
+  adminAccess = "path",
+  domainAvailable = false,
+  canEdit = true,
+  loading = false,
+  saving = false,
+  error = null,
+  statusMessage = null,
+  onClearStatusMessage,
+  onSave,
+  errorSoundUrl,
+  dingSoundUrl,
+  onAlertClose,
+  onCancel,
+  onClose,
+  onMinimize,
+  onMaximize,
+  onActivate,
+  inactive = false,
+  maximized = false,
+  resizable = true,
+  className,
+  style,
+  width = 420
+}) {
+  const [draft, setDraft] = useState13(adminAccess);
+  const [pendingAccess, setPendingAccess] = useState13(
+    null
+  );
+  const [alert, setAlert] = useState13(null);
+  const soundedFor = useRef8(null);
+  const warnedFor = useRef8(null);
+  const handleCancel = onCancel ?? onClose;
+  const busy = loading || saving;
+  const showAlert = Boolean(alert);
+  const showSwitchWarning = pendingAccess != null && !showAlert;
+  useEffect10(() => {
+    setDraft(adminAccess);
+  }, [adminAccess]);
+  useEffect10(() => {
+    if (draft === "domain" && !domainAvailable) {
+      setDraft("path");
+    }
+  }, [domainAvailable, draft]);
+  useEffect10(() => {
+    if (!error) {
+      return;
+    }
+    setPendingAccess(null);
+    setAlert(error);
+  }, [error]);
+  useLayoutEffect5(() => {
+    if (!alert) {
+      soundedFor.current = null;
+      return;
+    }
+    if (soundedFor.current === alert) {
+      return;
+    }
+    soundedFor.current = alert;
+    playAdminSound("chord", errorSoundUrl);
+  }, [alert, errorSoundUrl]);
+  useLayoutEffect5(() => {
+    if (!pendingAccess) {
+      warnedFor.current = null;
+      return;
+    }
+    if (warnedFor.current === pendingAccess) {
+      return;
+    }
+    warnedFor.current = pendingAccess;
+    playAdminSound("chord", errorSoundUrl);
+  }, [pendingAccess, errorSoundUrl]);
+  const requestAccessChange = (next) => {
+    if (busy || !canEdit || next === adminAccess) {
+      return;
+    }
+    if (next === "domain" && !domainAvailable) {
+      return;
+    }
+    onClearStatusMessage?.();
+    setDraft(next);
+    setPendingAccess(next);
+  };
+  const cancelAccessChange = () => {
+    setPendingAccess(null);
+    setDraft(adminAccess);
+  };
+  const confirmAccessChange = () => {
+    if (pendingAccess == null || !onSave) {
+      setPendingAccess(null);
+      return;
+    }
+    const next = pendingAccess;
+    setPendingAccess(null);
+    onSave(next);
+  };
+  const domainDisabled = !domainAvailable || !canEdit || busy;
+  return /* @__PURE__ */ jsxs28(
+    HeadingPanelWindow,
+    {
+      className: cn("settings-window", className),
+      style,
+      width,
+      inactive,
+      resizable,
+      title: "Settings",
+      titleIcon: "settings",
+      titleBarControls: /* @__PURE__ */ jsxs28(TitleBarControls, { children: [
+        /* @__PURE__ */ jsx49(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+        resizable ? /* @__PURE__ */ jsx49(
+          TitleBarControl,
+          {
+            action: maximized ? "Restore" : "Maximize",
+            onClick: onMaximize
+          }
+        ) : null,
+        /* @__PURE__ */ jsx49(TitleBarControl, { action: "Close", onClick: onClose })
+      ] }),
+      onMouseDown: onActivate,
+      actions: /* @__PURE__ */ jsx49(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx49(Button, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" }) }),
+      statusBar: /* @__PURE__ */ jsxs28(StatusBar, { children: [
+        /* @__PURE__ */ jsx49(StatusBarField, { children: loading ? "Loading\u2026" : domainAvailable ? "Domain available" : "Path only" }),
+        /* @__PURE__ */ jsx49(StatusBarField, { className: "description", children: statusMessage ?? "" }),
+        /* @__PURE__ */ jsx49(StatusBarField, {})
+      ] }),
+      children: [
+        /* @__PURE__ */ jsx49(GroupBox, { legend: "Admin access", children: /* @__PURE__ */ jsxs28(FieldRow, { children: [
+          /* @__PURE__ */ jsx49(
+            Radio,
+            {
+              id: "settings-admin-access-domain",
+              name: "adminAccess",
+              label: "domain",
+              checked: draft === "domain",
+              disabled: domainDisabled,
+              onChange: () => requestAccessChange("domain")
+            }
+          ),
+          /* @__PURE__ */ jsx49(
+            Radio,
+            {
+              id: "settings-admin-access-path",
+              name: "adminAccess",
+              label: "path",
+              checked: draft === "path",
+              disabled: !canEdit || busy,
+              onChange: () => requestAccessChange("path")
+            }
+          )
+        ] }) }),
+        showSwitchWarning ? /* @__PURE__ */ jsx49(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx49(
+          MessageDialog,
+          {
+            type: "warning",
+            title: "Warning",
+            message: ACCESS_SWITCH_WARNING,
+            confirmLabel: "OK",
+            cancelLabel: "Cancel",
+            onClose: cancelAccessChange,
+            onConfirm: confirmAccessChange
+          }
+        ) }) : null,
+        showAlert ? /* @__PURE__ */ jsx49(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx49(
+          MessageDialog,
+          {
+            type: "error",
+            title: "Error",
+            message: alert,
+            onClose: () => {
+              setAlert(null);
+              onAlertClose?.();
+            }
+          }
+        ) }) : null
+      ]
+    }
+  );
+}
+
+// src/admin/pages/LoginPage.tsx
+import { useEffect as useEffect11, useLayoutEffect as useLayoutEffect6, useRef as useRef9, useState as useState14 } from "react";
+import { jsx as jsx50, jsxs as jsxs29 } from "react/jsx-runtime";
 function normalizeError(error) {
   if (typeof error === "string") {
     const trimmed = error.trim();
@@ -5091,20 +5281,20 @@ function LoginPage({
   errorSoundUrl,
   dingSoundUrl
 }) {
-  const dashboardRef = useRef8(null);
-  const modalRootRef = useRef8(null);
-  const soundedFor = useRef8(null);
+  const dashboardRef = useRef9(null);
+  const modalRootRef = useRef9(null);
+  const soundedFor = useRef9(null);
   const message = normalizeError(error);
-  const [dismissed, setDismissed] = useState13(false);
-  const [boundsEl, setBoundsEl] = useState13(null);
+  const [dismissed, setDismissed] = useState14(false);
+  const [boundsEl, setBoundsEl] = useState14(null);
   const showAlert = Boolean(message && !dismissed);
-  useLayoutEffect5(() => {
+  useLayoutEffect6(() => {
     setBoundsEl(dashboardRef.current);
   }, []);
-  useEffect10(() => {
+  useEffect11(() => {
     setDismissed(false);
   }, [message]);
-  useEffect10(() => {
+  useEffect11(() => {
     if (!message || dismissed) {
       if (!message) {
         soundedFor.current = null;
@@ -5117,9 +5307,9 @@ function LoginPage({
     soundedFor.current = message;
     playAdminSound("chord", errorSoundUrl);
   }, [message, dismissed, errorSoundUrl]);
-  return /* @__PURE__ */ jsxs28("div", { ref: dashboardRef, className: "dashboard login-desktop", children: [
-    /* @__PURE__ */ jsxs28("div", { className: "login-host", children: [
-      /* @__PURE__ */ jsx49(
+  return /* @__PURE__ */ jsxs29("div", { ref: dashboardRef, className: "dashboard login-desktop", children: [
+    /* @__PURE__ */ jsxs29("div", { className: "login-host", children: [
+      /* @__PURE__ */ jsx50(
         LoginForm,
         {
           action,
@@ -5129,7 +5319,7 @@ function LoginPage({
           bannerUrl
         }
       ),
-      showAlert ? /* @__PURE__ */ jsx49(
+      showAlert ? /* @__PURE__ */ jsx50(
         "div",
         {
           className: "modal-blocker",
@@ -5145,7 +5335,7 @@ function LoginPage({
         }
       ) : null
     ] }),
-    showAlert ? /* @__PURE__ */ jsx49("div", { className: "desktop-modal-layer is-alert", children: /* @__PURE__ */ jsx49(FloatingModal, { boundsEl, rootRef: modalRootRef, children: /* @__PURE__ */ jsx49(
+    showAlert ? /* @__PURE__ */ jsx50("div", { className: "desktop-modal-layer is-alert", children: /* @__PURE__ */ jsx50(FloatingModal, { boundsEl, rootRef: modalRootRef, children: /* @__PURE__ */ jsx50(
       MessageDialog,
       {
         type: "error",
@@ -5158,7 +5348,7 @@ function LoginPage({
 }
 
 // src/admin/pages/AdminDesktop.tsx
-import { useCallback as useCallback5, useEffect as useEffect14, useMemo as useMemo5, useRef as useRef11, useState as useState15 } from "react";
+import { useCallback as useCallback5, useEffect as useEffect15, useMemo as useMemo5, useRef as useRef12, useState as useState16 } from "react";
 
 // src/admin/lib/safeAppPath.ts
 function isSafeAppPath(href) {
@@ -5170,15 +5360,31 @@ function isSafeAppPath(href) {
   }
   return true;
 }
+function isSafeHttpUrl(href) {
+  try {
+    const url = new URL(href);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 function assignSafeAppPath(href, fallback) {
   const target = isSafeAppPath(href) ? href : fallback;
   window.location.assign(target);
+}
+function assignSafeNavigationUrl(href, fallback) {
+  if (isSafeAppPath(href) || isSafeHttpUrl(href)) {
+    window.location.assign(href);
+    return;
+  }
+  window.location.assign(isSafeAppPath(fallback) || isSafeHttpUrl(fallback) ? fallback : "/admin/login");
 }
 
 // src/admin/shell/types.ts
 var CONTROL_PANEL_WINDOW_ID = "control-panel";
 var SITES_WINDOW_ID = "sites";
 var HOSTS_WINDOW_ID = "hosts";
+var SETTINGS_WINDOW_ID = "settings";
 function siteWindowId(siteId) {
   return `site-${siteId}`;
 }
@@ -5189,8 +5395,8 @@ function parseSiteWindowId(id) {
 
 // src/admin/shell/DesktopWindow.tsx
 import {
-  useEffect as useEffect11,
-  useRef as useRef9
+  useEffect as useEffect12,
+  useRef as useRef10
 } from "react";
 
 // src/admin/shell/resize.ts
@@ -5208,7 +5414,8 @@ var DEFAULT_WINDOW_SIZE = {
   "control-panel": { width: 600, height: 380 },
   site: { width: 640, height: 440 },
   sites: { width: 560, height: 480 },
-  hosts: { width: 640, height: 480 }
+  hosts: { width: 640, height: 480 },
+  settings: { width: 420, height: 340 }
 };
 function computeResizeBounds(dashboard, edge, start, pointer, minWidth = SHELL_MIN_WIDTH, minHeight = SHELL_MIN_HEIGHT) {
   const dx = pointer.clientX - pointer.startX;
@@ -5258,7 +5465,7 @@ function computeResizeBounds(dashboard, edge, start, pointer, minWidth = SHELL_M
 }
 
 // src/admin/shell/DesktopWindow.tsx
-import { jsx as jsx50, jsxs as jsxs29 } from "react/jsx-runtime";
+import { jsx as jsx51, jsxs as jsxs30 } from "react/jsx-runtime";
 function DesktopWindow({
   windowId,
   left,
@@ -5279,26 +5486,26 @@ function DesktopWindow({
   onPointerDown,
   ...rest
 }) {
-  const rootRef = useRef9(null);
-  const dragRef = useRef9(null);
-  const resizeRef = useRef9(null);
-  const onPositionChangeRef = useRef9(onPositionChange);
-  const onBoundsChangeRef = useRef9(onBoundsChange);
-  const dragDisabledRef = useRef9(dragDisabled);
-  const maximizedRef = useRef9(maximized);
-  useEffect11(() => {
+  const rootRef = useRef10(null);
+  const dragRef = useRef10(null);
+  const resizeRef = useRef10(null);
+  const onPositionChangeRef = useRef10(onPositionChange);
+  const onBoundsChangeRef = useRef10(onBoundsChange);
+  const dragDisabledRef = useRef10(dragDisabled);
+  const maximizedRef = useRef10(maximized);
+  useEffect12(() => {
     onPositionChangeRef.current = onPositionChange;
   }, [onPositionChange]);
-  useEffect11(() => {
+  useEffect12(() => {
     onBoundsChangeRef.current = onBoundsChange;
   }, [onBoundsChange]);
-  useEffect11(() => {
+  useEffect12(() => {
     dragDisabledRef.current = dragDisabled;
   }, [dragDisabled]);
-  useEffect11(() => {
+  useEffect12(() => {
     maximizedRef.current = maximized;
   }, [maximized]);
-  useEffect11(() => {
+  useEffect12(() => {
     const onMove = (event) => {
       const node = rootRef.current;
       if (!node) {
@@ -5483,7 +5690,7 @@ function DesktopWindow({
     ...sized ? { width, height } : null
   };
   const showHandles = resizable && !maximized && !dragDisabled;
-  return /* @__PURE__ */ jsxs29(
+  return /* @__PURE__ */ jsxs30(
     "div",
     {
       ref: rootRef,
@@ -5501,7 +5708,7 @@ function DesktopWindow({
       ...rest,
       children: [
         children,
-        showHandles ? RESIZE_EDGES.map((edge) => /* @__PURE__ */ jsx50(
+        showHandles ? RESIZE_EDGES.map((edge) => /* @__PURE__ */ jsx51(
           "div",
           {
             className: "window-resize-handle",
@@ -5517,26 +5724,26 @@ function DesktopWindow({
 }
 
 // src/admin/shell/TaskbarClock.tsx
-import { useEffect as useEffect12, useState as useState14 } from "react";
-import { jsx as jsx51 } from "react/jsx-runtime";
+import { useEffect as useEffect13, useState as useState15 } from "react";
+import { jsx as jsx52 } from "react/jsx-runtime";
 function formatClock(date) {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
 }
 function TaskbarClock() {
-  const [label, setLabel] = useState14(() => formatClock(/* @__PURE__ */ new Date()));
-  useEffect12(() => {
+  const [label, setLabel] = useState15(() => formatClock(/* @__PURE__ */ new Date()));
+  useEffect13(() => {
     const tick = () => setLabel(formatClock(/* @__PURE__ */ new Date()));
     tick();
     const id = window.setInterval(tick, 1e3);
     return () => window.clearInterval(id);
   }, []);
-  return /* @__PURE__ */ jsx51("div", { className: "sunken-panel clock", "aria-live": "polite", children: label });
+  return /* @__PURE__ */ jsx52("div", { className: "sunken-panel clock", "aria-live": "polite", children: label });
 }
 
 // src/admin/shell/Taskbar.tsx
-import { jsx as jsx52, jsxs as jsxs30 } from "react/jsx-runtime";
+import { jsx as jsx53, jsxs as jsxs31 } from "react/jsx-runtime";
 function taskClassName(win, active) {
   return cn(
     "task",
@@ -5544,6 +5751,7 @@ function taskClassName(win, active) {
     win.kind === "site" && "site",
     win.kind === "sites" && "sites",
     win.kind === "hosts" && "hosts",
+    win.kind === "settings" && "settings",
     active && "active"
   );
 }
@@ -5556,10 +5764,10 @@ function Taskbar({
   startMenu,
   className
 }) {
-  return /* @__PURE__ */ jsxs30("div", { id: "toolbar", className: cn("window", className), children: [
+  return /* @__PURE__ */ jsxs31("div", { id: "toolbar", className: cn("window", className), children: [
     startMenu,
-    /* @__PURE__ */ jsxs30("div", { className: "window-body", children: [
-      /* @__PURE__ */ jsx52(
+    /* @__PURE__ */ jsxs31("div", { className: "window-body", children: [
+      /* @__PURE__ */ jsx53(
         "button",
         {
           type: "button",
@@ -5571,9 +5779,9 @@ function Taskbar({
           children: "Menu"
         }
       ),
-      /* @__PURE__ */ jsx52("div", { className: "task-buttons", children: windows.map((win) => {
+      /* @__PURE__ */ jsx53("div", { className: "task-buttons", children: windows.map((win) => {
         const pressed = win.id === activeId && !win.minimized;
-        return /* @__PURE__ */ jsx52(
+        return /* @__PURE__ */ jsx53(
           "button",
           {
             type: "button",
@@ -5582,27 +5790,27 @@ function Taskbar({
             "aria-pressed": pressed,
             title: win.title,
             onClick: () => onTaskClick(win.id),
-            children: /* @__PURE__ */ jsx52("span", { className: "task-title", children: win.title })
+            children: /* @__PURE__ */ jsx53("span", { className: "task-title", children: win.title })
           },
           win.id
         );
       }) }),
-      /* @__PURE__ */ jsx52(TaskbarClock, {})
+      /* @__PURE__ */ jsx53(TaskbarClock, {})
     ] })
   ] });
 }
 
 // src/admin/shell/StartMenu.tsx
-import { useEffect as useEffect13, useRef as useRef10 } from "react";
-import { jsx as jsx53, jsxs as jsxs31 } from "react/jsx-runtime";
+import { useEffect as useEffect14, useRef as useRef11 } from "react";
+import { jsx as jsx54, jsxs as jsxs32 } from "react/jsx-runtime";
 function StartMenu({
   open,
   onClose,
   onOpenControlPanel,
   logoutHref
 }) {
-  const rootRef = useRef10(null);
-  useEffect13(() => {
+  const rootRef = useRef11(null);
+  useEffect14(() => {
     if (!open) {
       return;
     }
@@ -5656,7 +5864,7 @@ function StartMenu({
       } : void 0
     }
   ];
-  return /* @__PURE__ */ jsxs31(
+  return /* @__PURE__ */ jsxs32(
     "div",
     {
       ref: rootRef,
@@ -5664,18 +5872,18 @@ function StartMenu({
       id: "start-menu",
       hidden: !open,
       children: [
-        /* @__PURE__ */ jsx53("div", { className: "start-menu-banner", "aria-hidden": "true", children: /* @__PURE__ */ jsx53("span", { children: "WebHemi 1.0" }) }),
-        /* @__PURE__ */ jsxs31("ul", { className: "start-menu-list", role: "menu", "aria-label": "Menu", children: [
-          items.slice(0, 4).map((item) => /* @__PURE__ */ jsx53("li", { role: "none", children: /* @__PURE__ */ jsx53(StartMenuItem, { item }) }, item.id)),
-          /* @__PURE__ */ jsx53("li", { className: "separator", role: "separator" }),
-          items.slice(4).map((item) => /* @__PURE__ */ jsx53("li", { role: "none", children: /* @__PURE__ */ jsx53(StartMenuItem, { item }) }, item.id))
+        /* @__PURE__ */ jsx54("div", { className: "start-menu-banner", "aria-hidden": "true", children: /* @__PURE__ */ jsx54("span", { children: "WebHemi 1.0" }) }),
+        /* @__PURE__ */ jsxs32("ul", { className: "start-menu-list", role: "menu", "aria-label": "Menu", children: [
+          items.slice(0, 4).map((item) => /* @__PURE__ */ jsx54("li", { role: "none", children: /* @__PURE__ */ jsx54(StartMenuItem, { item }) }, item.id)),
+          /* @__PURE__ */ jsx54("li", { className: "separator", role: "separator" }),
+          items.slice(4).map((item) => /* @__PURE__ */ jsx54("li", { role: "none", children: /* @__PURE__ */ jsx54(StartMenuItem, { item }) }, item.id))
         ] })
       ]
     }
   );
 }
 function StartMenuItem({ item }) {
-  return /* @__PURE__ */ jsx53(
+  return /* @__PURE__ */ jsx54(
     "button",
     {
       type: "button",
@@ -5732,6 +5940,9 @@ function parseEntry(id, value) {
     return null;
   }
   if (kind === "hosts" && id !== HOSTS_WINDOW_ID) {
+    return null;
+  }
+  if (kind === "settings" && id !== SETTINGS_WINDOW_ID) {
     return null;
   }
   if (kind === "control-panel" && id !== CONTROL_PANEL_WINDOW_ID) {
@@ -5855,6 +6066,10 @@ function hydrateDesktopFromPersistence(persisted, sites) {
       windows.push(windowFromEntry(entry));
       continue;
     }
+    if (entry.kind === "settings" && entry.id === SETTINGS_WINDOW_ID) {
+      windows.push(windowFromEntry(entry));
+      continue;
+    }
     if (entry.kind === "site" && entry.siteId != null && siteIds.has(entry.siteId)) {
       windows.push({
         ...windowFromEntry(entry),
@@ -5911,7 +6126,7 @@ function geometryFromPersistence(persisted, id, kind) {
 }
 
 // src/admin/pages/AdminDesktop.tsx
-import { jsx as jsx54, jsxs as jsxs32 } from "react/jsx-runtime";
+import { jsx as jsx55, jsxs as jsxs33 } from "react/jsx-runtime";
 var CASCADE_ORIGIN = { left: 48, top: 24 };
 var CASCADE_STEP = 28;
 var PERSIST_DEBOUNCE_MS = 200;
@@ -5974,43 +6189,51 @@ function AdminDesktop({
   className
 }) {
   const storageKey = persistenceKey === false ? null : persistenceKey;
-  const persistedRef = useRef11(
+  const persistedRef = useRef12(
     storageKey ? loadPersistedDesktop(storageKey) : null
   );
-  const hydratedRef = useRef11(
+  const hydratedRef = useRef12(
     hydrateDesktopFromPersistence(persistedRef.current, sites)
   );
-  const nextZRef = useRef11(hydratedRef.current.nextZ);
-  const cascadeRef = useRef11(hydratedRef.current.cascade);
-  const dashboardRef = useRef11(null);
-  const [shell, setShell] = useState15(() => ({
+  const nextZRef = useRef12(hydratedRef.current.nextZ);
+  const cascadeRef = useRef12(hydratedRef.current.cascade);
+  const dashboardRef = useRef12(null);
+  const [shell, setShell] = useState16(() => ({
     windows: hydratedRef.current.windows,
     activeId: hydratedRef.current.activeId
   }));
-  const [startMenuOpen, setStartMenuOpen] = useState15(false);
-  const [desktopSites, setDesktopSites] = useState15(sites);
-  const [sitesRows, setSitesRows] = useState15([]);
-  const [sitesLoading, setSitesLoading] = useState15(false);
-  const [sitesCreating, setSitesCreating] = useState15(false);
-  const [sitesDeleting, setSitesDeleting] = useState15(false);
-  const [sitesError, setSitesError] = useState15(null);
-  const [sitesFormError, setSitesFormError] = useState15(null);
-  const [sitesFieldErrors, setSitesFieldErrors] = useState15({});
-  const [hostsRows, setHostsRows] = useState15([]);
-  const [hostsLoading, setHostsLoading] = useState15(false);
-  const [hostsCreating, setHostsCreating] = useState15(false);
-  const [hostsDeleting, setHostsDeleting] = useState15(false);
-  const [hostsUnassigning, setHostsUnassigning] = useState15(false);
-  const [hostsAssigning, setHostsAssigning] = useState15(false);
-  const [hostsVerifying, setHostsVerifying] = useState15(false);
-  const [hostsError, setHostsError] = useState15(null);
-  const [hostsFormError, setHostsFormError] = useState15(null);
-  const [hostsFieldErrors, setHostsFieldErrors] = useState15({});
-  const [sitesStatusMessage, setSitesStatusMessage] = useState15(null);
-  const [hostsStatusMessage, setHostsStatusMessage] = useState15(null);
-  const pendingLoginRedirectRef = useRef11(false);
-  const sitesStatusTimerRef = useRef11(null);
-  const hostsStatusTimerRef = useRef11(null);
+  const [startMenuOpen, setStartMenuOpen] = useState16(false);
+  const [desktopSites, setDesktopSites] = useState16(sites);
+  const [sitesRows, setSitesRows] = useState16([]);
+  const [sitesLoading, setSitesLoading] = useState16(false);
+  const [sitesCreating, setSitesCreating] = useState16(false);
+  const [sitesDeleting, setSitesDeleting] = useState16(false);
+  const [sitesError, setSitesError] = useState16(null);
+  const [sitesFormError, setSitesFormError] = useState16(null);
+  const [sitesFieldErrors, setSitesFieldErrors] = useState16({});
+  const [hostsRows, setHostsRows] = useState16([]);
+  const [hostsLoading, setHostsLoading] = useState16(false);
+  const [hostsCreating, setHostsCreating] = useState16(false);
+  const [hostsDeleting, setHostsDeleting] = useState16(false);
+  const [hostsUnassigning, setHostsUnassigning] = useState16(false);
+  const [hostsAssigning, setHostsAssigning] = useState16(false);
+  const [hostsVerifying, setHostsVerifying] = useState16(false);
+  const [hostsError, setHostsError] = useState16(null);
+  const [hostsFormError, setHostsFormError] = useState16(null);
+  const [hostsFieldErrors, setHostsFieldErrors] = useState16({});
+  const [sitesStatusMessage, setSitesStatusMessage] = useState16(null);
+  const [hostsStatusMessage, setHostsStatusMessage] = useState16(null);
+  const [settings, setSettings] = useState16(null);
+  const [settingsLoading, setSettingsLoading] = useState16(false);
+  const [settingsSaving, setSettingsSaving] = useState16(false);
+  const [settingsError, setSettingsError] = useState16(null);
+  const [settingsStatusMessage, setSettingsStatusMessage] = useState16(
+    null
+  );
+  const pendingLoginRedirectRef = useRef12(false);
+  const sitesStatusTimerRef = useRef12(null);
+  const hostsStatusTimerRef = useRef12(null);
+  const settingsStatusTimerRef = useRef12(null);
   const api = useMemo5(
     () => sitesApi ?? createAdminApiClient({
       csrfToken: apiCsrfToken,
@@ -6021,6 +6244,7 @@ function AdminDesktop({
   );
   const canEditSites = Boolean(sitesApi) || Boolean(apiCsrfToken);
   const canEditHosts = canEditSites;
+  const canEditSettings = canEditSites;
   const clearSitesStatusMessage = useCallback5(() => {
     if (sitesStatusTimerRef.current != null) {
       clearTimeout(sitesStatusTimerRef.current);
@@ -6057,13 +6281,34 @@ function AdminDesktop({
     },
     [clearHostsStatusMessage]
   );
-  useEffect14(() => {
+  const clearSettingsStatusMessage = useCallback5(() => {
+    if (settingsStatusTimerRef.current != null) {
+      clearTimeout(settingsStatusTimerRef.current);
+      settingsStatusTimerRef.current = null;
+    }
+    setSettingsStatusMessage(null);
+  }, []);
+  const flashSettingsStatus = useCallback5(
+    (message) => {
+      clearSettingsStatusMessage();
+      setSettingsStatusMessage(message);
+      settingsStatusTimerRef.current = setTimeout(() => {
+        settingsStatusTimerRef.current = null;
+        setSettingsStatusMessage(null);
+      }, 4e3);
+    },
+    [clearSettingsStatusMessage]
+  );
+  useEffect15(() => {
     return () => {
       if (sitesStatusTimerRef.current != null) {
         clearTimeout(sitesStatusTimerRef.current);
       }
       if (hostsStatusTimerRef.current != null) {
         clearTimeout(hostsStatusTimerRef.current);
+      }
+      if (settingsStatusTimerRef.current != null) {
+        clearTimeout(settingsStatusTimerRef.current);
       }
     };
   }, []);
@@ -6087,11 +6332,26 @@ function AdminDesktop({
   );
   const handleAlertClose = useCallback5(() => {
     if (pendingLoginRedirectRef.current) {
+      pendingLoginRedirectRef.current = false;
       assignSafeAppPath(loginHref, "/admin/login");
     }
   }, [loginHref]);
+  const dismissSitesAlert = useCallback5(() => {
+    setSitesError(null);
+    handleAlertClose();
+  }, [handleAlertClose]);
+  const dismissHostsAlert = useCallback5(() => {
+    setHostsError(null);
+    setHostsFormError(null);
+    handleAlertClose();
+  }, [handleAlertClose]);
+  const dismissSettingsAlert = useCallback5(() => {
+    setSettingsError(null);
+    handleAlertClose();
+  }, [handleAlertClose]);
   const sitesWindowOpen = shell.windows.some((win) => win.id === SITES_WINDOW_ID);
   const hostsWindowOpen = shell.windows.some((win) => win.id === HOSTS_WINDOW_ID);
+  const settingsWindowOpen = shell.windows.some((win) => win.id === SETTINGS_WINDOW_ID);
   const siteFormHosts = useMemo5(
     () => hostsRows.map(toSiteFormHostOption),
     [hostsRows]
@@ -6104,10 +6364,10 @@ function AdminDesktop({
     })),
     [desktopSites]
   );
-  useEffect14(() => {
+  useEffect15(() => {
     setDesktopSites(sites);
   }, [sites]);
-  useEffect14(() => {
+  useEffect15(() => {
     if (!storageKey) {
       return;
     }
@@ -6124,7 +6384,7 @@ function AdminDesktop({
     }, PERSIST_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [shell, storageKey]);
-  useEffect14(() => {
+  useEffect15(() => {
     if (!sitesWindowOpen) {
       return;
     }
@@ -6150,7 +6410,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [sitesWindowOpen, api, handleApiFailure, clearSitesStatusMessage]);
-  useEffect14(() => {
+  useEffect15(() => {
     if (!hostsWindowOpen && !sitesWindowOpen) {
       return;
     }
@@ -6190,6 +6450,31 @@ function AdminDesktop({
     noteUnauthorized,
     clearHostsStatusMessage
   ]);
+  useEffect15(() => {
+    if (!settingsWindowOpen) {
+      return;
+    }
+    let cancelled = false;
+    setSettingsLoading(true);
+    setSettingsError(null);
+    clearSettingsStatusMessage();
+    void (async () => {
+      const result = await api.getSettings();
+      if (cancelled) {
+        return;
+      }
+      setSettingsLoading(false);
+      if (!result.ok) {
+        handleApiFailure(result, setSettingsError);
+        return;
+      }
+      pendingLoginRedirectRef.current = false;
+      setSettings(result.data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [settingsWindowOpen, api, handleApiFailure, clearSettingsStatusMessage]);
   const closeStartMenu = useCallback5(() => setStartMenuOpen(false), []);
   const toggleStartMenu = useCallback5(() => {
     setStartMenuOpen((open) => !open);
@@ -6383,6 +6668,41 @@ function AdminDesktop({
       DEFAULT_WINDOW_SIZE.hosts
     );
   };
+  const openSettings = () => {
+    openOrRaiseWindow(
+      SETTINGS_WINDOW_ID,
+      "settings",
+      "Settings",
+      DEFAULT_WINDOW_SIZE.settings
+    );
+  };
+  const handleSaveSettings = useCallback5(
+    async (adminAccess) => {
+      setSettingsSaving(true);
+      setSettingsError(null);
+      clearSettingsStatusMessage();
+      const result = await api.updateSettings({ adminAccess });
+      setSettingsSaving(false);
+      if (!result.ok) {
+        handleApiFailure(result, setSettingsError);
+        return;
+      }
+      pendingLoginRedirectRef.current = false;
+      setSettings(result.data);
+      if (result.data.sessionEnded && result.data.loginUrl) {
+        assignSafeNavigationUrl(result.data.loginUrl, loginHref);
+        return;
+      }
+      flashSettingsStatus("Settings saved.");
+    },
+    [
+      api,
+      handleApiFailure,
+      clearSettingsStatusMessage,
+      flashSettingsStatus,
+      loginHref
+    ]
+  );
   const openSite = (site) => {
     const id = siteWindowId(site.id);
     setShell((prev) => {
@@ -6674,9 +6994,9 @@ function AdminDesktop({
       );
     }
   };
-  return /* @__PURE__ */ jsxs32("div", { ref: dashboardRef, className: cn("dashboard", className), children: [
-    /* @__PURE__ */ jsxs32("div", { className: "icon-list", children: [
-      desktopSites.map((site) => /* @__PURE__ */ jsx54(
+  return /* @__PURE__ */ jsxs33("div", { ref: dashboardRef, className: cn("dashboard", className), children: [
+    /* @__PURE__ */ jsxs33("div", { className: "icon-list", children: [
+      desktopSites.map((site) => /* @__PURE__ */ jsx55(
         SystemIcon,
         {
           kind: "site",
@@ -6686,7 +7006,7 @@ function AdminDesktop({
         },
         site.id
       )),
-      /* @__PURE__ */ jsx54(
+      /* @__PURE__ */ jsx55(
         SystemIcon,
         {
           kind: "control-panel",
@@ -6699,7 +7019,7 @@ function AdminDesktop({
     shell.windows.map((win) => {
       const active = win.id === shell.activeId && !win.minimized;
       const maximizeAction = win.maximized ? "Restore" : "Maximize";
-      const shellFrame = (child) => /* @__PURE__ */ jsx54(
+      const shellFrame = (child) => /* @__PURE__ */ jsx55(
         DesktopWindow,
         {
           windowId: win.id,
@@ -6721,7 +7041,7 @@ function AdminDesktop({
       );
       if (win.kind === "control-panel") {
         return shellFrame(
-          /* @__PURE__ */ jsx54(
+          /* @__PURE__ */ jsx55(
             ControlPanel,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -6732,14 +7052,15 @@ function AdminDesktop({
               onMaximize: () => toggleMaximize(win.id),
               onActivate: () => activateWindow(win.id),
               onOpenSites: openSites,
-              onOpenHosts: openHosts
+              onOpenHosts: openHosts,
+              onOpenSettings: openSettings
             }
           )
         );
       }
       if (win.kind === "sites") {
         return shellFrame(
-          /* @__PURE__ */ jsx54(
+          /* @__PURE__ */ jsx55(
             SitesWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -6765,7 +7086,7 @@ function AdminDesktop({
               assigning: hostsAssigning,
               errorSoundUrl,
               dingSoundUrl,
-              onAlertClose: handleAlertClose,
+              onAlertClose: dismissSitesAlert,
               onClose: () => closeWindow(win.id),
               onCancel: () => closeWindow(win.id),
               onMinimize: () => minimizeWindow(win.id),
@@ -6779,7 +7100,7 @@ function AdminDesktop({
       }
       if (win.kind === "hosts") {
         return shellFrame(
-          /* @__PURE__ */ jsx54(
+          /* @__PURE__ */ jsx55(
             HostsWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -6806,7 +7127,38 @@ function AdminDesktop({
               onVerify: handleVerifyHost,
               errorSoundUrl,
               dingSoundUrl,
-              onAlertClose: handleAlertClose,
+              onAlertClose: dismissHostsAlert,
+              onClose: () => closeWindow(win.id),
+              onCancel: () => closeWindow(win.id),
+              onMinimize: () => minimizeWindow(win.id),
+              onMaximize: () => toggleMaximize(win.id),
+              onActivate: () => activateWindow(win.id),
+              width: win.width,
+              style: { height: "100%", minHeight: 0, width: "100%" }
+            }
+          )
+        );
+      }
+      if (win.kind === "settings") {
+        return shellFrame(
+          /* @__PURE__ */ jsx55(
+            SettingsWindow,
+            {
+              className: cn(win.maximized && "is-maximized"),
+              inactive: !active,
+              maximized: win.maximized,
+              adminAccess: settings?.adminAccess ?? "path",
+              domainAvailable: settings?.domainAvailable ?? false,
+              canEdit: canEditSettings,
+              loading: settingsLoading,
+              saving: settingsSaving,
+              error: settingsError,
+              statusMessage: settingsStatusMessage,
+              onClearStatusMessage: clearSettingsStatusMessage,
+              onSave: handleSaveSettings,
+              errorSoundUrl,
+              dingSoundUrl,
+              onAlertClose: dismissSettingsAlert,
               onClose: () => closeWindow(win.id),
               onCancel: () => closeWindow(win.id),
               onMinimize: () => minimizeWindow(win.id),
@@ -6823,7 +7175,7 @@ function AdminDesktop({
         name: win.title
       };
       return shellFrame(
-        /* @__PURE__ */ jsx54(
+        /* @__PURE__ */ jsx55(
           SiteFileExplorer,
           {
             className: cn(win.maximized && "is-maximized"),
@@ -6839,7 +7191,7 @@ function AdminDesktop({
         )
       );
     }),
-    /* @__PURE__ */ jsx54(
+    /* @__PURE__ */ jsx55(
       Taskbar,
       {
         windows: shell.windows,
@@ -6847,7 +7199,7 @@ function AdminDesktop({
         onTaskClick: handleTaskClick,
         onMenuClick: toggleStartMenu,
         menuExpanded: startMenuOpen,
-        startMenu: /* @__PURE__ */ jsx54(
+        startMenu: /* @__PURE__ */ jsx55(
           StartMenu,
           {
             open: startMenuOpen,
@@ -6862,17 +7214,17 @@ function AdminDesktop({
 }
 
 // src/themes/default/components/SiteHeader/SiteHeader.tsx
-import { jsx as jsx55, jsxs as jsxs33 } from "react/jsx-runtime";
+import { jsx as jsx56, jsxs as jsxs34 } from "react/jsx-runtime";
 function SiteHeader({ siteName, navItems = [], actions, className }) {
-  return /* @__PURE__ */ jsx55(
+  return /* @__PURE__ */ jsx56(
     "header",
     {
       className: cn(
         "wh-ui border-b border-[var(--wh-color-line)] bg-[var(--wh-color-surface)]",
         className
       ),
-      children: /* @__PURE__ */ jsxs33("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
-        /* @__PURE__ */ jsx55(
+      children: /* @__PURE__ */ jsxs34("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
+        /* @__PURE__ */ jsx56(
           "a",
           {
             href: "/",
@@ -6880,7 +7232,7 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
             children: siteName
           }
         ),
-        /* @__PURE__ */ jsx55("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx55(
+        /* @__PURE__ */ jsx56("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx56(
           "a",
           {
             href: item.href,
@@ -6892,16 +7244,16 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
           },
           item.href
         )) }),
-        actions ? /* @__PURE__ */ jsx55("div", { className: "flex items-center gap-2", children: actions }) : null
+        actions ? /* @__PURE__ */ jsx56("div", { className: "flex items-center gap-2", children: actions }) : null
       ] })
     }
   );
 }
 
 // src/themes/default/components/Hero/Hero.tsx
-import { jsx as jsx56, jsxs as jsxs34 } from "react/jsx-runtime";
+import { jsx as jsx57, jsxs as jsxs35 } from "react/jsx-runtime";
 function Hero({ title, subtitle, actions, className }) {
-  return /* @__PURE__ */ jsxs34(
+  return /* @__PURE__ */ jsxs35(
     "section",
     {
       className: cn(
@@ -6909,7 +7261,7 @@ function Hero({ title, subtitle, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsx56(
+        /* @__PURE__ */ jsx57(
           "div",
           {
             className: "pointer-events-none absolute inset-0 opacity-40",
@@ -6919,10 +7271,10 @@ function Hero({ title, subtitle, actions, className }) {
             "aria-hidden": true
           }
         ),
-        /* @__PURE__ */ jsxs34("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
-          /* @__PURE__ */ jsx56("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
-          subtitle ? /* @__PURE__ */ jsx56("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
-          actions ? /* @__PURE__ */ jsx56("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
+        /* @__PURE__ */ jsxs35("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
+          /* @__PURE__ */ jsx57("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
+          subtitle ? /* @__PURE__ */ jsx57("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
+          actions ? /* @__PURE__ */ jsx57("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
         ] })
       ]
     }
@@ -6973,6 +7325,7 @@ export {
   SESSION_EXPIRED_MESSAGE,
   Scrollable,
   Select,
+  SettingsWindow,
   SiteFileExplorer,
   SiteFormDialog,
   SiteHeader,

@@ -33,6 +33,18 @@ final readonly class WebhemiConfig
         );
     }
 
+    public function withAdminAccess(AdminAccessMode $adminAccess): self
+    {
+        return new self(
+            adminAccess: $adminAccess,
+            adminPath: $this->adminPath,
+            adminApiPath: $this->adminApiPath,
+            publicApiPath: $this->publicApiPath,
+            loginPath: $this->loginPath,
+            registerPath: $this->registerPath,
+        );
+    }
+
     /**
      * Protected admin API path for the current access mode.
      * Path mode: under the site host (/admin/api). Domain mode: /api on the admin host.

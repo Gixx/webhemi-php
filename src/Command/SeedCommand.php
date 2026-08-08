@@ -66,6 +66,8 @@ final class SeedCommand extends Command
             'user.edit' => 'Edit users',
             'role.list' => 'List roles',
             'role.edit' => 'Edit roles',
+            'settings.list' => 'View install settings',
+            'settings.edit' => 'Edit install settings',
         ];
 
         $permissionMap = [];

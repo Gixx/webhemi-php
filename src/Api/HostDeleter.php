@@ -11,6 +11,7 @@ final class HostDeleter
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
+        private readonly AdminAccessModeResetter $accessModeResetter,
     ) {
     }
 
@@ -18,5 +19,6 @@ final class HostDeleter
     {
         $this->em->remove($host);
         $this->em->flush();
+        $this->accessModeResetter->resetToPathIfNeeded();
     }
 }

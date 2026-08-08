@@ -81,10 +81,15 @@ final class AdminAccessRedirectSubscriber implements EventSubscriberInterface
                 return;
             }
 
-            // Canonical domain URLs are /, /login, /api — not /admin… on the admin host.
-            // Only safe methods: POST /admin/login and /admin/api must still hit Symfony routes
-            // (browser form action / fetch may still use those paths after internal rewrite).
-            if ($onAdminHost && $isAdminPath && $request->isMethodSafe()) {
+            // Canonical domain UI URLs are /, /login — not /admin or /admin/login.
+            // Do not redirect /admin/api…: the SPA fetch uses redirect:'manual' and treats
+            // opaque redirects as session loss.
+            if (
+                $onAdminHost
+                && $isAdminPath
+                && $request->isMethodSafe()
+                && !$this->isUnder($path, $entry->adminApiPath)
+            ) {
                 $suffix = $this->stripPrefix($path, $adminPath);
                 $event->setResponse($this->redirectToHost($request, $adminHostname, $suffix));
             }

@@ -22,6 +22,7 @@ use App\Api\HostUnassigner;
 use App\Api\HostUpdater;
 use App\Api\HostVerificationFailedException;
 use App\Api\HostVerifier;
+use App\Api\SettingsApiMapper;
 use App\Api\SiteApiMapper;
 use App\Api\SiteCreator;
 use App\Api\SiteDeleter;
@@ -29,17 +30,23 @@ use App\Api\SiteHasHostsException;
 use App\Api\SiteSlugTakenException;
 use App\Api\SiteUpdater;
 use App\Api\UpdateHostInput;
+use App\Api\UpdateSettingsInput;
 use App\Api\UpdateSiteInput;
+use App\Config\AdminAccessMode;
+use App\Config\WebhemiConfigLoader;
 use App\Entity\Site;
 use App\Entity\SiteHost;
 use App\Repository\SiteHostRepository;
 use App\Repository\SiteRepository;
+use App\Routing\AdminEntryResolverInterface;
+use App\Routing\CanonicalAdminEntry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Http\Attribute\IsCsrfTokenValid;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -388,6 +395,85 @@ final class AdminApiController extends AbstractController
         return ApiJson::data(HostApiMapper::toArray($updated));
     }
 
+    #[Route('/settings', name: 'api_admin_settings', methods: ['GET'])]
+    #[IsGranted('settings.list')]
+    public function settings(
+        WebhemiConfigLoader $configLoader,
+        AdminEntryResolverInterface $entryResolver,
+        SiteHostRepository $hosts,
+    ): JsonResponse {
+        $config = $configLoader->get();
+        $adminHost = $hosts->findMainAdminHost();
+
+        return ApiJson::data(SettingsApiMapper::toArray(
+            $config,
+            $entryResolver->resolve()->effectiveMode,
+            $adminHost,
+        ));
+    }
+
+    #[Route('/settings', name: 'api_admin_settings_update', methods: ['PATCH'])]
+    #[IsGranted('settings.edit')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function updateSettings(
+        Request $request,
+        WebhemiConfigLoader $configLoader,
+        AdminEntryResolverInterface $entryResolver,
+        SiteHostRepository $hosts,
+        TokenStorageInterface $tokenStorage,
+    ): JsonResponse {
+        try {
+            $payload = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return ApiJson::error('invalid_json', 'Request body must be valid JSON.', 400);
+        }
+
+        $input = UpdateSettingsInput::fromPayload($payload);
+        if (!$input->isValid()) {
+            return ApiJson::error(
+                'validation_failed',
+                'Settings could not be updated.',
+                422,
+                $input->fieldErrors,
+            );
+        }
+
+        $previousAccess = $configLoader->get()->adminAccess;
+        $adminHost = $hosts->findMainAdminHost();
+        if (AdminAccessMode::Domain === $input->adminAccess && !$adminHost instanceof SiteHost) {
+            return ApiJson::error(
+                'domain_unavailable',
+                'Domain admin access requires a verified, enabled Main-site admin host.',
+                422,
+                ['adminAccess' => 'No healthy admin host is available for domain mode.'],
+            );
+        }
+
+        $config = $configLoader->get()->withAdminAccess($input->adminAccess);
+        $configLoader->save($config);
+        $entry = $entryResolver->resolve();
+        $adminHost = $hosts->findMainAdminHost();
+        $accessChanged = $previousAccess !== $input->adminAccess;
+        $loginUrl = null;
+        $sessionEnded = false;
+
+        if ($accessChanged) {
+            $loginUrl = $this->adminLoginUrl($request, $entry);
+            $tokenStorage->setToken(null);
+            $session = $request->hasSession() ? $request->getSession() : null;
+            $session?->invalidate();
+            $sessionEnded = true;
+        }
+
+        return ApiJson::data(SettingsApiMapper::toArray(
+            $configLoader->get(),
+            $entry->effectiveMode,
+            $adminHost,
+            $loginUrl,
+            $sessionEnded,
+        ));
+    }
+
     #[Route('/me', name: 'api_admin_me', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
     public function me(): JsonResponse
@@ -398,5 +484,25 @@ final class AdminApiController extends AbstractController
             'user' => $user?->getUserIdentifier(),
             'roles' => $user?->getRoles() ?? [],
         ]);
+    }
+
+    private function adminLoginUrl(Request $request, CanonicalAdminEntry $entry): ?string
+    {
+        $hostname = $entry->canonicalHostname();
+        if (null === $hostname || $hostname === '') {
+            return null;
+        }
+
+        $path = AdminAccessMode::Domain === $entry->effectiveMode
+            ? '/login'
+            : rtrim($entry->adminPath, '/') . '/login';
+
+        $scheme = $request->getScheme();
+        $port = $request->getPort();
+        $isDefaultPort = ('http' === $scheme && 80 === $port)
+            || ('https' === $scheme && 443 === $port);
+        $authority = $hostname . ($isDefaultPort ? '' : ':' . $port);
+
+        return $scheme . '://' . $authority . $path;
     }
 }

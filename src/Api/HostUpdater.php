@@ -17,6 +17,7 @@ final class HostUpdater
         private readonly SiteHostRepository $hosts,
         private readonly HostUnassigner $unassigner,
         private readonly HostAssigner $assigner,
+        private readonly AdminAccessModeResetter $accessModeResetter,
     ) {
     }
 
@@ -74,11 +75,15 @@ final class HostUpdater
                 } catch (UniqueConstraintViolationException $e) {
                     throw new HostHostTakenException(previous: $e);
                 }
+                $this->accessModeResetter->resetToPathIfNeeded();
 
                 return $host;
             }
 
-            return $this->assigner->assign($host, $input->siteId);
+            $updated = $this->assigner->assign($host, $input->siteId);
+            $this->accessModeResetter->resetToPathIfNeeded();
+
+            return $updated;
         }
 
         try {
@@ -86,6 +91,7 @@ final class HostUpdater
         } catch (UniqueConstraintViolationException $e) {
             throw new HostHostTakenException(previous: $e);
         }
+        $this->accessModeResetter->resetToPathIfNeeded();
 
         return $host;
     }

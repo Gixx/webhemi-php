@@ -3863,7 +3863,8 @@ html[data-wh-theme=admin] {
   /* Sites / Hosts windows + New/Edit form dialog overlay */
 }
 [data-wh-theme=admin] .sites-window.window,
-[data-wh-theme=admin] .hosts-window.window {
+[data-wh-theme=admin] .hosts-window.window,
+[data-wh-theme=admin] .settings-window.window {
   position: relative;
 }
 [data-wh-theme=admin] {
@@ -3872,7 +3873,9 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .dashboard > .desktop-window.is-sized .sites-window.window,
 [data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .sites-window.window,
 [data-wh-theme=admin] .dashboard > .desktop-window.is-sized .hosts-window.window,
-[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .hosts-window.window {
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .hosts-window.window,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized .settings-window.window,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .settings-window.window {
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -3882,7 +3885,9 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .dashboard > .desktop-window.is-sized .sites-window .heading-panel-layout,
 [data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .sites-window .heading-panel-layout,
 [data-wh-theme=admin] .dashboard > .desktop-window.is-sized .hosts-window .heading-panel-layout,
-[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .hosts-window .heading-panel-layout {
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .hosts-window .heading-panel-layout,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized .settings-window .heading-panel-layout,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .settings-window .heading-panel-layout {
   flex: 1 1 auto;
   min-height: 0;
   height: 100%;
