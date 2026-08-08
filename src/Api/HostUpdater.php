@@ -27,12 +27,15 @@ final class HostUpdater
      * @throws HostNotVerifiedForAssignException
      * @throws HostAlreadyAssignedException
      * @throws HostAdminSurfaceNotAllowedException
+     * @throws HostProtectedException
      */
-    public function update(SiteHost $host, UpdateHostInput $input): SiteHost
+    public function update(SiteHost $host, UpdateHostInput $input): HostMutationResult
     {
         if (!$input->isValid()) {
             throw new \InvalidArgumentException('UpdateHostInput must be valid before update().');
         }
+
+        $this->assertProtectedMutable($host, $input);
 
         if (null !== $input->host) {
             $other = $this->hosts->findOneBy(['host' => $input->host]);
@@ -43,19 +46,7 @@ final class HostUpdater
         }
 
         if (null !== $input->surface) {
-            $newSurface = SurfaceType::from($input->surface);
-            $assigningToSite = $input->siteIdProvided && null !== $input->siteId;
-            $unassigning = $input->siteIdProvided && null === $input->siteId;
-            $siteForCheck = $unassigning ? null : $host->getSite();
-            // Assign path validates the target site in HostAssigner after surface is set.
-            if (
-                !$assigningToSite
-                && SurfaceType::Admin === $newSurface
-                && !HostAdminSurfaceRules::allowsAdminSurface($siteForCheck)
-            ) {
-                throw new HostAdminSurfaceNotAllowedException();
-            }
-            $host->setSurface($newSurface);
+            $host->setSurface(SurfaceType::from($input->surface));
         }
 
         if (null !== $input->enabled) {
@@ -64,35 +55,92 @@ final class HostUpdater
 
         if ($input->siteIdProvided) {
             if (null === $input->siteId) {
-                return $this->unassigner->unassign($host);
+                $result = $this->unassigner->unassign($host);
+                $this->assertAdminSurfaceLegal($result->host);
+
+                return $result;
             }
 
             $currentSiteId = $host->getSite()?->getId();
             if ($currentSiteId === $input->siteId) {
-                // Same site already bound — do not re-assign.
+                $this->assertAdminSurfaceLegal($host);
                 try {
                     $this->em->flush();
                 } catch (UniqueConstraintViolationException $e) {
                     throw new HostHostTakenException(previous: $e);
                 }
-                $this->accessModeResetter->resetToPathIfNeeded();
 
-                return $host;
+                return new HostMutationResult(
+                    $host,
+                    $this->accessModeResetter->resetToPathIfNeeded(),
+                );
             }
 
             $updated = $this->assigner->assign($host, $input->siteId);
-            $this->accessModeResetter->resetToPathIfNeeded();
+            $this->assertAdminSurfaceLegal($updated);
 
-            return $updated;
+            return new HostMutationResult(
+                $updated,
+                $this->accessModeResetter->resetToPathIfNeeded(),
+            );
         }
 
+        $this->assertAdminSurfaceLegal($host);
         try {
             $this->em->flush();
         } catch (UniqueConstraintViolationException $e) {
             throw new HostHostTakenException(previous: $e);
         }
-        $this->accessModeResetter->resetToPathIfNeeded();
 
-        return $host;
+        return new HostMutationResult(
+            $host,
+            $this->accessModeResetter->resetToPathIfNeeded(),
+        );
+    }
+
+    /**
+     * @throws HostProtectedException
+     */
+    private function assertProtectedMutable(SiteHost $host, UpdateHostInput $input): void
+    {
+        if (!$host->isProtected()) {
+            return;
+        }
+
+        if (null !== $input->surface && SurfaceType::Site->value !== $input->surface) {
+            throw new HostProtectedException('Protected system host must keep the site surface.');
+        }
+
+        if (null !== $input->enabled && false === $input->enabled) {
+            throw new HostProtectedException('Protected system host cannot be disabled.');
+        }
+
+        if ($input->siteIdProvided) {
+            $currentSiteId = $host->getSite()?->getId();
+            if (null === $input->siteId || $input->siteId !== $currentSiteId) {
+                throw new HostProtectedException('Protected system host cannot leave the Main site.');
+            }
+        }
+    }
+
+    /**
+     * @throws HostAdminSurfaceNotAllowedException
+     */
+    private function assertAdminSurfaceLegal(SiteHost $host): void
+    {
+        if (SurfaceType::Admin !== $host->getSurface()) {
+            return;
+        }
+
+        $existing = $this->hosts->findAdminSurfaceHost();
+        if (HostAdminSurfaceRules::canClaimAdminSurface($host->getSite(), $host->getId(), $existing)) {
+            return;
+        }
+
+        $message = HostAdminSurfaceRules::allowsAdminSurface($host->getSite())
+            ? 'An admin surface host already exists.'
+            : 'Admin surface is only allowed on the Main site.';
+
+        throw new HostAdminSurfaceNotAllowedException($message);
     }
 }

@@ -16,9 +16,14 @@ final class SiteDeleter
 
     /**
      * @throws SiteHasHostsException
+     * @throws SiteProtectedException
      */
     public function delete(Site $site): void
     {
+        if ($site->isProtected()) {
+            throw new SiteProtectedException('Protected system site cannot be deleted.');
+        }
+
         if (!$site->getHosts()->isEmpty()) {
             throw new SiteHasHostsException();
         }

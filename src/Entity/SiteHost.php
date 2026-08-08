@@ -35,6 +35,10 @@ class SiteHost
     #[ORM\Column]
     private bool $isEnabled = true;
 
+    /** Installer/seed primary www (site-surface) host — not deletable/disableable. */
+    #[ORM\Column]
+    private bool $isProtected = false;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -99,6 +103,18 @@ class SiteHost
     public function setIsEnabled(bool $isEnabled): self
     {
         $this->isEnabled = $isEnabled;
+
+        return $this;
+    }
+
+    public function isProtected(): bool
+    {
+        return $this->isProtected;
+    }
+
+    public function setIsProtected(bool $isProtected): self
+    {
+        $this->isProtected = $isProtected;
 
         return $this;
     }

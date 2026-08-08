@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Api;
 
 use App\Api\SiteDeleter;
 use App\Api\SiteHasHostsException;
+use App\Api\SiteProtectedException;
 use App\Api\SiteUpdater;
 use App\Api\UpdateSiteInput;
 use App\Entity\Site;
@@ -43,6 +44,58 @@ final class SiteUpdateDeleteTest extends TestCase
         self::assertSame('New', $updated->getName());
         self::assertSame('new', $updated->getSlug());
         self::assertFalse($updated->isEnabled());
+    }
+
+    public function testUpdaterRejectsSlugChangeOnProtectedSite(): void
+    {
+        $site = (new Site())->setName('Main')->setSlug('main')->setIsProtected(true);
+        $input = UpdateSiteInput::fromPayload(['slug' => 'not-main']);
+        self::assertTrue($input->isValid());
+
+        $sites = $this->createStub(SiteRepository::class);
+        $em = $this->createStub(EntityManagerInterface::class);
+
+        $this->expectException(SiteProtectedException::class);
+        (new SiteUpdater($sites, $em))->update($site, $input);
+    }
+
+    public function testUpdaterRejectsDisableOnProtectedSite(): void
+    {
+        $site = (new Site())->setName('Main')->setSlug('main')->setIsProtected(true);
+        $input = UpdateSiteInput::fromPayload(['enabled' => false]);
+        self::assertTrue($input->isValid());
+
+        $sites = $this->createStub(SiteRepository::class);
+        $em = $this->createStub(EntityManagerInterface::class);
+
+        $this->expectException(SiteProtectedException::class);
+        (new SiteUpdater($sites, $em))->update($site, $input);
+    }
+
+    public function testUpdaterAllowsRenameOnProtectedSite(): void
+    {
+        $site = (new Site())->setName('Main')->setSlug('main')->setIsProtected(true);
+        $input = UpdateSiteInput::fromPayload(['name' => 'Main site']);
+        self::assertTrue($input->isValid());
+
+        $sites = $this->createStub(SiteRepository::class);
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::once())->method('flush');
+
+        $updated = (new SiteUpdater($sites, $em))->update($site, $input);
+        self::assertSame('Main site', $updated->getName());
+        self::assertSame('main', $updated->getSlug());
+    }
+
+    public function testDeleterRejectsProtectedSite(): void
+    {
+        $site = (new Site())->setName('Main')->setSlug('main')->setIsProtected(true);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::never())->method('remove');
+
+        $this->expectException(SiteProtectedException::class);
+        (new SiteDeleter($em))->delete($site);
     }
 
     public function testDeleterRejectsSiteWithHosts(): void

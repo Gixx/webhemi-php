@@ -10,6 +10,7 @@ use App\Api\HostNotVerifiedForAssignException;
 use App\Api\HostSiteNotFoundException;
 use App\Entity\Site;
 use App\Entity\SiteHost;
+use App\Repository\SiteHostRepository;
 use App\Repository\SiteRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
@@ -25,11 +26,12 @@ final class HostAssignerTest extends TestCase
 
         $sites = $this->createMock(SiteRepository::class);
         $sites->expects(self::once())->method('find')->with(3)->willReturn($site);
+        $hosts = $this->createStub(SiteHostRepository::class);
 
         $em = $this->createMock(EntityManagerInterface::class);
         $em->expects(self::once())->method('flush');
 
-        $updated = (new HostAssigner($sites, $em))->assign($host, 3);
+        $updated = (new HostAssigner($sites, $hosts, $em))->assign($host, 3);
 
         self::assertSame($site, $updated->getSite());
         self::assertSame('verified', $updated->getVerification());
@@ -39,10 +41,11 @@ final class HostAssignerTest extends TestCase
     {
         $host = (new SiteHost())->setHost('pending.example.test')->setVerification('pending');
         $sites = $this->createStub(SiteRepository::class);
+        $hosts = $this->createStub(SiteHostRepository::class);
         $em = $this->createStub(EntityManagerInterface::class);
 
         $this->expectException(HostNotVerifiedForAssignException::class);
-        (new HostAssigner($sites, $em))->assign($host, 1);
+        (new HostAssigner($sites, $hosts, $em))->assign($host, 1);
     }
 
     public function testAssignRejectsAlreadyBound(): void
@@ -54,10 +57,11 @@ final class HostAssignerTest extends TestCase
             ->setSite($site);
 
         $sites = $this->createStub(SiteRepository::class);
+        $hosts = $this->createStub(SiteHostRepository::class);
         $em = $this->createStub(EntityManagerInterface::class);
 
         $this->expectException(HostAlreadyAssignedException::class);
-        (new HostAssigner($sites, $em))->assign($host, 2);
+        (new HostAssigner($sites, $hosts, $em))->assign($host, 2);
     }
 
     public function testAssignRejectsMissingSite(): void
@@ -65,9 +69,10 @@ final class HostAssignerTest extends TestCase
         $host = (new SiteHost())->setHost('ok.example.test')->setVerification('verified');
         $sites = $this->createMock(SiteRepository::class);
         $sites->expects(self::once())->method('find')->with(99)->willReturn(null);
+        $hosts = $this->createStub(SiteHostRepository::class);
         $em = $this->createStub(EntityManagerInterface::class);
 
         $this->expectException(HostSiteNotFoundException::class);
-        (new HostAssigner($sites, $em))->assign($host, 99);
+        (new HostAssigner($sites, $hosts, $em))->assign($host, 99);
     }
 }

@@ -15,10 +15,20 @@ final class HostDeleter
     ) {
     }
 
-    public function delete(SiteHost $host): void
+    /**
+     * @return bool True when access.admin was forced back to path.
+     *
+     * @throws HostProtectedException
+     */
+    public function delete(SiteHost $host): bool
     {
+        if ($host->isProtected()) {
+            throw new HostProtectedException('Protected system host cannot be deleted.');
+        }
+
         $this->em->remove($host);
         $this->em->flush();
-        $this->accessModeResetter->resetToPathIfNeeded();
+
+        return $this->accessModeResetter->resetToPathIfNeeded();
     }
 }

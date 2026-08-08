@@ -37,6 +37,7 @@ final class HostApiMapperTest extends TestCase
                 'surface' => 'admin',
                 'verification' => 'pending',
                 'enabled' => true,
+                'protected' => false,
             ],
             HostApiMapper::toArray($host),
         );
@@ -62,6 +63,7 @@ final class HostApiMapperTest extends TestCase
                 'surface' => 'site',
                 'verification' => 'pending',
                 'enabled' => true,
+                'protected' => false,
             ],
             HostApiMapper::toArray($host),
         );

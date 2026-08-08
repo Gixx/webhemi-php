@@ -17,6 +17,7 @@ use App\Api\HostDeleter;
 use App\Api\HostHostTakenException;
 use App\Api\HostNotPendingException;
 use App\Api\HostNotVerifiedForAssignException;
+use App\Api\HostProtectedException;
 use App\Api\HostSiteNotFoundException;
 use App\Api\HostUnassigner;
 use App\Api\HostUpdater;
@@ -27,6 +28,7 @@ use App\Api\SiteApiMapper;
 use App\Api\SiteCreator;
 use App\Api\SiteDeleter;
 use App\Api\SiteHasHostsException;
+use App\Api\SiteProtectedException;
 use App\Api\SiteSlugTakenException;
 use App\Api\SiteUpdater;
 use App\Api\UpdateHostInput;
@@ -140,6 +142,13 @@ final class AdminApiController extends AbstractController
                 409,
                 ['slug' => 'Slug is already taken.'],
             );
+        } catch (SiteProtectedException $e) {
+            return ApiJson::error(
+                'site_protected',
+                $e->getMessage(),
+                409,
+                ['slug' => 'Protected system site.'],
+            );
         }
 
         return ApiJson::data(SiteApiMapper::toArray($updated));
@@ -154,6 +163,12 @@ final class AdminApiController extends AbstractController
     ): Response {
         try {
             $deleter->delete($site);
+        } catch (SiteProtectedException $e) {
+            return ApiJson::error(
+                'site_protected',
+                $e->getMessage(),
+                409,
+            );
         } catch (SiteHasHostsException) {
             return ApiJson::error(
                 'hosts_assigned',
@@ -226,6 +241,8 @@ final class AdminApiController extends AbstractController
         #[MapEntity(id: 'id')] SiteHost $host,
         Request $request,
         HostUpdater $updater,
+        AdminEntryResolverInterface $entryResolver,
+        TokenStorageInterface $tokenStorage,
     ): JsonResponse {
         try {
             $payload = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
@@ -244,7 +261,7 @@ final class AdminApiController extends AbstractController
         }
 
         try {
-            $updated = $updater->update($host, $input);
+            $result = $updater->update($host, $input);
         } catch (HostSiteNotFoundException) {
             return ApiJson::error(
                 'site_not_found',
@@ -280,21 +297,50 @@ final class AdminApiController extends AbstractController
                 422,
                 ['surface' => 'Admin surface requires the Main site (slug "main").'],
             );
+        } catch (HostProtectedException $e) {
+            return ApiJson::error(
+                'host_protected',
+                $e->getMessage(),
+                409,
+            );
         }
 
-        return ApiJson::data(HostApiMapper::toArray($updated));
+        return ApiJson::data($this->hostPayloadWithSessionEnd(
+            $request,
+            HostApiMapper::toArray($result->host),
+            $result->accessModeReset,
+            $entryResolver,
+            $tokenStorage,
+        ));
     }
 
     #[Route('/hosts/{id}', name: 'api_admin_hosts_delete', requirements: ['id' => '\d+'], methods: ['DELETE'])]
     #[IsGranted('host.edit')]
     #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
     public function deleteHost(
+        Request $request,
         #[MapEntity(id: 'id')] SiteHost $host,
         HostDeleter $deleter,
-    ): Response {
-        $deleter->delete($host);
+        AdminEntryResolverInterface $entryResolver,
+        TokenStorageInterface $tokenStorage,
+    ): JsonResponse {
+        try {
+            $accessModeReset = $deleter->delete($host);
+        } catch (HostProtectedException $e) {
+            return ApiJson::error(
+                'host_protected',
+                $e->getMessage(),
+                409,
+            );
+        }
 
-        return new Response(null, Response::HTTP_NO_CONTENT);
+        return ApiJson::data($this->hostPayloadWithSessionEnd(
+            $request,
+            ['deleted' => true],
+            $accessModeReset,
+            $entryResolver,
+            $tokenStorage,
+        ));
     }
 
     #[Route('/hosts/{id}/assign', name: 'api_admin_hosts_assign', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -361,12 +407,29 @@ final class AdminApiController extends AbstractController
     #[IsGranted('host.edit')]
     #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
     public function unassignHost(
+        Request $request,
         #[MapEntity(id: 'id')] SiteHost $host,
         HostUnassigner $unassigner,
+        AdminEntryResolverInterface $entryResolver,
+        TokenStorageInterface $tokenStorage,
     ): JsonResponse {
-        $updated = $unassigner->unassign($host);
+        try {
+            $result = $unassigner->unassign($host);
+        } catch (HostProtectedException $e) {
+            return ApiJson::error(
+                'host_protected',
+                $e->getMessage(),
+                409,
+            );
+        }
 
-        return ApiJson::data(HostApiMapper::toArray($updated));
+        return ApiJson::data($this->hostPayloadWithSessionEnd(
+            $request,
+            HostApiMapper::toArray($result->host),
+            $result->accessModeReset,
+            $entryResolver,
+            $tokenStorage,
+        ));
     }
 
     #[Route('/hosts/{id}/verify', name: 'api_admin_hosts_verify', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -484,6 +547,37 @@ final class AdminApiController extends AbstractController
             'user' => $user?->getUserIdentifier(),
             'roles' => $user?->getRoles() ?? [],
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return array<string, mixed>
+     */
+    private function hostPayloadWithSessionEnd(
+        Request $request,
+        array $data,
+        bool $accessModeReset,
+        AdminEntryResolverInterface $entryResolver,
+        TokenStorageInterface $tokenStorage,
+    ): array {
+        if (!$accessModeReset) {
+            return $data;
+        }
+
+        $entry = $entryResolver->resolve();
+        $loginUrl = $this->adminLoginUrl($request, $entry);
+        $tokenStorage->setToken(null);
+        $session = $request->hasSession() ? $request->getSession() : null;
+        $session?->invalidate();
+
+        if (null !== $loginUrl) {
+            $data['loginUrl'] = $loginUrl;
+        }
+        $data['sessionEnded'] = true;
+        $data['accessModeReset'] = true;
+
+        return $data;
     }
 
     private function adminLoginUrl(Request $request, CanonicalAdminEntry $entry): ?string

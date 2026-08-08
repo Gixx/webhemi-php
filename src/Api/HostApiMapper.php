@@ -17,7 +17,8 @@ final class HostApiMapper
      *     siteName: string|null,
      *     surface: string,
      *     verification: string,
-     *     enabled: bool
+     *     enabled: bool,
+     *     protected: bool
      * }
      */
     public static function toArray(SiteHost $host): array
@@ -33,6 +34,7 @@ final class HostApiMapper
             'surface' => $host->getSurface()->value,
             'verification' => $host->getVerification(),
             'enabled' => $host->isEnabled(),
+            'protected' => $host->isProtected(),
         ];
     }
 }

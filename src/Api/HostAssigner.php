@@ -7,6 +7,7 @@ namespace App\Api;
 use App\Entity\Site;
 use App\Entity\SiteHost;
 use App\Entity\SurfaceType;
+use App\Repository\SiteHostRepository;
 use App\Repository\SiteRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -14,6 +15,7 @@ final class HostAssigner
 {
     public function __construct(
         private readonly SiteRepository $sites,
+        private readonly SiteHostRepository $hosts,
         private readonly EntityManagerInterface $em,
     ) {
     }
@@ -41,11 +43,15 @@ final class HostAssigner
             throw new HostSiteNotFoundException();
         }
 
-        if (
-            SurfaceType::Admin === $host->getSurface()
-            && !HostAdminSurfaceRules::allowsAdminSurface($site)
-        ) {
-            throw new HostAdminSurfaceNotAllowedException();
+        if (SurfaceType::Admin === $host->getSurface()) {
+            $existing = $this->hosts->findAdminSurfaceHost();
+            if (!HostAdminSurfaceRules::canClaimAdminSurface($site, $host->getId(), $existing)) {
+                $message = HostAdminSurfaceRules::allowsAdminSurface($site)
+                    ? 'An admin surface host already exists.'
+                    : 'Admin surface is only allowed on the Main site.';
+
+                throw new HostAdminSurfaceNotAllowedException($message);
+            }
         }
 
         $host->setSite($site);

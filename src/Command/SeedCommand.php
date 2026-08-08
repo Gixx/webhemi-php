@@ -99,6 +99,7 @@ final class SeedCommand extends Command
         if (!$site instanceof Site) {
             $site = (new Site())->setSlug('main')->setName('Main site')->setIsEnabled(true);
         }
+        $site->setIsProtected(true);
         $this->em->persist($site);
 
         $adminHostName = (string) $input->getOption('admin-host');
@@ -111,6 +112,7 @@ final class SeedCommand extends Command
             ->setSurface(SurfaceType::Admin)
             ->setVerification('verified')
             ->setIsEnabled(true)
+            ->setIsProtected(false)
             ->setSite($site);
         $this->em->persist($adminHost);
 
@@ -119,6 +121,7 @@ final class SeedCommand extends Command
             ->setSurface(SurfaceType::Site)
             ->setVerification('verified')
             ->setIsEnabled(true)
+            ->setIsProtected(true)
             ->setSite($site);
         $this->em->persist($publicHost);
 

@@ -34,7 +34,8 @@ final class HostCreator
         $host = (new SiteHost())
             ->setSite(null)
             ->setHost($input->host)
-            ->setSurface(SurfaceType::from($input->surface))
+            // New hosts stay site-surface until assigned to Main (then optionally admin).
+            ->setSurface(SurfaceType::Site)
             ->setVerification('pending')
             ->setIsEnabled($input->enabled);
 

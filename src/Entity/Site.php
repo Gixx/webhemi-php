@@ -30,6 +30,9 @@ class Site
     #[ORM\Column]
     private bool $isEnabled = true;
 
+    #[ORM\Column]
+    private bool $isProtected = false;
+
     /** @var Collection<int, SiteHost> */
     #[ORM\OneToMany(targetEntity: SiteHost::class, mappedBy: 'site', cascade: ['persist'])]
     private Collection $hosts;
@@ -76,6 +79,18 @@ class Site
     public function setIsEnabled(bool $isEnabled): self
     {
         $this->isEnabled = $isEnabled;
+
+        return $this;
+    }
+
+    public function isProtected(): bool
+    {
+        return $this->isProtected;
+    }
+
+    public function setIsProtected(bool $isProtected): self
+    {
+        $this->isProtected = $isProtected;
 
         return $this;
     }

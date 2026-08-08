@@ -9,7 +9,7 @@ use App\Entity\Site;
 final class SiteApiMapper
 {
     /**
-     * @return array{id: int, slug: string, name: string, enabled: bool, hostCount: int}
+     * @return array{id: int, slug: string, name: string, enabled: bool, protected: bool, hostCount: int}
      */
     public static function toArray(Site $site): array
     {
@@ -18,6 +18,7 @@ final class SiteApiMapper
             'slug' => $site->getSlug(),
             'name' => $site->getName(),
             'enabled' => $site->isEnabled(),
+            'protected' => $site->isProtected(),
             'hostCount' => $site->getHosts()->count(),
         ];
     }

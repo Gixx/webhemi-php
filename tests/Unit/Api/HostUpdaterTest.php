@@ -11,6 +11,7 @@ use App\Api\HostAssigner;
 use App\Api\HostUnassigner;
 use App\Api\HostUpdater;
 use App\Api\UpdateHostInput;
+use App\Config\AdminAccessMode;
 use App\Config\WebhemiConfig;
 use App\Config\WebhemiConfigLoader;
 use App\Entity\Site;
@@ -34,14 +35,25 @@ final class HostUpdaterTest extends TestCase
         $this->tempDirs = [];
     }
 
-    private function resetter(): AdminAccessModeResetter
-    {
+    private function resetter(
+        AdminAccessMode $mode = AdminAccessMode::Path,
+        ?SiteHost $mainAdmin = null,
+    ): AdminAccessModeResetter {
         $dir = sys_get_temp_dir() . '/webhemi-upd-' . bin2hex(random_bytes(4));
         mkdir($dir . '/var/config', 0775, true);
         $this->tempDirs[] = $dir;
         $loader = new WebhemiConfigLoader($dir);
-        $loader->save(WebhemiConfig::defaults());
+        $defaults = WebhemiConfig::defaults();
+        $loader->save(new WebhemiConfig(
+            adminAccess: $mode,
+            adminPath: $defaults->adminPath,
+            adminApiPath: $defaults->adminApiPath,
+            publicApiPath: $defaults->publicApiPath,
+            loginPath: $defaults->loginPath,
+            registerPath: $defaults->registerPath,
+        ));
         $hosts = $this->createStub(SiteHostRepository::class);
+        $hosts->method('findMainAdminHost')->willReturn($mainAdmin);
 
         return new AdminAccessModeResetter($loader, $hosts);
     }
@@ -78,13 +90,52 @@ final class HostUpdaterTest extends TestCase
             $em,
             $hosts,
             new HostUnassigner($em, $resetter),
-            new HostAssigner($sites, $em),
+            new HostAssigner($sites, $hosts, $em),
             $resetter,
         ))->update($host, $input);
 
-        self::assertSame('verified', $updated->getVerification());
-        self::assertSame($site, $updated->getSite());
-        self::assertTrue($updated->isEnabled());
+        self::assertSame('verified', $updated->host->getVerification());
+        self::assertSame($site, $updated->host->getSite());
+        self::assertTrue($updated->host->isEnabled());
+        self::assertFalse($updated->accessModeReset);
+    }
+
+    public function testDemotingAdminSurfaceResetsDomainAccess(): void
+    {
+        $site = (new Site())->setName('Main')->setSlug('main');
+        $siteRef = new \ReflectionProperty(Site::class, 'id');
+        $siteRef->setValue($site, 1);
+
+        $host = (new SiteHost())
+            ->setHost('admin.example.test')
+            ->setSite($site)
+            ->setSurface(SurfaceType::Admin)
+            ->setVerification('verified')
+            ->setIsEnabled(true);
+        $hostRef = new \ReflectionProperty(SiteHost::class, 'id');
+        $hostRef->setValue($host, 3);
+
+        $hosts = $this->createStub(SiteHostRepository::class);
+        $hosts->method('findAdminSurfaceHost')->willReturn($host);
+        $sites = $this->createStub(SiteRepository::class);
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::once())->method('flush');
+        // After demote, no healthy Main admin remains.
+        $resetter = $this->resetter(AdminAccessMode::Domain, null);
+
+        $input = UpdateHostInput::fromPayload(['surface' => 'site']);
+        self::assertTrue($input->isValid());
+
+        $result = (new HostUpdater(
+            $em,
+            $hosts,
+            new HostUnassigner($em, $resetter),
+            new HostAssigner($sites, $hosts, $em),
+            $resetter,
+        ))->update($host, $input);
+
+        self::assertSame(SurfaceType::Site, $result->host->getSurface());
+        self::assertTrue($result->accessModeReset);
     }
 
     public function testRejectsAdminSurfaceWhileAssignedToNonMain(): void
@@ -112,7 +163,7 @@ final class HostUpdaterTest extends TestCase
             $em,
             $hosts,
             new HostUnassigner($em, $resetter),
-            new HostAssigner($sites, $em),
+            new HostAssigner($sites, $hosts, $em),
             $resetter,
         ))->update($host, $input);
     }
@@ -141,7 +192,7 @@ final class HostUpdaterTest extends TestCase
             $em,
             $hosts,
             new HostUnassigner($em, $resetter),
-            new HostAssigner($sites, $em),
+            new HostAssigner($sites, $hosts, $em),
             $resetter,
         ))->update($host, $input);
     }

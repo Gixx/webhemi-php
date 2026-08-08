@@ -19,11 +19,21 @@ final class SiteUpdater
 
     /**
      * @throws SiteSlugTakenException
+     * @throws SiteProtectedException
      */
     public function update(Site $site, UpdateSiteInput $input): Site
     {
         if (!$input->isValid()) {
             throw new \InvalidArgumentException('UpdateSiteInput must be valid before update().');
+        }
+
+        if ($site->isProtected()) {
+            if ($input->slugProvided && null !== $input->slug && $input->slug !== $site->getSlug()) {
+                throw new SiteProtectedException('Protected system site slug cannot be changed.');
+            }
+            if ($input->enabledProvided && false === $input->enabled) {
+                throw new SiteProtectedException('Protected system site cannot be disabled.');
+            }
         }
 
         if ($input->nameProvided && null !== $input->name) {

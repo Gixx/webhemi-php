@@ -22,6 +22,7 @@ final class SiteApiMapperTest extends TestCase
                 'slug' => 'main',
                 'name' => 'Main',
                 'enabled' => true,
+                'protected' => false,
                 'hostCount' => 0,
             ],
             SiteApiMapper::toArray($site),

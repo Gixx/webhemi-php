@@ -72,4 +72,18 @@ class SiteHostRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    /**
+     * Any host currently marked surface=admin (at most one expected).
+     */
+    public function findAdminSurfaceHost(): ?SiteHost
+    {
+        return $this->createQueryBuilder('h')
+            ->andWhere('h.surface = :surface')
+            ->setParameter('surface', SurfaceType::Admin)
+            ->orderBy('h.id', 'ASC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }
