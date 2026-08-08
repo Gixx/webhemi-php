@@ -52,8 +52,8 @@ final class CreateHostInput
             $fields['host'] = 'Hostname must be a valid domain name.';
         }
 
-        if (!\in_array($surfaceRaw, ['admin', 'site', 'api'], true)) {
-            $fields['surface'] = 'Surface must be admin, site, or api.';
+        if (!\in_array($surfaceRaw, ['admin', 'site'], true)) {
+            $fields['surface'] = 'Surface must be admin or site.';
             $surfaceRaw = 'site';
         }
 

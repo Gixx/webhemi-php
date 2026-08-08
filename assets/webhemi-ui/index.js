@@ -4666,8 +4666,7 @@ function HostFormDialog({
               onChange: (event) => setSurface(event.target.value),
               children: [
                 /* @__PURE__ */ jsx47("option", { value: "site", children: "site" }),
-                /* @__PURE__ */ jsx47("option", { value: "admin", children: "admin" }),
-                /* @__PURE__ */ jsx47("option", { value: "api", children: "api" })
+                /* @__PURE__ */ jsx47("option", { value: "admin", children: "admin" })
               ]
             }
           ) }),

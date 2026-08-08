@@ -61,8 +61,8 @@ final class UpdateHostInput
         $surface = null;
         if (\array_key_exists('surface', $payload)) {
             $surface = strtolower(trim((string) $payload['surface']));
-            if (!\in_array($surface, ['admin', 'site', 'api'], true)) {
-                $fields['surface'] = 'Surface must be admin, site, or api.';
+            if (!\in_array($surface, ['admin', 'site'], true)) {
+                $fields['surface'] = 'Surface must be admin or site.';
                 $surface = null;
             }
         }

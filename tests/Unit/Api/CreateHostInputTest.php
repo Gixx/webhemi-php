@@ -72,6 +72,18 @@ final class CreateHostInputTest extends TestCase
         self::assertArrayHasKey('host', $input->fieldErrors);
     }
 
+    public function testRejectsApiSurface(): void
+    {
+        $input = CreateHostInput::fromPayload([
+            'host' => 'api.example.com',
+            'surface' => 'api',
+        ]);
+
+        self::assertFalse($input->isValid());
+        self::assertArrayHasKey('surface', $input->fieldErrors);
+        self::assertSame('site', $input->surface);
+    }
+
     public function testNonArrayBody(): void
     {
         $input = CreateHostInput::fromPayload('nope');
