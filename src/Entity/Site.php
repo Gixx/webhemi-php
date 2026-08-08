@@ -14,6 +14,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\UniqueConstraint(name: 'uniq_site_slug', columns: ['slug'])]
 class Site
 {
+    public const MAIN_SLUG = 'main';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -76,6 +78,11 @@ class Site
         $this->isEnabled = $isEnabled;
 
         return $this;
+    }
+
+    public function isMain(): bool
+    {
+        return self::MAIN_SLUG === $this->slug;
     }
 
     /** @return Collection<int, SiteHost> */

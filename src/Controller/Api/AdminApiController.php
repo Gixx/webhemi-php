@@ -271,7 +271,7 @@ final class AdminApiController extends AbstractController
                 'admin_surface_main_only',
                 'Admin surface is only allowed on the Main site.',
                 422,
-                ['surface' => 'Admin surface requires the Main site (slug “main”).'],
+                ['surface' => 'Admin surface requires the Main site (slug "main").'],
             );
         }
 
@@ -342,7 +342,7 @@ final class AdminApiController extends AbstractController
                 422,
                 [
                     'siteId' => 'Admin-surface hosts can only be assigned to the Main site.',
-                    'surface' => 'Admin surface requires the Main site (slug “main”).',
+                    'surface' => 'Admin surface requires the Main site (slug "main").',
                 ],
             );
         }

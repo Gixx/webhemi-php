@@ -8,15 +8,13 @@ use App\Entity\Site;
 
 /**
  * Admin host surface is allowed only when unassigned or bound to the Main site.
- * Main site is identified by slug {@see self::MAIN_SLUG} until an is_protected flag lands.
+ * Main site is identified by {@see Site::MAIN_SLUG} until an is_protected flag lands.
  */
 final class HostAdminSurfaceRules
 {
-    public const MAIN_SLUG = 'main';
-
     public static function isMainSite(?Site $site): bool
     {
-        return $site instanceof Site && self::MAIN_SLUG === $site->getSlug();
+        return $site instanceof Site && $site->isMain();
     }
 
     /**

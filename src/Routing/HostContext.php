@@ -12,6 +12,7 @@ final class HostContext
 {
     public function __construct(
         private readonly ?SiteHost $siteHost,
+        private readonly ?SurfaceType $surfaceOverride = null,
     ) {
     }
 
@@ -27,11 +28,18 @@ final class HostContext
 
     public function getSurface(): SurfaceType
     {
-        return $this->siteHost?->getSurface() ?? SurfaceType::Site;
+        return $this->surfaceOverride
+            ?? $this->siteHost?->getSurface()
+            ?? SurfaceType::Site;
     }
 
     public function isResolved(): bool
     {
         return $this->siteHost instanceof SiteHost;
+    }
+
+    public function withSurfaceOverride(?SurfaceType $surfaceOverride): self
+    {
+        return new self($this->siteHost, $surfaceOverride);
     }
 }

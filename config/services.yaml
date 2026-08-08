@@ -30,5 +30,7 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
 
+    App\Routing\AdminEntryResolverInterface: '@App\Routing\AdminEntryResolver'
+
     App\Routing\HostContextHolder:
         public: true
