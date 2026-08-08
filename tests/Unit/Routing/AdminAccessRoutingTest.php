@@ -136,6 +136,48 @@ final class AdminAccessRoutingTest extends TestCase
         self::assertSame('/admin', $event->getRequest()->getPathInfo());
     }
 
+    public function testRewriterMapsAdminHostLoginToAdminLogin(): void
+    {
+        $admin = $this->siteHost('admin.example.test', SurfaceType::Admin, true);
+        $main = $this->siteHost('www.example.test', SurfaceType::Site, true);
+
+        $holder = new HostContextHolder();
+        $holder->set(new HostContext($admin));
+
+        $entry = $this->entry(AdminAccessMode::Domain, $main, $admin);
+        $resolver = $this->resolverReturning($entry);
+
+        $kernel = $this->createStub(HttpKernelInterface::class);
+        $request = Request::create('https://admin.example.test/login');
+        $event = new RequestEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST);
+
+        (new AdminHostPathRewriterSubscriber($holder, $resolver))->onKernelRequest($event);
+
+        self::assertSame('/admin/login', $event->getRequest()->getPathInfo());
+    }
+
+    public function testPathModeRedirectsAdminHostLoginToMainAdminLogin(): void
+    {
+        $main = $this->siteHost('www.example.test', SurfaceType::Site, true);
+        $admin = $this->siteHost('admin.example.test', SurfaceType::Admin, true);
+
+        $holder = new HostContextHolder();
+        $holder->set(new HostContext($admin));
+
+        $entry = $this->entry(AdminAccessMode::Path, $main, $admin);
+        $resolver = $this->resolverReturning($entry);
+
+        $kernel = $this->createStub(HttpKernelInterface::class);
+        $request = Request::create('https://admin.example.test/login');
+        $event = new RequestEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST);
+
+        (new AdminAccessRedirectSubscriber($holder, $resolver))->onKernelRequest($event);
+
+        $response = $event->getResponse();
+        self::assertInstanceOf(RedirectResponse::class, $response);
+        self::assertSame('https://www.example.test/admin/login', $response->getTargetUrl());
+    }
+
     public function testOrphanAdminSurfaceHostIsNotFound(): void
     {
         $orphan = $this->siteHost('admin.blog.test', SurfaceType::Admin, false);

@@ -14,8 +14,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * On domain-mode admin host: map / → /admin and /api → /admin/api so existing routes apply.
- * Runs after HostContext, before the router.
+ * On domain-mode admin host: map / → /admin, /login → /admin/login, /api → /admin/api
+ * so existing routes apply. Runs after HostContext, before the router.
  */
 final class AdminHostPathRewriterSubscriber implements EventSubscriberInterface
 {
@@ -64,6 +64,10 @@ final class AdminHostPathRewriterSubscriber implements EventSubscriberInterface
         $newPath = null;
         if ($path === '/' || $path === '') {
             $newPath = $adminPath;
+        } elseif ($path === '/login') {
+            $newPath = rtrim($adminPath, '/') . '/login';
+        } elseif ($path === '/logout') {
+            $newPath = rtrim($adminPath, '/') . '/logout';
         } elseif ($this->matchesPrefix($path, $publicApiPath)) {
             $suffix = substr($path, strlen($publicApiPath));
             $newPath = $adminApiPath . ($suffix ?: '');

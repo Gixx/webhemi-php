@@ -64,9 +64,8 @@ Production path (after publish): `php bin/console importmap:require @webhemi/ui`
 
 | Surface | Purpose |
 |---------|---------|
-| `admin` | Twig mount points + React admin (`/admin`, `/login`) |
-| `site` | Public site JSON home for now |
-| `api` | JSON admin API under `/admin/api` |
+| `admin` | Dedicated admin host (domain mode); UI at `/` → `/admin` |
+| `site` | Public site + `/login` (frontend auth); path-mode admin at `/admin` |
 
 Host → surface resolution: `App\Routing\HostContextSubscriber`.
 

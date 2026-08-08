@@ -106,6 +106,12 @@ final class AdminAccessRedirectSubscriber implements EventSubscriberInterface
         if ($path === '/' || $path === '') {
             return $entry->adminPath;
         }
+        if ($path === '/login') {
+            return rtrim($entry->adminPath, '/') . '/login';
+        }
+        if ($path === '/logout') {
+            return rtrim($entry->adminPath, '/') . '/logout';
+        }
         if ($this->isUnder($path, $entry->publicApiPath)) {
             $suffix = $this->stripPrefix($path, $entry->publicApiPath);
 
@@ -115,7 +121,7 @@ final class AdminAccessRedirectSubscriber implements EventSubscriberInterface
             return $path;
         }
 
-        // e.g. /login on admin host while path mode → same path on main site host
+        // Other paths on an orphan admin host → same path on the Main site host.
         return $path;
     }
 

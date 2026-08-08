@@ -5,7 +5,8 @@
 {% block body %}
 <div {{ react_component('AdminDesktop', {
     sites: sites,
-    logoutHref: path('app_logout'),
+    loginHref: path('admin_login'),
+    logoutHref: path('admin_logout'),
     apiCsrfToken: csrf_token('admin_api'),
     errorSoundUrl: asset('admin/sounds/chord.mp3'),
     dingSoundUrl: asset('admin/sounds/ding.mp3')

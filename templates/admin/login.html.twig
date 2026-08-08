@@ -1,11 +1,11 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Sign in — WebHemi{% endblock %}
+{% block title %}Sign in — WebHemi Admin{% endblock %}
 
 {% block body %}
 {# Admin Theme paints the desktop; LoginPage centers the Retro OS dialog. #}
 <div {{ react_component('LoginPage', {
-    action: path('app_login'),
+    action: path('admin_login'),
     csrfToken: csrf_token('authenticate'),
     csrfFieldName: '_csrf_token',
     emailDefault: last_username,

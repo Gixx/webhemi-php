@@ -3723,7 +3723,7 @@ function createAdminApiClient(options = {}) {
       ...init,
       headers,
       credentials: "same-origin",
-      // Detect form_login bounce to /login instead of parsing HTML as JSON.
+      // Detect form_login bounce to /login or /admin/login instead of parsing HTML as JSON.
       redirect: "manual"
     });
     return parseResult(response);
@@ -3774,7 +3774,7 @@ function isUnauthorizedResult(result) {
 // src/admin/components/LoginForm/LoginForm.tsx
 import { jsx as jsx43, jsxs as jsxs22 } from "react/jsx-runtime";
 function LoginForm({
-  action = "/login",
+  action = "/admin/login",
   method = "post",
   csrfToken,
   csrfFieldName = "_csrf_token",
@@ -5160,6 +5160,21 @@ function LoginPage({
 // src/admin/pages/AdminDesktop.tsx
 import { useCallback as useCallback5, useEffect as useEffect14, useMemo as useMemo5, useRef as useRef11, useState as useState15 } from "react";
 
+// src/admin/lib/safeAppPath.ts
+function isSafeAppPath(href) {
+  if (!href.startsWith("/") || href.startsWith("//")) {
+    return false;
+  }
+  if (/^[a-z][a-z0-9+.-]*:/i.test(href)) {
+    return false;
+  }
+  return true;
+}
+function assignSafeAppPath(href, fallback) {
+  const target = isSafeAppPath(href) ? href : fallback;
+  window.location.assign(target);
+}
+
 // src/admin/shell/types.ts
 var CONTROL_PANEL_WINDOW_ID = "control-panel";
 var SITES_WINDOW_ID = "sites";
@@ -5634,10 +5649,10 @@ function StartMenu({
       id: "logout",
       label: "Logout",
       className: "logout",
-      disabled: !logoutHref,
-      onSelect: logoutHref ? () => {
+      disabled: !logoutHref || !isSafeAppPath(logoutHref),
+      onSelect: logoutHref && isSafeAppPath(logoutHref) ? () => {
         onClose();
-        window.location.assign(logoutHref);
+        assignSafeAppPath(logoutHref, "/admin/logout");
       } : void 0
     }
   ];
@@ -5948,6 +5963,7 @@ function AdminDesktop({
   sites = [],
   explorerTreeForSite = buildEmptySiteExplorerTree,
   logoutHref,
+  loginHref = "/admin/login",
   apiCsrfToken,
   errorSoundUrl,
   dingSoundUrl,
@@ -6071,9 +6087,9 @@ function AdminDesktop({
   );
   const handleAlertClose = useCallback5(() => {
     if (pendingLoginRedirectRef.current) {
-      window.location.assign("/login");
+      assignSafeAppPath(loginHref, "/admin/login");
     }
-  }, []);
+  }, [loginHref]);
   const sitesWindowOpen = shell.windows.some((win) => win.id === SITES_WINDOW_ID);
   const hostsWindowOpen = shell.windows.some((win) => win.id === HOSTS_WINDOW_ID);
   const siteFormHosts = useMemo5(
