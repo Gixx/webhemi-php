@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Routing;
 
 use App\Config\AdminAccessMode;
+use App\Entity\Site;
 use App\Entity\SiteHost;
 use App\Entity\SurfaceType;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -16,6 +17,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * Redirects to the canonical admin entry (path vs domain) per Admin_API_Access_Mode.
+ * Priority 42: before AdminHostPathRewriter (40), so domain `/admin…` on the admin host
+ * can redirect to `/…` without fighting the internal rewrite of `/login` → `/admin/login`.
  */
 final class AdminAccessRedirectSubscriber implements EventSubscriberInterface
 {
@@ -27,7 +30,7 @@ final class AdminAccessRedirectSubscriber implements EventSubscriberInterface
 
     public static function getSubscribedEvents(): array
     {
-        return [KernelEvents::REQUEST => ['onKernelRequest', 36]];
+        return [KernelEvents::REQUEST => ['onKernelRequest', 42]];
     }
 
     public function onKernelRequest(RequestEvent $event): void
@@ -59,10 +62,11 @@ final class AdminAccessRedirectSubscriber implements EventSubscriberInterface
         $onAdminHost = $siteHost instanceof SiteHost && SurfaceType::Admin === $siteHost->getSurface();
         $onMainSiteHost = $siteHost instanceof SiteHost
             && SurfaceType::Site === $siteHost->getSurface()
-            && $siteHost->getSite()?->isMain();
+            && true === $siteHost->getSite()?->isMain();
         $onOtherSiteHost = $siteHost instanceof SiteHost
             && SurfaceType::Site === $siteHost->getSurface()
-            && !$siteHost->getSite()?->isMain();
+            && $siteHost->getSite() instanceof Site
+            && !$siteHost->getSite()->isMain();
 
         if (AdminAccessMode::Domain === $entry->effectiveMode) {
             $adminHostname = $entry->adminHost?->getHost();
@@ -75,6 +79,14 @@ final class AdminAccessRedirectSubscriber implements EventSubscriberInterface
                 $event->setResponse($this->redirectToHost($request, $adminHostname, $suffix));
 
                 return;
+            }
+
+            // Canonical domain URLs are /, /login, /api — not /admin… on the admin host.
+            // Only safe methods: POST /admin/login and /admin/api must still hit Symfony routes
+            // (browser form action / fetch may still use those paths after internal rewrite).
+            if ($onAdminHost && $isAdminPath && $request->isMethodSafe()) {
+                $suffix = $this->stripPrefix($path, $adminPath);
+                $event->setResponse($this->redirectToHost($request, $adminHostname, $suffix));
             }
 
             return;
@@ -150,7 +162,12 @@ final class AdminAccessRedirectSubscriber implements EventSubscriberInterface
             $path = '/' . $path;
         }
         $qs = $request->getQueryString();
-        $url = $request->getScheme() . '://' . $hostname . $path . ($qs ? '?' . $qs : '');
+        $scheme = $request->getScheme();
+        $port = $request->getPort();
+        $isDefaultPort = ('http' === $scheme && 80 === $port)
+            || ('https' === $scheme && 443 === $port);
+        $authority = $hostname . ($isDefaultPort ? '' : ':' . $port);
+        $url = $scheme . '://' . $authority . $path . ($qs ? '?' . $qs : '');
 
         return new RedirectResponse($url, 302);
     }

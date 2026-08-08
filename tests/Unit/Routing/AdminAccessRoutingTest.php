@@ -94,6 +94,28 @@ final class AdminAccessRoutingTest extends TestCase
         self::assertSame('https://admin.example.test/sites', $response->getTargetUrl());
     }
 
+    public function testDomainModeRedirectsAdminHostAdminPathToCanonical(): void
+    {
+        $main = $this->siteHost('www.example.test', SurfaceType::Site, true);
+        $admin = $this->siteHost('admin.example.test', SurfaceType::Admin, true);
+
+        $holder = new HostContextHolder();
+        $holder->set(new HostContext($admin));
+
+        $entry = $this->entry(AdminAccessMode::Domain, $main, $admin);
+        $resolver = $this->resolverReturning($entry);
+
+        $kernel = $this->createStub(HttpKernelInterface::class);
+        $request = Request::create('https://admin.example.test:8000/admin/login');
+        $event = new RequestEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST);
+
+        (new AdminAccessRedirectSubscriber($holder, $resolver))->onKernelRequest($event);
+
+        $response = $event->getResponse();
+        self::assertInstanceOf(RedirectResponse::class, $response);
+        self::assertSame('https://admin.example.test:8000/login', $response->getTargetUrl());
+    }
+
     public function testPathModeRedirectsAdminHostToMainAdmin(): void
     {
         $main = $this->siteHost('www.example.test', SurfaceType::Site, true);
@@ -114,6 +136,52 @@ final class AdminAccessRoutingTest extends TestCase
         $response = $event->getResponse();
         self::assertInstanceOf(RedirectResponse::class, $response);
         self::assertSame('https://www.example.test/admin', $response->getTargetUrl());
+    }
+
+    public function testPathModeRedirectPreservesNonDefaultPort(): void
+    {
+        $main = $this->siteHost('www.example.test', SurfaceType::Site, true);
+        $admin = $this->siteHost('admin.example.test', SurfaceType::Admin, true);
+
+        $holder = new HostContextHolder();
+        $holder->set(new HostContext($admin));
+
+        $entry = $this->entry(AdminAccessMode::Path, $main, $admin);
+        $resolver = $this->resolverReturning($entry);
+
+        $kernel = $this->createStub(HttpKernelInterface::class);
+        $request = Request::create('https://admin.example.test:8000/');
+        $event = new RequestEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST);
+
+        (new AdminAccessRedirectSubscriber($holder, $resolver))->onKernelRequest($event);
+
+        $response = $event->getResponse();
+        self::assertInstanceOf(RedirectResponse::class, $response);
+        self::assertSame('https://www.example.test:8000/admin', $response->getTargetUrl());
+    }
+
+    public function testOrphanSiteHostDoesNotRedirectAdminPath(): void
+    {
+        $orphan = (new SiteHost())
+            ->setHost('127.0.0.1')
+            ->setSurface(SurfaceType::Site)
+            ->setVerification('verified')
+            ->setIsEnabled(true);
+
+        $holder = new HostContextHolder();
+        $holder->set(new HostContext($orphan));
+
+        $main = $this->siteHost('www.example.test', SurfaceType::Site, true);
+        $entry = $this->entry(AdminAccessMode::Path, $main, null);
+        $resolver = $this->resolverReturning($entry);
+
+        $kernel = $this->createStub(HttpKernelInterface::class);
+        $request = Request::create('https://127.0.0.1:8000/admin/login');
+        $event = new RequestEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST);
+
+        (new AdminAccessRedirectSubscriber($holder, $resolver))->onKernelRequest($event);
+
+        self::assertNull($event->getResponse());
     }
 
     public function testRewriterMapsAdminHostRootToAdminPath(): void
