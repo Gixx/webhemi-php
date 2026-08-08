@@ -24,7 +24,7 @@ webhemi-js/
 1. `npx create-next-app@latest webhemi-js`
 2. `npm install @webhemi/ui @payloadcms/next`
 3. Configure Payload collections mirroring multi-tenant concepts (sites, hosts/surfaces, RBAC)
-4. Render public/admin views with `import { Button, AdminLayout, ... } from '@webhemi/ui'`
+4. Render public/admin views with `import { Button, AdminDesktop, ... } from '@webhemi/ui'`
 5. Local `npm link @webhemi/ui` during design-system work
 
 ## Out of scope for Phase 1–2

@@ -32,7 +32,7 @@ final class AdminController extends AbstractController
         ]);
     }
 
-    /** Legacy CRUD UI retired (Phase 4); real site admin returns in Phase 6 windows. */
+    /** Legacy HTML Sites UI removed; redirect kept for bookmarks. */
     #[Route('/sites', name: 'admin_sites', methods: ['GET', 'POST'])]
     #[IsGranted('ROLE_USER')]
     public function sites(): Response
@@ -40,7 +40,7 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('admin_dashboard');
     }
 
-    /** Legacy CRUD UI retired (Phase 4); real host admin returns in Phase 6 windows. */
+    /** Legacy HTML Hosts UI removed; redirect kept for bookmarks. */
     #[Route('/hosts', name: 'admin_hosts', methods: ['GET', 'POST'])]
     #[IsGranted('ROLE_USER')]
     public function hosts(): Response
@@ -48,6 +48,7 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('admin_dashboard');
     }
 
+    /** Legacy verify POST removed; use `/admin/api` Hosts verify. Redirect kept for bookmarks. */
     #[Route('/hosts/{id}/verify', name: 'admin_hosts_verify', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
     public function verifyHost(): Response
