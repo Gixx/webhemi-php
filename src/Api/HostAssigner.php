@@ -6,6 +6,7 @@ namespace App\Api;
 
 use App\Entity\Site;
 use App\Entity\SiteHost;
+use App\Entity\SurfaceType;
 use App\Repository\SiteRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -23,6 +24,7 @@ final class HostAssigner
      * @throws HostNotVerifiedForAssignException
      * @throws HostAlreadyAssignedException
      * @throws HostSiteNotFoundException
+     * @throws HostAdminSurfaceNotAllowedException
      */
     public function assign(SiteHost $host, int $siteId): SiteHost
     {
@@ -37,6 +39,13 @@ final class HostAssigner
         $site = $this->sites->find($siteId);
         if (!$site instanceof Site) {
             throw new HostSiteNotFoundException();
+        }
+
+        if (
+            SurfaceType::Admin === $host->getSurface()
+            && !HostAdminSurfaceRules::allowsAdminSurface($site)
+        ) {
+            throw new HostAdminSurfaceNotAllowedException();
         }
 
         $host->setSite($site);

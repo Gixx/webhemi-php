@@ -25,6 +25,7 @@ final class HostUpdater
      * @throws HostSiteNotFoundException
      * @throws HostNotVerifiedForAssignException
      * @throws HostAlreadyAssignedException
+     * @throws HostAdminSurfaceNotAllowedException
      */
     public function update(SiteHost $host, UpdateHostInput $input): SiteHost
     {
@@ -41,7 +42,19 @@ final class HostUpdater
         }
 
         if (null !== $input->surface) {
-            $host->setSurface(SurfaceType::from($input->surface));
+            $newSurface = SurfaceType::from($input->surface);
+            $assigningToSite = $input->siteIdProvided && null !== $input->siteId;
+            $unassigning = $input->siteIdProvided && null === $input->siteId;
+            $siteForCheck = $unassigning ? null : $host->getSite();
+            // Assign path validates the target site in HostAssigner after surface is set.
+            if (
+                !$assigningToSite
+                && SurfaceType::Admin === $newSurface
+                && !HostAdminSurfaceRules::allowsAdminSurface($siteForCheck)
+            ) {
+                throw new HostAdminSurfaceNotAllowedException();
+            }
+            $host->setSurface($newSurface);
         }
 
         if (null !== $input->enabled) {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Api;
 
+use App\Api\HostAdminSurfaceNotAllowedException;
 use App\Api\HostAlreadyAssignedException;
 use App\Api\HostAssigner;
 use App\Api\HostUnassigner;
@@ -11,6 +12,7 @@ use App\Api\HostUpdater;
 use App\Api\UpdateHostInput;
 use App\Entity\Site;
 use App\Entity\SiteHost;
+use App\Entity\SurfaceType;
 use App\Repository\SiteHostRepository;
 use App\Repository\SiteRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -55,6 +57,34 @@ final class HostUpdaterTest extends TestCase
         self::assertSame('verified', $updated->getVerification());
         self::assertSame($site, $updated->getSite());
         self::assertTrue($updated->isEnabled());
+    }
+
+    public function testRejectsAdminSurfaceWhileAssignedToNonMain(): void
+    {
+        $site = (new Site())->setName('Blog')->setSlug('blog');
+        $siteRef = new \ReflectionProperty(Site::class, 'id');
+        $siteRef->setValue($site, 5);
+
+        $host = (new SiteHost())
+            ->setHost('www.blog.test')
+            ->setSite($site)
+            ->setSurface(SurfaceType::Site)
+            ->setVerification('verified');
+
+        $hosts = $this->createStub(SiteHostRepository::class);
+        $sites = $this->createStub(SiteRepository::class);
+        $em = $this->createStub(EntityManagerInterface::class);
+
+        $input = UpdateHostInput::fromPayload(['surface' => 'admin']);
+        self::assertTrue($input->isValid());
+
+        $this->expectException(HostAdminSurfaceNotAllowedException::class);
+        (new HostUpdater(
+            $em,
+            $hosts,
+            new HostUnassigner($em),
+            new HostAssigner($sites, $em),
+        ))->update($host, $input);
     }
 
     public function testDifferentSiteWhenAssignedThrows(): void

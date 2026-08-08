@@ -9,6 +9,7 @@ use App\Api\AssignHostInput;
 use App\Api\CreateHostInput;
 use App\Api\CreateSiteInput;
 use App\Api\HostAlreadyAssignedException;
+use App\Api\HostAdminSurfaceNotAllowedException;
 use App\Api\HostApiMapper;
 use App\Api\HostAssigner;
 use App\Api\HostCreator;
@@ -265,6 +266,13 @@ final class AdminApiController extends AbstractController
                 422,
                 ['siteId' => 'Host is already assigned.'],
             );
+        } catch (HostAdminSurfaceNotAllowedException) {
+            return ApiJson::error(
+                'admin_surface_main_only',
+                'Admin surface is only allowed on the Main site.',
+                422,
+                ['surface' => 'Admin surface requires the Main site (slug “main”).'],
+            );
         }
 
         return ApiJson::data(HostApiMapper::toArray($updated));
@@ -326,6 +334,16 @@ final class AdminApiController extends AbstractController
                 'already_assigned',
                 'Host is already assigned to a site.',
                 422,
+            );
+        } catch (HostAdminSurfaceNotAllowedException) {
+            return ApiJson::error(
+                'admin_surface_main_only',
+                'Admin surface is only allowed on the Main site.',
+                422,
+                [
+                    'siteId' => 'Admin-surface hosts can only be assigned to the Main site.',
+                    'surface' => 'Admin surface requires the Main site (slug “main”).',
+                ],
             );
         }
 

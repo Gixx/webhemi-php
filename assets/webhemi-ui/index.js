@@ -4559,6 +4559,7 @@ import { useCallback as useCallback4, useEffect as useEffect9, useLayoutEffect a
 // src/admin/components/HostsWindow/HostFormDialog.tsx
 import { useEffect as useEffect8, useId as useId3, useState as useState11 } from "react";
 import { jsx as jsx47, jsxs as jsxs26 } from "react/jsx-runtime";
+var MAIN_SITE_SLUG = "main";
 function HostFormDialog({
   mode,
   initial,
@@ -4579,9 +4580,16 @@ function HostFormDialog({
   const [surface, setSurface] = useState11(initial?.surface ?? "site");
   const [enabled, setEnabled] = useState11(initial?.enabled ?? true);
   const [localErrors, setLocalErrors] = useState11({});
+  const selectedSite = sites.find((site) => site.id === siteId);
+  const surfaceLockedToSite = siteId != null && selectedSite?.slug !== MAIN_SITE_SLUG;
   useEffect8(() => {
     setLocalErrors({});
   }, [fieldErrors]);
+  useEffect8(() => {
+    if (surfaceLockedToSite && surface !== "site") {
+      setSurface("site");
+    }
+  }, [surfaceLockedToSite, surface]);
   const errors = { ...localErrors, ...fieldErrors };
   const title = mode === "new" ? "New Host" : `${initial?.title ?? initial?.host ?? "Host"} Properties`;
   const siteSelectLocked = mode === "new" || mode === "edit" && initial?.verification === "pending";
@@ -4597,6 +4605,7 @@ function HostFormDialog({
     } else if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(nextHost)) {
       nextLocal.host = "Use a valid domain name.";
     }
+    const nextSurface = surfaceLockedToSite ? "site" : surface;
     setLocalErrors(nextLocal);
     if (Object.keys(nextLocal).length > 0) {
       onError?.(Object.values(nextLocal).join("\n"));
@@ -4608,7 +4617,7 @@ function HostFormDialog({
       host: nextHost,
       // New hosts stay unassigned; assign after verify.
       siteId: mode === "new" ? null : siteId,
-      surface,
+      surface: nextSurface,
       enabled
     });
   };
@@ -4660,13 +4669,14 @@ function HostFormDialog({
               id: surfaceId,
               label: "Surface:",
               accessKey: "u",
-              value: surface,
-              disabled: saving,
+              value: surfaceLockedToSite ? "site" : surface,
+              disabled: saving || surfaceLockedToSite,
+              title: surfaceLockedToSite ? "Admin surface is only available on the Main site" : void 0,
               "aria-invalid": Boolean(errors.surface) || void 0,
               onChange: (event) => setSurface(event.target.value),
               children: [
                 /* @__PURE__ */ jsx47("option", { value: "site", children: "site" }),
-                /* @__PURE__ */ jsx47("option", { value: "admin", children: "admin" })
+                !surfaceLockedToSite ? /* @__PURE__ */ jsx47("option", { value: "admin", children: "admin" }) : null
               ]
             }
           ) }),
@@ -6937,6 +6947,7 @@ export {
   Label,
   LoginForm,
   LoginPage,
+  MAIN_SITE_SLUG,
   MessageDialog,
   OWNED_MODAL_FLASH_COUNT,
   OWNED_MODAL_FLASH_INTERVAL_MS,
