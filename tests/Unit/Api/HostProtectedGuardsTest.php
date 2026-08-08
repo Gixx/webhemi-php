@@ -167,7 +167,47 @@ final class HostProtectedGuardsTest extends TestCase
         ))->update($host, $input);
 
         self::assertSame('www.renamed.test', $result->host->getHost());
+        self::assertSame('pending', $result->host->getVerification());
         self::assertTrue($result->host->isProtected());
+    }
+
+    public function testUpdaterKeepsVerificationWhenHostnameUnchanged(): void
+    {
+        $site = (new Site())->setSlug('main')->setName('Main');
+        $siteRef = new \ReflectionProperty(Site::class, 'id');
+        $siteRef->setValue($site, 1);
+
+        $host = (new SiteHost())
+            ->setHost('www.example.test')
+            ->setSite($site)
+            ->setSurface(SurfaceType::Site)
+            ->setVerification('verified')
+            ->setIsEnabled(true);
+        $hostRef = new \ReflectionProperty(SiteHost::class, 'id');
+        $hostRef->setValue($host, 9);
+
+        $hosts = $this->createStub(SiteHostRepository::class);
+        $hosts->method('findOneBy')->willReturn(null);
+        $sites = $this->createStub(SiteRepository::class);
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::once())->method('flush');
+        $resetter = $this->resetter();
+
+        $input = UpdateHostInput::fromPayload([
+            'host' => 'www.example.test',
+            'enabled' => true,
+        ]);
+        self::assertTrue($input->isValid());
+
+        $result = (new HostUpdater(
+            $em,
+            $hosts,
+            new HostUnassigner($em, $resetter),
+            new HostAssigner($sites, $hosts, $em),
+            $resetter,
+        ))->update($host, $input);
+
+        self::assertSame('verified', $result->host->getVerification());
     }
 
     private function removeTree(string $dir): void

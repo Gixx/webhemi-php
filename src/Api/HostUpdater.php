@@ -42,7 +42,11 @@ final class HostUpdater
             if ($other instanceof SiteHost && $other->getId() !== $host->getId()) {
                 throw new HostHostTakenException();
             }
-            $host->setHost($input->host);
+            if ($input->host !== $host->getHost()) {
+                $host->setHost($input->host);
+                // Ownership must be proven for the new hostname.
+                $host->setVerification('pending');
+            }
         }
 
         if (null !== $input->surface) {

@@ -3957,7 +3957,16 @@ import { useEffect as useEffect6, useId as useId2, useState as useState9 } from 
 import { jsx as jsx45, jsxs as jsxs24 } from "react/jsx-runtime";
 var MAIN_SITE_SLUG = "main";
 function wouldLoseDomainAdmin(options) {
-  const { mode, adminAccess, initial, sites, nextSurface, nextEnabled, nextSiteId } = options;
+  const {
+    mode,
+    adminAccess,
+    initial,
+    sites,
+    nextSurface,
+    nextEnabled,
+    nextSiteId,
+    nextHost
+  } = options;
   if (mode !== "edit" || adminAccess === "path") {
     return false;
   }
@@ -3984,7 +3993,13 @@ function wouldLoseDomainAdmin(options) {
     return true;
   }
   const nextSite = sites.find((site) => site.id === nextSiteId);
-  return nextSite?.slug !== MAIN_SITE_SLUG;
+  if (nextSite?.slug !== MAIN_SITE_SLUG) {
+    return true;
+  }
+  if (nextHost != null && initial.host != null && nextHost !== initial.host.trim().toLowerCase()) {
+    return true;
+  }
+  return false;
 }
 function HostFormDialog({
   mode,
@@ -4080,7 +4095,8 @@ function HostFormDialog({
       sites,
       nextSurface: payload.surface,
       nextEnabled: payload.enabled,
-      nextSiteId: payload.siteId
+      nextSiteId: payload.siteId,
+      nextHost: payload.host
     })) {
       onAccessModeResetConfirm(payload);
       return;
