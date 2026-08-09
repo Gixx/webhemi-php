@@ -1850,10 +1850,11 @@ html[data-wh-theme=admin] {
   box-shadow: var(--border-field);
   padding: 12px 8px;
   margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
-[data-wh-theme=admin] code,
-[data-wh-theme=admin] code * {
-  font-family: monospace;
+[data-wh-theme=admin] pre code,
+[data-wh-theme=admin] pre code * {
+  font-family: inherit;
 }
 [data-wh-theme=admin] summary:focus {
   outline: 1px dotted #000000;
@@ -2216,6 +2217,125 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .panel.info > .info-icon.general-app,
 [data-wh-theme=admin] .explorer-glyph.general-app {
   background-image: url("./icons/explorer/general_app.svg");
+}
+[data-wh-theme=admin] {
+  /* Shared menu popup / context menu chrome. */
+}
+[data-wh-theme=admin] .menu-popup {
+  min-width: 160px;
+  margin: 0;
+  padding: 2px;
+  background: var(--surface, #c0c0c0);
+  box-shadow: var(--border-raised-outer), var(--border-raised-inner);
+  box-sizing: border-box;
+}
+[data-wh-theme=admin] .menu-popup-separator {
+  height: 0;
+  margin: 3px 2px;
+  border: none;
+  border-top: 1px solid var(--button-shadow, #808080);
+  border-bottom: 1px solid var(--button-highlight, #fff);
+}
+[data-wh-theme=admin] .menu-popup-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  margin: 0;
+  padding: 2px 16px 2px 4px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: #000;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+[data-wh-theme=admin] .menu-popup-item:not(:disabled):hover,
+[data-wh-theme=admin] .menu-popup-item:not(:disabled):focus {
+  background: var(--dialog-blue, #000080);
+  color: var(--button-highlight, #fff);
+  box-shadow: none;
+  outline: none;
+}
+[data-wh-theme=admin] .menu-popup-item:disabled,
+[data-wh-theme=admin] .menu-popup-item.is-disabled {
+  color: var(--button-shadow, #808080);
+  text-shadow: 1px 1px 0 var(--button-highlight, #fff);
+}
+[data-wh-theme=admin] .menu-popup-item:disabled:hover,
+[data-wh-theme=admin] .menu-popup-item:disabled:focus {
+  background: transparent;
+  color: var(--button-shadow, #808080);
+}
+[data-wh-theme=admin] .menu-popup-gutter {
+  display: inline-flex;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+[data-wh-theme=admin] .menu-popup-check {
+  font-size: 12px;
+}
+[data-wh-theme=admin] .menu-popup-icon {
+  overflow: hidden;
+}
+[data-wh-theme=admin] .menu-popup-icon > img,
+[data-wh-theme=admin] .menu-popup-icon > .explorer-glyph,
+[data-wh-theme=admin] .menu-popup-icon > .menu-popup-glyph {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+[data-wh-theme=admin] .menu-popup-glyph {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 16px 16px;
+}
+[data-wh-theme=admin] .menu-popup-label {
+  flex: 1 1 auto;
+  white-space: nowrap;
+}
+[data-wh-theme=admin] .menu-popup-submenu-marker {
+  flex: 0 0 auto;
+  margin-left: 12px;
+  font-size: 9px;
+  line-height: 1;
+}
+[data-wh-theme=admin] .menu-popup-item:not(:disabled):hover .menu-popup-submenu-marker,
+[data-wh-theme=admin] .menu-popup-item:not(:disabled):focus .menu-popup-submenu-marker {
+  color: var(--button-highlight, #fff);
+}
+[data-wh-theme=admin] {
+  /* Toolbar glyphs reused as menu icons in Storybook / product. */
+}
+[data-wh-theme=admin] .menu-popup-glyph.cut {
+  background-image: url("./icons/toolbar/explorer_cut.svg");
+}
+[data-wh-theme=admin] .menu-popup-glyph.copy {
+  background-image: url("./icons/toolbar/explorer_copy.svg");
+}
+[data-wh-theme=admin] .menu-popup-glyph.paste {
+  background-image: url("./icons/toolbar/explorer_paste.svg");
+}
+[data-wh-theme=admin] .menu-popup-glyph.delete {
+  background-image: url("./icons/toolbar/explorer_delete.svg");
+}
+[data-wh-theme=admin] .menu-popup-glyph.properties {
+  background-image: url("./icons/toolbar/explorer_properties.svg");
+}
+[data-wh-theme=admin] .menu-popup-glyph.undo {
+  background-image: url("./icons/toolbar/explorer_undo.svg");
 }
 [data-wh-theme=admin] {
   /* Product bricks (shell + layouts; CSS only in Phase 1) */
