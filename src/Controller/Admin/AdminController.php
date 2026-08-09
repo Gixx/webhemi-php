@@ -37,7 +37,9 @@ final class AdminController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function sites(): Response
     {
-        return $this->redirectToRoute('admin_dashboard');
+        return $this->redirectToRoute('admin_dashboard', [
+            'window' => 'sites',
+        ]);
     }
 
     /** Legacy HTML Hosts UI removed; redirect kept for bookmarks. */
@@ -45,14 +47,19 @@ final class AdminController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function hosts(): Response
     {
-        return $this->redirectToRoute('admin_dashboard');
+        return $this->redirectToRoute('admin_dashboard', [
+            'window' => 'hosts',
+        ]);
     }
 
     /** Legacy verify POST removed; use `/admin/api` Hosts verify. Redirect kept for bookmarks. */
     #[Route('/hosts/{id}/verify', name: 'admin_hosts_verify', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function verifyHost(): Response
+    public function verifyHost(int $id): Response
     {
-        return $this->redirectToRoute('admin_dashboard');
+        return $this->redirectToRoute('admin_dashboard', [
+            'window' => 'hosts',
+            'id' => $id,
+        ]);
     }
 }

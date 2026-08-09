@@ -3776,6 +3776,51 @@ function isUnauthorizedResult(result) {
   return !result.ok && (result.status === 401 || result.error.code === "unauthorized");
 }
 
+// src/admin/lib/deepLink.ts
+var WINDOW_VALUES = /* @__PURE__ */ new Set([
+  "sites",
+  "hosts",
+  "site",
+  "control-panel",
+  "settings"
+]);
+function parsePositiveInt(raw) {
+  if (raw == null || raw === "") {
+    return null;
+  }
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n <= 0) {
+    return null;
+  }
+  return n;
+}
+function parseAdminDeepLink(search) {
+  const query = search.startsWith("?") ? search.slice(1) : search;
+  if (!query) {
+    return null;
+  }
+  const params = new URLSearchParams(query);
+  const rawWindow = params.get("window")?.trim().toLowerCase() ?? "";
+  if (!rawWindow) {
+    return null;
+  }
+  const siteAlias = /^site-(\d+)$/.exec(rawWindow);
+  if (siteAlias) {
+    return { window: "site", id: Number(siteAlias[1]) };
+  }
+  if (!WINDOW_VALUES.has(rawWindow)) {
+    return null;
+  }
+  const id = parsePositiveInt(params.get("id"));
+  if (rawWindow === "site" && id == null) {
+    return null;
+  }
+  return {
+    window: rawWindow,
+    id
+  };
+}
+
 // src/admin/components/LoginForm/LoginForm.tsx
 import { jsx as jsx43, jsxs as jsxs22 } from "react/jsx-runtime";
 function LoginForm({
@@ -4482,6 +4527,7 @@ function formatSaveErrors(formError, fieldErrors) {
 function SitesWindow({
   sites = [],
   hosts = [],
+  preferSelectedId = null,
   adminAccess = null,
   canEdit = false,
   loading = false,
@@ -4526,6 +4572,7 @@ function SitesWindow({
   const alertSoundKeyRef = useRef6(null);
   const confirmSoundKeyRef = useRef6(null);
   const accessResetSoundKeyRef = useRef6(null);
+  const appliedPreferIdRef = useRef6(null);
   const showErrorAlert = useCallback3(
     (message, title = "Error") => {
       const key = `${title}\0${message}`;
@@ -4584,6 +4631,19 @@ function SitesWindow({
     closeAccessResetUnassign();
     onUnassignHost(hostId);
   }, [pendingAccessResetUnassign, closeAccessResetUnassign, onUnassignHost]);
+  useEffect8(() => {
+    if (preferSelectedId == null) {
+      appliedPreferIdRef.current = null;
+      return;
+    }
+    if (appliedPreferIdRef.current === preferSelectedId) {
+      return;
+    }
+    if (sites.some((site) => site.id === preferSelectedId)) {
+      setSelectedId(preferSelectedId);
+      appliedPreferIdRef.current = preferSelectedId;
+    }
+  }, [preferSelectedId, sites]);
   useEffect8(() => {
     if (selectedId != null && !sites.some((site) => site.id === selectedId)) {
       setSelectedId(null);
@@ -4876,6 +4936,7 @@ function formatSaveErrors2(formError, fieldErrors) {
 function HostsWindow({
   hosts = [],
   sites = [],
+  preferSelectedId = null,
   adminAccess = null,
   canEdit = false,
   loading = false,
@@ -4917,6 +4978,7 @@ function HostsWindow({
   const alertSoundKeyRef = useRef7(null);
   const confirmSoundKeyRef = useRef7(null);
   const accessResetSoundKeyRef = useRef7(null);
+  const appliedPreferIdRef = useRef7(null);
   const showErrorAlert = useCallback4(
     (message, title = "Error") => {
       const key = `${title}\0${message}`;
@@ -4977,6 +5039,19 @@ function HostsWindow({
     setShowFormErrors(true);
     onSave?.(payload);
   }, [pendingAccessReset, closeAccessResetConfirm, onSave]);
+  useEffect9(() => {
+    if (preferSelectedId == null) {
+      appliedPreferIdRef.current = null;
+      return;
+    }
+    if (appliedPreferIdRef.current === preferSelectedId) {
+      return;
+    }
+    if (hosts.some((row) => row.id === preferSelectedId)) {
+      setSelectedId(preferSelectedId);
+      appliedPreferIdRef.current = preferSelectedId;
+    }
+  }, [preferSelectedId, hosts]);
   useEffect9(() => {
     if (selectedId != null && !hosts.some((row) => row.id === selectedId)) {
       setSelectedId(null);
@@ -6391,6 +6466,7 @@ function AdminDesktop({
   apiFetch,
   sitesApi,
   persistenceKey = DESKTOP_WINDOWS_STORAGE_KEY,
+  locationSearch,
   className
 }) {
   const storageKey = persistenceKey === false ? null : persistenceKey;
@@ -6407,6 +6483,13 @@ function AdminDesktop({
     windows: hydratedRef.current.windows,
     activeId: hydratedRef.current.activeId
   }));
+  const [deepLink] = useState16(() => {
+    const search = locationSearch !== void 0 ? locationSearch : typeof window !== "undefined" ? window.location.search : "";
+    return parseAdminDeepLink(search);
+  });
+  const deepLinkAppliedRef = useRef12(false);
+  const sitesPreferSelectedId = deepLink?.window === "sites" ? deepLink.id : null;
+  const hostsPreferSelectedId = deepLink?.window === "hosts" ? deepLink.id : null;
   const [startMenuOpen, setStartMenuOpen] = useState16(false);
   const [desktopSites, setDesktopSites] = useState16(sites);
   const [sitesRows, setSitesRows] = useState16([]);
@@ -6966,6 +7049,38 @@ function AdminDesktop({
       };
     });
   };
+  useEffect15(() => {
+    if (!deepLink || deepLinkAppliedRef.current) {
+      return;
+    }
+    deepLinkAppliedRef.current = true;
+    switch (deepLink.window) {
+      case "sites":
+        openSites();
+        break;
+      case "hosts":
+        openHosts();
+        break;
+      case "control-panel":
+        openControlPanel();
+        break;
+      case "settings":
+        openSettings();
+        break;
+      case "site": {
+        if (deepLink.id == null) {
+          break;
+        }
+        const site = desktopSites.find((row) => row.id === deepLink.id) ?? sites.find((row) => row.id === deepLink.id);
+        if (site) {
+          openSite(site);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }, [deepLink]);
   const moveWindow = (id, left, top) => {
     setShell((prev) => ({
       ...prev,
@@ -7310,6 +7425,7 @@ function AdminDesktop({
               maximized: win.maximized,
               sites: sitesRows,
               hosts: siteFormHosts,
+              preferSelectedId: sitesPreferSelectedId,
               adminAccess: settings?.adminAccess ?? null,
               canEdit: canEditSites,
               loading: sitesLoading,
@@ -7351,6 +7467,7 @@ function AdminDesktop({
               maximized: win.maximized,
               hosts: hostsRows,
               sites: hostFormSites,
+              preferSelectedId: hostsPreferSelectedId,
               adminAccess: settings?.adminAccess ?? null,
               canEdit: canEditHosts,
               loading: hostsLoading,
@@ -7627,6 +7744,7 @@ export {
   isExplorerTreeExpandable,
   isUnauthorizedResult,
   isUnderExplorerTrash,
+  parseAdminDeepLink,
   pasteExplorerClipboard,
   playAdminSound,
   promoteTabRow,
