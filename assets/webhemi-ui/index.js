@@ -998,8 +998,7 @@ function resolveMenuGutterMode(items) {
   if (rows.length === 0) {
     return "none";
   }
-  const allCheckable = rows.every((item) => isAdminMenuCheckable(item));
-  if (allCheckable) {
+  if (rows.some((item) => isAdminMenuCheckable(item))) {
     return "check";
   }
   const anyIcon = rows.some(
@@ -1032,12 +1031,14 @@ function LeadingGutter({
 }
 function MenuPopup({
   items,
+  id,
   "aria-label": ariaLabel = "Menu",
   className,
   style,
   onItemActivate
 }) {
-  const baseId = useId();
+  const generatedId = useId();
+  const baseId = id ?? generatedId;
   const rootRef = useRef3(null);
   const gutterMode = resolveMenuGutterMode(items);
   const activate = (item) => {
@@ -2140,6 +2141,9 @@ import { Fragment as Fragment8, jsx as jsx39, jsxs as jsxs18 } from "react/jsx-r
 function MenuLabel2({ text, accessKey }) {
   return /* @__PURE__ */ jsx39(Fragment8, { children: underlineAccessKey(text, accessKey) });
 }
+function menuGlyph(kind) {
+  return /* @__PURE__ */ jsx39("span", { className: `menu-popup-glyph ${kind}` });
+}
 function buildMenus(props) {
   const {
     view,
@@ -2202,6 +2206,7 @@ function buildMenus(props) {
         id: "delete",
         label: "Delete",
         accessKey: "D",
+        icon: menuGlyph("delete"),
         disabled: !onDelete,
         onSelect: onDelete
       },
@@ -2210,6 +2215,7 @@ function buildMenus(props) {
         id: "properties",
         label: "Properties",
         accessKey: "R",
+        icon: menuGlyph("properties"),
         disabled: !onProperties,
         onSelect: onProperties
       },
@@ -2229,6 +2235,7 @@ function buildMenus(props) {
         id: "undo",
         label: "Undo",
         accessKey: "U",
+        icon: menuGlyph("undo"),
         disabled: !onUndo,
         onSelect: onUndo
       },
@@ -2238,6 +2245,7 @@ function buildMenus(props) {
         id: "cut",
         label: "Cut",
         accessKey: "T",
+        icon: menuGlyph("cut"),
         disabled: !onCut,
         onSelect: onCut
       },
@@ -2246,6 +2254,7 @@ function buildMenus(props) {
         id: "copy",
         label: "Copy",
         accessKey: "C",
+        icon: menuGlyph("copy"),
         disabled: !onCopy,
         onSelect: onCopy
       },
@@ -2254,6 +2263,7 @@ function buildMenus(props) {
         id: "paste",
         label: "Paste",
         accessKey: "P",
+        icon: menuGlyph("paste"),
         disabled: !onPaste,
         onSelect: onPaste
       },
@@ -2363,13 +2373,6 @@ function ExplorerMenuBar(props) {
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [openMenu]);
-  const activateItem = (item) => {
-    if (item.disabled || !item.onSelect) {
-      return;
-    }
-    item.onSelect();
-    setOpenMenu(null);
-  };
   const onMenuKeyDown = (event, menuId) => {
     if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
       event.preventDefault();
@@ -2416,32 +2419,16 @@ function ExplorerMenuBar(props) {
                   children: /* @__PURE__ */ jsx39(MenuLabel2, { text: top.label, accessKey: top.accessKey })
                 }
               ),
-              expanded ? /* @__PURE__ */ jsx39("div", { id: menuId, className: "explorer-menu", role: "menu", "aria-label": top.label, children: items.map((item) => {
-                if (item.kind === "separator") {
-                  return /* @__PURE__ */ jsx39("div", { className: "explorer-menu-separator", role: "separator" }, item.id);
+              expanded ? /* @__PURE__ */ jsx39(
+                MenuPopup,
+                {
+                  id: menuId,
+                  className: "explorer-menu",
+                  "aria-label": top.label,
+                  items,
+                  onItemActivate: () => setOpenMenu(null)
                 }
-                const role = item.role ?? "menuitem";
-                return /* @__PURE__ */ jsxs18(
-                  "button",
-                  {
-                    type: "button",
-                    role,
-                    className: cn(
-                      "explorer-menu-item",
-                      item.checked && "is-checked",
-                      item.disabled && "is-disabled"
-                    ),
-                    disabled: item.disabled,
-                    "aria-checked": role === "menuitemradio" || role === "menuitemcheckbox" ? item.checked : void 0,
-                    onClick: () => activateItem(item),
-                    children: [
-                      /* @__PURE__ */ jsx39("span", { className: "explorer-menu-check", "aria-hidden": true, children: item.checked ? "\u2713" : "" }),
-                      /* @__PURE__ */ jsx39("span", { className: "explorer-menu-label", children: /* @__PURE__ */ jsx39(MenuLabel2, { text: item.label, accessKey: item.accessKey }) })
-                    ]
-                  },
-                  item.id
-                );
-              }) }) : null
+              ) : null
             ]
           },
           top.id
