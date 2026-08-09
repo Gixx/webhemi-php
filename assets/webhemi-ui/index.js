@@ -1157,22 +1157,6 @@ function ContextMenu({
 
 // src/admin/bricks/_lib/PaneWindowShell.tsx
 import { jsx as jsx29, jsxs as jsxs9 } from "react/jsx-runtime";
-var TITLE_BAR_ICON_OPTIONS = [
-  "none",
-  "control-panel",
-  "site",
-  "users",
-  "roles",
-  "permissions",
-  "hosts",
-  "sites",
-  "settings",
-  "themes",
-  "folder"
-];
-function resolveTitleBarIcon(value) {
-  return value && value !== "none" ? value : void 0;
-}
 function PaneWindowShell({
   title,
   titleIcon,
@@ -3779,6 +3763,24 @@ function buildDemoSiteExplorerTree(site) {
   ];
 }
 
+// src/admin/bricks/_lib/titleBarIcon.ts
+var TITLE_BAR_ICON_OPTIONS = [
+  "none",
+  "control-panel",
+  "site",
+  "users",
+  "roles",
+  "permissions",
+  "hosts",
+  "sites",
+  "settings",
+  "themes",
+  "folder"
+];
+function resolveTitleBarIcon(value) {
+  return value && value !== "none" ? value : void 0;
+}
+
 // src/admin/api/client.ts
 var DEFAULT_BASE = "/admin/api";
 var SESSION_EXPIRED_MESSAGE = "Your session has expired. Please sign in again.";
@@ -4143,7 +4145,7 @@ function ControlPanel({
 }
 
 // src/admin/components/SitesWindow/SitesWindow.tsx
-import { useCallback as useCallback3, useEffect as useEffect8, useLayoutEffect as useLayoutEffect3, useRef as useRef7, useState as useState11 } from "react";
+import { useCallback as useCallback3, useEffect as useEffect7, useLayoutEffect as useLayoutEffect3, useRef as useRef7, useState as useState10 } from "react";
 
 // src/admin/lib/accessModeResetWarning.ts
 var ACCESS_MODE_RESET_WARNING = "This change will switch Admin access to path.\nUnfinished work in this session will be discarded, and you will need to sign in again on the path admin login page.";
@@ -4152,11 +4154,9 @@ Unfinished work in this session will be discarded, and you will need to sign in 
 This cannot be undone.`;
 
 // src/admin/components/SitesWindow/SiteFormDialog.tsx
-import { useEffect as useEffect7, useId as useId4, useMemo as useMemo4, useState as useState10 } from "react";
+import { useEffect as useEffect6, useId as useId3, useMemo as useMemo4, useState as useState9 } from "react";
 
-// src/admin/components/HostsWindow/HostFormDialog.tsx
-import { useEffect as useEffect6, useId as useId3, useState as useState9 } from "react";
-import { jsx as jsx47, jsxs as jsxs25 } from "react/jsx-runtime";
+// src/admin/components/HostsWindow/hostFormAccess.ts
 var MAIN_SITE_SLUG = "main";
 function wouldLoseDomainAdmin(options) {
   const {
@@ -4203,192 +4203,9 @@ function wouldLoseDomainAdmin(options) {
   }
   return false;
 }
-function HostFormDialog({
-  mode,
-  initial,
-  sites = [],
-  adminSurfaceHostId = null,
-  adminAccess = null,
-  fieldErrors,
-  saving = false,
-  onSave,
-  onAccessModeResetConfirm,
-  onError,
-  onClose,
-  className
-}) {
-  const hostId = useId3();
-  const siteSelectId = useId3();
-  const surfaceId = useId3();
-  const enabledId = useId3();
-  const [host, setHost] = useState9(initial?.host ?? "");
-  const [siteId, setSiteId] = useState9(initial?.siteId ?? null);
-  const [surface, setSurface] = useState9(initial?.surface ?? "site");
-  const [enabled, setEnabled] = useState9(initial?.enabled ?? true);
-  const [localErrors, setLocalErrors] = useState9({});
-  const selectedSite = sites.find((site) => site.id === siteId);
-  const hostProtected = Boolean(initial?.protected);
-  const siteSelectLocked = mode === "new" || hostProtected || mode === "edit" && initial?.verification === "pending";
-  const isMainSelected = siteId != null && selectedSite?.slug === MAIN_SITE_SLUG;
-  const otherAdminExists = adminSurfaceHostId != null && adminSurfaceHostId !== initial?.hostId;
-  const surfaceSelectable = mode === "edit" && !hostProtected && !siteSelectLocked && siteId != null && isMainSelected && !otherAdminExists;
-  useEffect6(() => {
-    setLocalErrors({});
-  }, [fieldErrors]);
-  useEffect6(() => {
-    if (!surfaceSelectable && surface !== "site") {
-      setSurface("site");
-    }
-  }, [surfaceSelectable, surface]);
-  const errors = { ...localErrors, ...fieldErrors };
-  const title = mode === "new" ? "New Host" : `${initial?.title ?? initial?.host ?? "Host"} Properties`;
-  const surfaceTitle = (() => {
-    if (mode === "new") {
-      return "Admin surface is set after the host is assigned to the Main site";
-    }
-    if (hostProtected) {
-      return "Protected system host must keep the site surface";
-    }
-    if (siteSelectLocked) {
-      return "Verify ownership before assigning a site";
-    }
-    if (siteId == null) {
-      return "Assign a site before choosing surface";
-    }
-    if (!isMainSelected) {
-      return "Admin surface is only available on the Main site";
-    }
-    if (otherAdminExists) {
-      return "Another host already uses the admin surface";
-    }
-    return void 0;
-  })();
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    if (saving) {
-      return;
-    }
-    const nextHost = host.trim().toLowerCase();
-    const nextLocal = {};
-    if (!nextHost) {
-      nextLocal.host = "Hostname is required.";
-    } else if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(nextHost)) {
-      nextLocal.host = "Use a valid domain name.";
-    }
-    const nextSurface = surfaceSelectable ? surface : "site";
-    setLocalErrors(nextLocal);
-    if (Object.keys(nextLocal).length > 0) {
-      onError?.(Object.values(nextLocal).join("\n"));
-      return;
-    }
-    const payload = {
-      mode,
-      hostId: initial?.hostId,
-      host: nextHost,
-      // New hosts stay unassigned; assign after verify.
-      siteId: mode === "new" ? null : siteId,
-      surface: mode === "new" ? "site" : nextSurface,
-      enabled
-    };
-    if (onAccessModeResetConfirm && wouldLoseDomainAdmin({
-      mode,
-      adminAccess,
-      initial,
-      sites,
-      nextSurface: payload.surface,
-      nextEnabled: payload.enabled,
-      nextSiteId: payload.siteId,
-      nextHost: payload.host
-    })) {
-      onAccessModeResetConfirm(payload);
-      return;
-    }
-    onSave(payload);
-  };
-  return /* @__PURE__ */ jsx47(
-    PaneWindowShell,
-    {
-      className: cn("host-form-dialog", "site-form-dialog", className),
-      width: 420,
-      title,
-      titleIcon: "hosts",
-      titleBarControls: /* @__PURE__ */ jsx47(TitleBarControls, { children: /* @__PURE__ */ jsx47(TitleBarControl, { action: "Close", onClick: onClose }) }),
-      children: /* @__PURE__ */ jsxs25("form", { className: "site-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
-        /* @__PURE__ */ jsxs25(WindowBody, { children: [
-          /* @__PURE__ */ jsx47(FieldRow, { children: /* @__PURE__ */ jsx47(
-            TextBox,
-            {
-              id: hostId,
-              label: "Host:",
-              accessKey: "h",
-              value: host,
-              disabled: saving,
-              "aria-invalid": Boolean(errors.host) || void 0,
-              onChange: (event) => setHost(event.target.value)
-            }
-          ) }),
-          /* @__PURE__ */ jsx47(FieldRow, { children: /* @__PURE__ */ jsxs25(
-            Select,
-            {
-              id: siteSelectId,
-              label: "Site:",
-              accessKey: "s",
-              value: siteId != null ? String(siteId) : "",
-              disabled: saving || siteSelectLocked,
-              title: mode === "new" ? "Assign a site after ownership is verified" : hostProtected ? "Protected system host stays on the Main site" : siteSelectLocked ? "Verify ownership before assigning a site" : void 0,
-              "aria-invalid": Boolean(errors.siteId) || void 0,
-              onChange: (event) => {
-                const value = event.target.value;
-                setSiteId(value === "" ? null : Number(value));
-              },
-              children: [
-                /* @__PURE__ */ jsx47("option", { value: "", children: "None" }),
-                sites.map((site) => /* @__PURE__ */ jsx47("option", { value: site.id, children: site.name }, site.id))
-              ]
-            }
-          ) }),
-          /* @__PURE__ */ jsx47(FieldRow, { children: /* @__PURE__ */ jsxs25(
-            Select,
-            {
-              id: surfaceId,
-              label: "Surface:",
-              accessKey: "u",
-              value: surfaceSelectable ? surface : "site",
-              disabled: saving || !surfaceSelectable,
-              title: surfaceTitle,
-              "aria-invalid": Boolean(errors.surface) || void 0,
-              onChange: (event) => setSurface(event.target.value),
-              children: [
-                /* @__PURE__ */ jsx47("option", { value: "site", children: "site" }),
-                surfaceSelectable ? /* @__PURE__ */ jsx47("option", { value: "admin", children: "admin" }) : null
-              ]
-            }
-          ) }),
-          /* @__PURE__ */ jsx47(FieldRow, { children: /* @__PURE__ */ jsx47(
-            Checkbox,
-            {
-              id: enabledId,
-              label: "Enabled",
-              accessKey: "e",
-              checked: enabled,
-              disabled: saving || hostProtected,
-              title: hostProtected ? "Protected system host cannot be disabled" : void 0,
-              "aria-invalid": Boolean(errors.enabled) || void 0,
-              onChange: (event) => setEnabled(event.target.checked)
-            }
-          ) })
-        ] }),
-        /* @__PURE__ */ jsxs25(FieldRow, { className: "justify-end site-form-dialog-actions", children: [
-          /* @__PURE__ */ jsx47(Button, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
-          /* @__PURE__ */ jsx47(Button, { type: "button", accessKey: "c", disabled: saving, onClick: onClose, children: "Cancel" })
-        ] })
-      ] })
-    }
-  );
-}
 
 // src/admin/components/SitesWindow/SiteFormDialog.tsx
-import { Fragment as Fragment9, jsx as jsx48, jsxs as jsxs26 } from "react/jsx-runtime";
+import { Fragment as Fragment9, jsx as jsx47, jsxs as jsxs25 } from "react/jsx-runtime";
 function SiteFormDialog({
   mode,
   initial,
@@ -4407,17 +4224,17 @@ function SiteFormDialog({
   onAccessModeResetUnassign,
   className
 }) {
-  const nameId = useId4();
-  const slugId = useId4();
-  const enabledId = useId4();
-  const assignSelectId = useId4();
-  const [tab, setTab] = useState10("general");
-  const [name, setName] = useState10(initial?.name ?? "");
-  const [slug, setSlug] = useState10(initial?.slug ?? "");
-  const [enabled, setEnabled] = useState10(initial?.enabled ?? true);
-  const [selectedHostId, setSelectedHostId] = useState10(null);
-  const [assignHostId, setAssignHostId] = useState10(null);
-  const [localErrors, setLocalErrors] = useState10(
+  const nameId = useId3();
+  const slugId = useId3();
+  const enabledId = useId3();
+  const assignSelectId = useId3();
+  const [tab, setTab] = useState9("general");
+  const [name, setName] = useState9(initial?.name ?? "");
+  const [slug, setSlug] = useState9(initial?.slug ?? "");
+  const [enabled, setEnabled] = useState9(initial?.enabled ?? true);
+  const [selectedHostId, setSelectedHostId] = useState9(null);
+  const [assignHostId, setAssignHostId] = useState9(null);
+  const [localErrors, setLocalErrors] = useState9(
     {}
   );
   const assignedHosts = useMemo4(() => {
@@ -4432,15 +4249,15 @@ function SiteFormDialog({
     ),
     [hosts]
   );
-  useEffect7(() => {
+  useEffect6(() => {
     setLocalErrors({});
   }, [fieldErrors]);
-  useEffect7(() => {
+  useEffect6(() => {
     if (selectedHostId != null && !assignedHosts.some((host) => host.id === selectedHostId)) {
       setSelectedHostId(null);
     }
   }, [assignedHosts, selectedHostId]);
-  useEffect7(() => {
+  useEffect6(() => {
     if (assignHostId != null && !assignableHosts.some((host) => host.id === assignHostId)) {
       setAssignHostId(null);
     }
@@ -4499,17 +4316,17 @@ function SiteFormDialog({
     }
     onAssignHost?.(assignHostId);
   };
-  return /* @__PURE__ */ jsx48(
+  return /* @__PURE__ */ jsx47(
     PaneWindowShell,
     {
       className: cn("site-form-dialog", className),
       width: 480,
       title,
       titleIcon: "sites",
-      titleBarControls: /* @__PURE__ */ jsx48(TitleBarControls, { children: /* @__PURE__ */ jsx48(TitleBarControl, { action: "Close", onClick: onClose }) }),
-      children: /* @__PURE__ */ jsxs26("form", { className: "site-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
-        /* @__PURE__ */ jsxs26(TabList, { children: [
-          /* @__PURE__ */ jsx48(
+      titleBarControls: /* @__PURE__ */ jsx47(TitleBarControls, { children: /* @__PURE__ */ jsx47(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      children: /* @__PURE__ */ jsxs25("form", { className: "site-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
+        /* @__PURE__ */ jsxs25(TabList, { children: [
+          /* @__PURE__ */ jsx47(
             Tab,
             {
               selected: tab === "general",
@@ -4521,7 +4338,7 @@ function SiteFormDialog({
               children: "General"
             }
           ),
-          /* @__PURE__ */ jsx48(
+          /* @__PURE__ */ jsx47(
             Tab,
             {
               selected: tab === "hosts",
@@ -4534,8 +4351,8 @@ function SiteFormDialog({
             }
           )
         ] }),
-        /* @__PURE__ */ jsx48(TabPanel, { children: /* @__PURE__ */ jsx48(WindowBody, { children: tab === "general" ? /* @__PURE__ */ jsxs26(Fragment9, { children: [
-          /* @__PURE__ */ jsx48(FieldRow, { children: /* @__PURE__ */ jsx48(
+        /* @__PURE__ */ jsx47(TabPanel, { children: /* @__PURE__ */ jsx47(WindowBody, { children: tab === "general" ? /* @__PURE__ */ jsxs25(Fragment9, { children: [
+          /* @__PURE__ */ jsx47(FieldRow, { children: /* @__PURE__ */ jsx47(
             TextBox,
             {
               id: nameId,
@@ -4547,7 +4364,7 @@ function SiteFormDialog({
               onChange: (event) => setName(event.target.value)
             }
           ) }),
-          /* @__PURE__ */ jsx48(FieldRow, { children: /* @__PURE__ */ jsx48(
+          /* @__PURE__ */ jsx47(FieldRow, { children: /* @__PURE__ */ jsx47(
             TextBox,
             {
               id: slugId,
@@ -4560,7 +4377,7 @@ function SiteFormDialog({
               onChange: (event) => setSlug(event.target.value)
             }
           ) }),
-          /* @__PURE__ */ jsx48(FieldRow, { children: /* @__PURE__ */ jsx48(
+          /* @__PURE__ */ jsx47(FieldRow, { children: /* @__PURE__ */ jsx47(
             Checkbox,
             {
               id: enabledId,
@@ -4572,20 +4389,20 @@ function SiteFormDialog({
               onChange: (event) => setEnabled(event.target.checked)
             }
           ) })
-        ] }) : /* @__PURE__ */ jsxs26(Fragment9, { children: [
-          /* @__PURE__ */ jsx48("p", { style: { marginTop: 0, marginBottom: 8 }, children: initial?.siteId == null ? "Save the site first, then assign verified hosts here or from Hosts." : "Assigned hosts below. Assign only verified, unassigned hosts; Remove unassigns without deleting." }),
-          /* @__PURE__ */ jsx48(
+        ] }) : /* @__PURE__ */ jsxs25(Fragment9, { children: [
+          /* @__PURE__ */ jsx47("p", { style: { marginTop: 0, marginBottom: 8 }, children: initial?.siteId == null ? "Save the site first, then assign verified hosts here or from Hosts." : "Assigned hosts below. Assign only verified, unassigned hosts; Remove unassigns without deleting." }),
+          /* @__PURE__ */ jsx47(
             SunkenPanel,
             {
               scrollable: true,
               tone: "white",
               className: "site-form-host-list",
-              children: assignedHosts.length === 0 ? /* @__PURE__ */ jsx48("p", { style: { margin: 8 }, children: initial?.siteId == null ? "No hosts until this site is saved." : "No hosts assigned." }) : /* @__PURE__ */ jsxs26(Table, { "aria-label": "Assigned hosts", children: [
-                /* @__PURE__ */ jsx48("thead", { children: /* @__PURE__ */ jsxs26("tr", { children: [
-                  /* @__PURE__ */ jsx48("th", { children: "Name" }),
-                  /* @__PURE__ */ jsx48("th", { children: "Verification" })
+              children: assignedHosts.length === 0 ? /* @__PURE__ */ jsx47("p", { style: { margin: 8 }, children: initial?.siteId == null ? "No hosts until this site is saved." : "No hosts assigned." }) : /* @__PURE__ */ jsxs25(Table, { "aria-label": "Assigned hosts", children: [
+                /* @__PURE__ */ jsx47("thead", { children: /* @__PURE__ */ jsxs25("tr", { children: [
+                  /* @__PURE__ */ jsx47("th", { children: "Name" }),
+                  /* @__PURE__ */ jsx47("th", { children: "Verification" })
                 ] }) }),
-                /* @__PURE__ */ jsx48("tbody", { children: assignedHosts.map((row) => /* @__PURE__ */ jsxs26(
+                /* @__PURE__ */ jsx47("tbody", { children: assignedHosts.map((row) => /* @__PURE__ */ jsxs25(
                   TableRow,
                   {
                     highlighted: selectedHostId === row.id,
@@ -4593,8 +4410,8 @@ function SiteFormDialog({
                       (current) => current === row.id ? null : row.id
                     ),
                     children: [
-                      /* @__PURE__ */ jsx48("td", { children: row.host }),
-                      /* @__PURE__ */ jsx48("td", { children: row.status })
+                      /* @__PURE__ */ jsx47("td", { children: row.host }),
+                      /* @__PURE__ */ jsx47("td", { children: row.status })
                     ]
                   },
                   row.id
@@ -4602,8 +4419,8 @@ function SiteFormDialog({
               ] })
             }
           ),
-          initial?.siteId != null ? /* @__PURE__ */ jsxs26(FieldRow, { style: { marginTop: 8 }, children: [
-            /* @__PURE__ */ jsxs26(
+          initial?.siteId != null ? /* @__PURE__ */ jsxs25(FieldRow, { style: { marginTop: 8 }, children: [
+            /* @__PURE__ */ jsxs25(
               Select,
               {
                 id: assignSelectId,
@@ -4617,12 +4434,12 @@ function SiteFormDialog({
                   setAssignHostId(value === "" ? null : Number(value));
                 },
                 children: [
-                  /* @__PURE__ */ jsx48("option", { value: "", children: assignableHosts.length === 0 ? "None available" : "Select a host\u2026" }),
-                  assignableHosts.map((host) => /* @__PURE__ */ jsx48("option", { value: host.id, children: host.host }, host.id))
+                  /* @__PURE__ */ jsx47("option", { value: "", children: assignableHosts.length === 0 ? "None available" : "Select a host\u2026" }),
+                  assignableHosts.map((host) => /* @__PURE__ */ jsx47("option", { value: host.id, children: host.host }, host.id))
                 ]
               }
             ),
-            /* @__PURE__ */ jsx48(
+            /* @__PURE__ */ jsx47(
               Button,
               {
                 type: "button",
@@ -4634,8 +4451,8 @@ function SiteFormDialog({
               }
             )
           ] }) : null,
-          /* @__PURE__ */ jsxs26(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: [
-            /* @__PURE__ */ jsx48(
+          /* @__PURE__ */ jsxs25(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: [
+            /* @__PURE__ */ jsx47(
               Button,
               {
                 type: "button",
@@ -4646,7 +4463,7 @@ function SiteFormDialog({
                 children: "Add\u2026"
               }
             ),
-            /* @__PURE__ */ jsx48(
+            /* @__PURE__ */ jsx47(
               Button,
               {
                 type: "button",
@@ -4659,9 +4476,9 @@ function SiteFormDialog({
             )
           ] })
         ] }) }) }),
-        /* @__PURE__ */ jsxs26(FieldRow, { className: "justify-end site-form-dialog-actions", children: [
-          /* @__PURE__ */ jsx48(Button, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
-          /* @__PURE__ */ jsx48(Button, { type: "button", accessKey: "c", disabled: busy, onClick: onClose, children: "Cancel" })
+        /* @__PURE__ */ jsxs25(FieldRow, { className: "justify-end site-form-dialog-actions", children: [
+          /* @__PURE__ */ jsx47(Button, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
+          /* @__PURE__ */ jsx47(Button, { type: "button", accessKey: "c", disabled: busy, onClick: onClose, children: "Cancel" })
         ] })
       ] })
     }
@@ -4669,7 +4486,7 @@ function SiteFormDialog({
 }
 
 // src/admin/components/SitesWindow/SitesWindow.tsx
-import { Fragment as Fragment10, jsx as jsx49, jsxs as jsxs27 } from "react/jsx-runtime";
+import { Fragment as Fragment10, jsx as jsx48, jsxs as jsxs26 } from "react/jsx-runtime";
 function formatSaveErrors(formError, fieldErrors) {
   const parts = [
     formError,
@@ -4719,12 +4536,12 @@ function SitesWindow({
   width = 560,
   tableMinHeight
 }) {
-  const [selectedId, setSelectedId] = useState11(null);
-  const [form, setForm] = useState11({ open: false });
-  const [showFormErrors, setShowFormErrors] = useState11(false);
-  const [alert, setAlert] = useState11(null);
-  const [confirmDelete, setConfirmDelete] = useState11(null);
-  const [pendingAccessResetUnassign, setPendingAccessResetUnassign] = useState11(null);
+  const [selectedId, setSelectedId] = useState10(null);
+  const [form, setForm] = useState10({ open: false });
+  const [showFormErrors, setShowFormErrors] = useState10(false);
+  const [alert, setAlert] = useState10(null);
+  const [confirmDelete, setConfirmDelete] = useState10(null);
+  const [pendingAccessResetUnassign, setPendingAccessResetUnassign] = useState10(null);
   const wasSavingRef = useRef7(false);
   const alertSoundKeyRef = useRef7(null);
   const confirmSoundKeyRef = useRef7(null);
@@ -4788,7 +4605,7 @@ function SitesWindow({
     closeAccessResetUnassign();
     onUnassignHost(hostId);
   }, [pendingAccessResetUnassign, closeAccessResetUnassign, onUnassignHost]);
-  useEffect8(() => {
+  useEffect7(() => {
     if (preferSelectedId == null) {
       appliedPreferIdRef.current = null;
       return;
@@ -4801,17 +4618,17 @@ function SitesWindow({
       appliedPreferIdRef.current = preferSelectedId;
     }
   }, [preferSelectedId, sites]);
-  useEffect8(() => {
+  useEffect7(() => {
     if (selectedId != null && !sites.some((site) => site.id === selectedId)) {
       setSelectedId(null);
     }
   }, [sites, selectedId]);
-  useEffect8(() => {
+  useEffect7(() => {
     if (confirmDelete != null && !sites.some((site) => site.id === confirmDelete.site.id)) {
       closeDeleteConfirm();
     }
   }, [sites, confirmDelete, closeDeleteConfirm]);
-  useEffect8(() => {
+  useEffect7(() => {
     const hadErrors = Boolean(formError) || Boolean(fieldErrors && Object.keys(fieldErrors).length > 0);
     if (wasSavingRef.current && !saving && form.open && !hadErrors) {
       setForm({ open: false });
@@ -4825,7 +4642,7 @@ function SitesWindow({
     }
     showErrorAlert(error);
   }, [error, loading, showErrorAlert]);
-  useEffect8(() => {
+  useEffect7(() => {
     if (!formError && !(form.open && showFormErrors)) {
       return;
     }
@@ -4916,7 +4733,7 @@ function SitesWindow({
   };
   const statusLeft = loading ? "Loading\u2026" : `${sites.length} site${sites.length === 1 ? "" : "s"}`;
   const statusMid = statusMessage ?? (selected ? selected.name : canEdit ? "Select a site, or choose New." : "");
-  return /* @__PURE__ */ jsx49(
+  return /* @__PURE__ */ jsx48(
     HeadingPanelWindow,
     {
       className: cn("sites-window", className),
@@ -4925,21 +4742,21 @@ function SitesWindow({
       resizable,
       title: "Sites",
       titleIcon: "sites",
-      titleBarControls: /* @__PURE__ */ jsxs27(TitleBarControls, { children: [
-        /* @__PURE__ */ jsx49(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-        resizable ? /* @__PURE__ */ jsx49(
+      titleBarControls: /* @__PURE__ */ jsxs26(TitleBarControls, { children: [
+        /* @__PURE__ */ jsx48(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+        resizable ? /* @__PURE__ */ jsx48(
           TitleBarControl,
           {
             action: maximized ? "Restore" : "Maximize",
             onClick: onMaximize
           }
         ) : null,
-        /* @__PURE__ */ jsx49(TitleBarControl, { action: "Close", onClick: onClose })
+        /* @__PURE__ */ jsx48(TitleBarControl, { action: "Close", onClick: onClose })
       ] }),
       onMouseDown: onActivate,
-      heading: /* @__PURE__ */ jsx49("p", { style: { margin: 0 }, children: "Multi-tenant sites bound to one or more hostnames." }),
-      actions: canEdit ? /* @__PURE__ */ jsxs27(FieldRow, { className: "justify-end", children: [
-        /* @__PURE__ */ jsx49(
+      heading: /* @__PURE__ */ jsx48("p", { style: { margin: 0 }, children: "Multi-tenant sites bound to one or more hostnames." }),
+      actions: canEdit ? /* @__PURE__ */ jsxs26(FieldRow, { className: "justify-end", children: [
+        /* @__PURE__ */ jsx48(
           Button,
           {
             type: "button",
@@ -4950,7 +4767,7 @@ function SitesWindow({
             children: "New"
           }
         ),
-        /* @__PURE__ */ jsx49(
+        /* @__PURE__ */ jsx48(
           Button,
           {
             type: "button",
@@ -4960,7 +4777,7 @@ function SitesWindow({
             children: "Edit"
           }
         ),
-        /* @__PURE__ */ jsx49(
+        /* @__PURE__ */ jsx48(
           Button,
           {
             type: "button",
@@ -4971,38 +4788,38 @@ function SitesWindow({
             children: "Delete"
           }
         ),
-        /* @__PURE__ */ jsx49(Button, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" })
-      ] }) : /* @__PURE__ */ jsx49(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx49(Button, { type: "button", accessKey: "c", onClick: handleCancel, children: "Cancel" }) }),
-      statusBar: /* @__PURE__ */ jsxs27(StatusBar, { children: [
-        /* @__PURE__ */ jsx49(StatusBarField, { children: statusLeft }),
-        /* @__PURE__ */ jsx49(StatusBarField, { className: "description", children: statusMid }),
-        /* @__PURE__ */ jsx49(StatusBarField, {})
+        /* @__PURE__ */ jsx48(Button, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" })
+      ] }) : /* @__PURE__ */ jsx48(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx48(Button, { type: "button", accessKey: "c", onClick: handleCancel, children: "Cancel" }) }),
+      statusBar: /* @__PURE__ */ jsxs26(StatusBar, { children: [
+        /* @__PURE__ */ jsx48(StatusBarField, { children: statusLeft }),
+        /* @__PURE__ */ jsx48(StatusBarField, { className: "description", children: statusMid }),
+        /* @__PURE__ */ jsx48(StatusBarField, {})
       ] }),
-      children: /* @__PURE__ */ jsxs27(Fragment10, { children: [
-        /* @__PURE__ */ jsx49(
+      children: /* @__PURE__ */ jsxs26(Fragment10, { children: [
+        /* @__PURE__ */ jsx48(
           SunkenPanel,
           {
             scrollable: true,
             tone: "white",
             style: tableMinHeight != null ? { minHeight: tableMinHeight } : void 0,
-            children: loading && sites.length === 0 ? /* @__PURE__ */ jsx49("p", { style: { margin: 8 }, children: "Loading sites\u2026" }) : sites.length === 0 ? /* @__PURE__ */ jsx49("p", { style: { margin: 8 }, children: "No sites yet." }) : /* @__PURE__ */ jsxs27(Table, { "aria-label": "Sites", children: [
-              /* @__PURE__ */ jsx49("thead", { children: /* @__PURE__ */ jsxs27("tr", { children: [
-                /* @__PURE__ */ jsx49("th", { children: "Name" }),
-                /* @__PURE__ */ jsx49("th", { children: "Slug" }),
-                /* @__PURE__ */ jsx49("th", { children: "Hosts" }),
-                /* @__PURE__ */ jsx49("th", { children: "Status" })
+            children: loading && sites.length === 0 ? /* @__PURE__ */ jsx48("p", { style: { margin: 8 }, children: "Loading sites\u2026" }) : sites.length === 0 ? /* @__PURE__ */ jsx48("p", { style: { margin: 8 }, children: "No sites yet." }) : /* @__PURE__ */ jsxs26(Table, { "aria-label": "Sites", children: [
+              /* @__PURE__ */ jsx48("thead", { children: /* @__PURE__ */ jsxs26("tr", { children: [
+                /* @__PURE__ */ jsx48("th", { children: "Name" }),
+                /* @__PURE__ */ jsx48("th", { children: "Slug" }),
+                /* @__PURE__ */ jsx48("th", { children: "Hosts" }),
+                /* @__PURE__ */ jsx48("th", { children: "Status" })
               ] }) }),
-              /* @__PURE__ */ jsx49("tbody", { children: sites.map((site) => /* @__PURE__ */ jsxs27(
+              /* @__PURE__ */ jsx48("tbody", { children: sites.map((site) => /* @__PURE__ */ jsxs26(
                 TableRow,
                 {
                   highlighted: selectedId === site.id,
                   onClick: () => selectSite(site.id),
                   onDoubleClick: () => openEdit(site),
                   children: [
-                    /* @__PURE__ */ jsx49("td", { children: site.name }),
-                    /* @__PURE__ */ jsx49("td", { children: site.slug }),
-                    /* @__PURE__ */ jsx49("td", { children: site.hostCount }),
-                    /* @__PURE__ */ jsx49("td", { children: site.enabled ? "Enabled" : "Disabled" })
+                    /* @__PURE__ */ jsx48("td", { children: site.name }),
+                    /* @__PURE__ */ jsx48("td", { children: site.slug }),
+                    /* @__PURE__ */ jsx48("td", { children: site.hostCount }),
+                    /* @__PURE__ */ jsx48("td", { children: site.enabled ? "Enabled" : "Disabled" })
                   ]
                 },
                 site.id
@@ -5010,7 +4827,7 @@ function SitesWindow({
             ] })
           }
         ),
-        form.open ? /* @__PURE__ */ jsx49(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx49(
+        form.open ? /* @__PURE__ */ jsx48(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx48(
           SiteFormDialog,
           {
             mode: form.mode,
@@ -5038,7 +4855,7 @@ function SitesWindow({
           },
           `${form.mode}-${form.siteId ?? "new"}`
         ) }) : null,
-        pendingAccessResetUnassign != null ? /* @__PURE__ */ jsx49(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx49(
+        pendingAccessResetUnassign != null ? /* @__PURE__ */ jsx48(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx48(
           MessageDialog,
           {
             type: "warning",
@@ -5050,7 +4867,7 @@ function SitesWindow({
             onConfirm: confirmAccessResetUnassign
           }
         ) }) : null,
-        confirmDelete ? /* @__PURE__ */ jsx49(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx49(
+        confirmDelete ? /* @__PURE__ */ jsx48(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx48(
           MessageDialog,
           {
             type: "question",
@@ -5060,7 +4877,7 @@ function SitesWindow({
             onConfirm: confirmDeleteSite
           }
         ) }) : null,
-        alert ? /* @__PURE__ */ jsx49(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx49(
+        alert ? /* @__PURE__ */ jsx48(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx48(
           MessageDialog,
           {
             type: "error",
@@ -5076,6 +4893,195 @@ function SitesWindow({
 
 // src/admin/components/HostsWindow/HostsWindow.tsx
 import { useCallback as useCallback4, useEffect as useEffect9, useLayoutEffect as useLayoutEffect4, useRef as useRef8, useState as useState12 } from "react";
+
+// src/admin/components/HostsWindow/HostFormDialog.tsx
+import { useEffect as useEffect8, useId as useId4, useState as useState11 } from "react";
+import { jsx as jsx49, jsxs as jsxs27 } from "react/jsx-runtime";
+function HostFormDialog({
+  mode,
+  initial,
+  sites = [],
+  adminSurfaceHostId = null,
+  adminAccess = null,
+  fieldErrors,
+  saving = false,
+  onSave,
+  onAccessModeResetConfirm,
+  onError,
+  onClose,
+  className
+}) {
+  const hostId = useId4();
+  const siteSelectId = useId4();
+  const surfaceId = useId4();
+  const enabledId = useId4();
+  const [host, setHost] = useState11(initial?.host ?? "");
+  const [siteId, setSiteId] = useState11(initial?.siteId ?? null);
+  const [surface, setSurface] = useState11(initial?.surface ?? "site");
+  const [enabled, setEnabled] = useState11(initial?.enabled ?? true);
+  const [localErrors, setLocalErrors] = useState11({});
+  const selectedSite = sites.find((site) => site.id === siteId);
+  const hostProtected = Boolean(initial?.protected);
+  const siteSelectLocked = mode === "new" || hostProtected || mode === "edit" && initial?.verification === "pending";
+  const isMainSelected = siteId != null && selectedSite?.slug === MAIN_SITE_SLUG;
+  const otherAdminExists = adminSurfaceHostId != null && adminSurfaceHostId !== initial?.hostId;
+  const surfaceSelectable = mode === "edit" && !hostProtected && !siteSelectLocked && siteId != null && isMainSelected && !otherAdminExists;
+  useEffect8(() => {
+    setLocalErrors({});
+  }, [fieldErrors]);
+  useEffect8(() => {
+    if (!surfaceSelectable && surface !== "site") {
+      setSurface("site");
+    }
+  }, [surfaceSelectable, surface]);
+  const errors = { ...localErrors, ...fieldErrors };
+  const title = mode === "new" ? "New Host" : `${initial?.title ?? initial?.host ?? "Host"} Properties`;
+  const surfaceTitle = (() => {
+    if (mode === "new") {
+      return "Admin surface is set after the host is assigned to the Main site";
+    }
+    if (hostProtected) {
+      return "Protected system host must keep the site surface";
+    }
+    if (siteSelectLocked) {
+      return "Verify ownership before assigning a site";
+    }
+    if (siteId == null) {
+      return "Assign a site before choosing surface";
+    }
+    if (!isMainSelected) {
+      return "Admin surface is only available on the Main site";
+    }
+    if (otherAdminExists) {
+      return "Another host already uses the admin surface";
+    }
+    return void 0;
+  })();
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (saving) {
+      return;
+    }
+    const nextHost = host.trim().toLowerCase();
+    const nextLocal = {};
+    if (!nextHost) {
+      nextLocal.host = "Hostname is required.";
+    } else if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(nextHost)) {
+      nextLocal.host = "Use a valid domain name.";
+    }
+    const nextSurface = surfaceSelectable ? surface : "site";
+    setLocalErrors(nextLocal);
+    if (Object.keys(nextLocal).length > 0) {
+      onError?.(Object.values(nextLocal).join("\n"));
+      return;
+    }
+    const payload = {
+      mode,
+      hostId: initial?.hostId,
+      host: nextHost,
+      // New hosts stay unassigned; assign after verify.
+      siteId: mode === "new" ? null : siteId,
+      surface: mode === "new" ? "site" : nextSurface,
+      enabled
+    };
+    if (onAccessModeResetConfirm && wouldLoseDomainAdmin({
+      mode,
+      adminAccess,
+      initial,
+      sites,
+      nextSurface: payload.surface,
+      nextEnabled: payload.enabled,
+      nextSiteId: payload.siteId,
+      nextHost: payload.host
+    })) {
+      onAccessModeResetConfirm(payload);
+      return;
+    }
+    onSave(payload);
+  };
+  return /* @__PURE__ */ jsx49(
+    PaneWindowShell,
+    {
+      className: cn("host-form-dialog", "site-form-dialog", className),
+      width: 420,
+      title,
+      titleIcon: "hosts",
+      titleBarControls: /* @__PURE__ */ jsx49(TitleBarControls, { children: /* @__PURE__ */ jsx49(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      children: /* @__PURE__ */ jsxs27("form", { className: "site-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
+        /* @__PURE__ */ jsxs27(WindowBody, { children: [
+          /* @__PURE__ */ jsx49(FieldRow, { children: /* @__PURE__ */ jsx49(
+            TextBox,
+            {
+              id: hostId,
+              label: "Host:",
+              accessKey: "h",
+              value: host,
+              disabled: saving,
+              "aria-invalid": Boolean(errors.host) || void 0,
+              onChange: (event) => setHost(event.target.value)
+            }
+          ) }),
+          /* @__PURE__ */ jsx49(FieldRow, { children: /* @__PURE__ */ jsxs27(
+            Select,
+            {
+              id: siteSelectId,
+              label: "Site:",
+              accessKey: "s",
+              value: siteId != null ? String(siteId) : "",
+              disabled: saving || siteSelectLocked,
+              title: mode === "new" ? "Assign a site after ownership is verified" : hostProtected ? "Protected system host stays on the Main site" : siteSelectLocked ? "Verify ownership before assigning a site" : void 0,
+              "aria-invalid": Boolean(errors.siteId) || void 0,
+              onChange: (event) => {
+                const value = event.target.value;
+                setSiteId(value === "" ? null : Number(value));
+              },
+              children: [
+                /* @__PURE__ */ jsx49("option", { value: "", children: "None" }),
+                sites.map((site) => /* @__PURE__ */ jsx49("option", { value: site.id, children: site.name }, site.id))
+              ]
+            }
+          ) }),
+          /* @__PURE__ */ jsx49(FieldRow, { children: /* @__PURE__ */ jsxs27(
+            Select,
+            {
+              id: surfaceId,
+              label: "Surface:",
+              accessKey: "u",
+              value: surfaceSelectable ? surface : "site",
+              disabled: saving || !surfaceSelectable,
+              title: surfaceTitle,
+              "aria-invalid": Boolean(errors.surface) || void 0,
+              onChange: (event) => setSurface(event.target.value),
+              children: [
+                /* @__PURE__ */ jsx49("option", { value: "site", children: "site" }),
+                surfaceSelectable ? /* @__PURE__ */ jsx49("option", { value: "admin", children: "admin" }) : null
+              ]
+            }
+          ) }),
+          /* @__PURE__ */ jsx49(FieldRow, { children: /* @__PURE__ */ jsx49(
+            Checkbox,
+            {
+              id: enabledId,
+              label: "Enabled",
+              accessKey: "e",
+              checked: enabled,
+              disabled: saving || hostProtected,
+              title: hostProtected ? "Protected system host cannot be disabled" : void 0,
+              "aria-invalid": Boolean(errors.enabled) || void 0,
+              onChange: (event) => setEnabled(event.target.checked)
+            }
+          ) })
+        ] }),
+        /* @__PURE__ */ jsxs27(FieldRow, { className: "justify-end site-form-dialog-actions", children: [
+          /* @__PURE__ */ jsx49(Button, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
+          /* @__PURE__ */ jsx49(Button, { type: "button", accessKey: "c", disabled: saving, onClick: onClose, children: "Cancel" })
+        ] })
+      ] })
+    }
+  );
+}
+
+// src/admin/components/HostsWindow/HostsWindow.tsx
 import { Fragment as Fragment11, jsx as jsx50, jsxs as jsxs28 } from "react/jsx-runtime";
 function formatSaveErrors2(formError, fieldErrors) {
   const parts = [
@@ -7760,7 +7766,7 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
             ),
             children: item.label
           },
-          item.href
+          `${item.label}:${item.href}`
         )) }),
         actions ? /* @__PURE__ */ jsx58("div", { className: "flex items-center gap-2", children: actions }) : null
       ] })
@@ -7914,6 +7920,7 @@ export {
   undoExplorerDelete,
   undoExplorerPaste,
   useCustomScrollbar,
-  useTableView
+  useTableView,
+  wouldLoseDomainAdmin
 };
 //# sourceMappingURL=index.js.map
