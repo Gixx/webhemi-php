@@ -14,6 +14,9 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\UniqueConstraint(name: 'uniq_rbac_role_name', columns: ['name'])]
 class Role
 {
+    public const ADMIN = 'ROLE_ADMIN';
+    public const SITE_ADMIN = 'ROLE_SITE_ADMIN';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -24,6 +27,10 @@ class Role
 
     #[ORM\Column(length: 128)]
     private string $label = '';
+
+    /** System roles (Admin, Site Admin): not deletable / not editable in product UI. */
+    #[ORM\Column(name: 'is_read_only')]
+    private bool $isReadOnly = false;
 
     /** @var Collection<int, User> */
     #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'roles')]
@@ -67,6 +74,39 @@ class Role
         $this->label = trim($label);
 
         return $this;
+    }
+
+    public function isReadOnly(): bool
+    {
+        return $this->isReadOnly;
+    }
+
+    public function setIsReadOnly(bool $isReadOnly): self
+    {
+        $this->isReadOnly = $isReadOnly;
+
+        return $this;
+    }
+
+    /** Product synonym for {@see isReadOnly()} (locked system role). */
+    public function isProtected(): bool
+    {
+        return $this->isReadOnly;
+    }
+
+    public function setIsProtected(bool $isProtected): self
+    {
+        return $this->setIsReadOnly($isProtected);
+    }
+
+    public function isAdmin(): bool
+    {
+        return self::ADMIN === $this->name;
+    }
+
+    public function isSiteAdmin(): bool
+    {
+        return self::SITE_ADMIN === $this->name;
     }
 
     /** @return Collection<int, Permission> */

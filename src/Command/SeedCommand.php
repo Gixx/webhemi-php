@@ -7,13 +7,11 @@ namespace App\Command;
 use App\Config\AdminAccessMode;
 use App\Config\WebhemiConfig;
 use App\Config\WebhemiConfigLoader;
-use App\Entity\Permission;
 use App\Entity\Role;
 use App\Entity\Site;
 use App\Entity\SiteHost;
 use App\Entity\SurfaceType;
 use App\Entity\User;
-use App\Repository\PermissionRepository;
 use App\Repository\RoleRepository;
 use App\Repository\SiteHostRepository;
 use App\Repository\SiteRepository;
@@ -27,14 +25,13 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-#[AsCommand(name: 'app:seed', description: 'Seed RBAC roles, default site/hosts, and optional admin user')]
+#[AsCommand(name: 'app:seed', description: 'Seed protected RBAC roles, default site/hosts, and optional admin user')]
 final class SeedCommand extends Command
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly UserRepository $users,
         private readonly RoleRepository $roles,
-        private readonly PermissionRepository $permissions,
         private readonly SiteRepository $sites,
         private readonly SiteHostRepository $hosts,
         private readonly UserPasswordHasherInterface $passwordHasher,
@@ -56,44 +53,9 @@ final class SeedCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $permissionDefs = [
-            'site.list' => 'List sites',
-            'site.edit' => 'Edit sites',
-            'host.list' => 'List hosts',
-            'host.edit' => 'Edit hosts',
-            'host.verify' => 'Verify host ownership',
-            'user.list' => 'List users',
-            'user.edit' => 'Edit users',
-            'role.list' => 'List roles',
-            'role.edit' => 'Edit roles',
-            'settings.list' => 'View install settings',
-            'settings.edit' => 'Edit install settings',
-        ];
-
-        $permissionMap = [];
-        foreach ($permissionDefs as $name => $label) {
-            $permission = $this->permissions->findOneBy(['name' => $name]);
-            if (!$permission instanceof Permission) {
-                $permission = (new Permission())->setName($name)->setLabel($label);
-            }
-            $this->em->persist($permission);
-            $permissionMap[$name] = $permission;
-        }
-
-        $adminRole = $this->roles->findOneBy(['name' => 'ROLE_ADMIN']);
-        if (!$adminRole instanceof Role) {
-            $adminRole = (new Role())->setName('ROLE_ADMIN')->setLabel('Administrator');
-        }
-        $this->em->persist($adminRole);
-
-        $editorRole = $this->roles->findOneBy(['name' => 'ROLE_EDITOR']);
-        if (!$editorRole instanceof Role) {
-            $editorRole = (new Role())->setName('ROLE_EDITOR')->setLabel('Editor');
-        }
-        foreach (['site.list', 'site.edit', 'host.list', 'host.edit', 'host.verify'] as $name) {
-            $editorRole->addPermission($permissionMap[$name]);
-        }
-        $this->em->persist($editorRole);
+        // Permission catalog stays empty at seed — operators add rows for testing.
+        $adminRole = $this->ensureSystemRole(Role::ADMIN, 'Administrator');
+        $this->ensureSystemRole(Role::SITE_ADMIN, 'Site Administrator');
 
         $site = $this->sites->findOneBy(['slug' => 'main']);
         if (!$site instanceof Site) {
@@ -145,12 +107,24 @@ final class SeedCommand extends Command
         ));
 
         $io->success(sprintf(
-            'Seeded admin %s / hosts %s + %s (var/config/webhemi.yaml access.admin=domain if newly created)',
+            'Seeded admin %s (ROLE_ADMIN + ROLE_SITE_ADMIN roles, empty permissions) / hosts %s + %s',
             $email,
             $adminHostName,
             $siteHostName,
         ));
 
         return Command::SUCCESS;
+    }
+
+    private function ensureSystemRole(string $name, string $label): Role
+    {
+        $role = $this->roles->findOneBy(['name' => $name]);
+        if (!$role instanceof Role) {
+            $role = (new Role())->setName($name)->setLabel($label);
+        }
+        $role->setLabel($label)->setIsReadOnly(true);
+        $this->em->persist($role);
+
+        return $role;
     }
 }

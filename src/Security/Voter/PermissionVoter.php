@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace App\Security\Voter;
 
+use App\Entity\Role;
 use App\Entity\SiteAssignment;
 use App\Entity\User;
 use App\Repository\SiteAssignmentRepository;
+use App\Security\RbacAttributes;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
-/** @extends Voter<string, mixed> */
+/**
+ * @extends Voter<string, mixed>
+ * @see docs/plan/RBAC_Reset.md
+ */
 final class PermissionVoter extends Voter
 {
     public function __construct(
@@ -30,7 +35,7 @@ final class PermissionVoter extends Voter
         TokenInterface $token,
         ?Vote $vote = null,
     ): bool {
-        if (in_array('ROLE_ADMIN', $token->getRoleNames(), true)) {
+        if (in_array(Role::ADMIN, $token->getRoleNames(), true)) {
             return true;
         }
 
@@ -50,22 +55,28 @@ final class PermissionVoter extends Voter
             if (!$assignment instanceof SiteAssignment) {
                 return false;
             }
-            if ('ROLE_SITE_ADMIN' === $assignment->getRole()->getName()) {
-                return true;
-            }
 
-            return $assignment->getRole()->hasPermission($attribute);
+            return $this->assignmentAllows($assignment, $attribute);
         }
 
+        // No site subject: any matching assignment may grant (e.g. site.list).
         foreach ($this->siteAssignmentRepository->findBy(['user' => $user]) as $assignment) {
-            if ('ROLE_SITE_ADMIN' === $assignment->getRole()->getName()) {
-                return true;
-            }
-            if ($assignment->getRole()->hasPermission($attribute)) {
+            if ($this->assignmentAllows($assignment, $attribute)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function assignmentAllows(SiteAssignment $assignment, string $attribute): bool
+    {
+        $role = $assignment->getRole();
+
+        if ($role->isSiteAdmin()) {
+            return RbacAttributes::isSiteInterior($attribute);
+        }
+
+        return $role->hasPermission($attribute);
     }
 }

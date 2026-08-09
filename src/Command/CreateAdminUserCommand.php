@@ -42,10 +42,15 @@ final class CreateAdminUserCommand extends Command
         $email = (string) $input->getArgument('email');
         $password = (string) $input->getArgument('password');
 
-        $adminRole = $this->roles->findOneBy(['name' => 'ROLE_ADMIN']);
+        $adminRole = $this->roles->findOneBy(['name' => Role::ADMIN]);
         if (!$adminRole instanceof Role) {
-            $adminRole = (new Role())->setName('ROLE_ADMIN')->setLabel('Administrator');
+            $adminRole = (new Role())
+                ->setName(Role::ADMIN)
+                ->setLabel('Administrator')
+                ->setIsReadOnly(true);
             $this->em->persist($adminRole);
+        } else {
+            $adminRole->setIsReadOnly(true);
         }
 
         $user = $this->users->findOneBy(['email' => strtolower($email)]) ?? (new User())->setEmail($email);
