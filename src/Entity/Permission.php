@@ -7,6 +7,7 @@ namespace App\Entity;
 use App\Repository\PermissionRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: PermissionRepository::class)]
@@ -24,6 +25,9 @@ class Permission
 
     #[ORM\Column(length: 128)]
     private string $label = '';
+
+    #[ORM\Column(type: Types::TEXT)]
+    private string $description = '';
 
     #[ORM\Column(name: 'is_read_only')]
     private bool $isReadOnly = false;
@@ -66,6 +70,18 @@ class Permission
         return $this;
     }
 
+    public function getDescription(): string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(string $description): self
+    {
+        $this->description = trim($description);
+
+        return $this;
+    }
+
     public function isReadOnly(): bool
     {
         return $this->isReadOnly;
@@ -76,5 +92,11 @@ class Permission
         $this->isReadOnly = $isReadOnly;
 
         return $this;
+    }
+
+    /** @return Collection<int, Role> */
+    public function getRoles(): Collection
+    {
+        return $this->roles;
     }
 }

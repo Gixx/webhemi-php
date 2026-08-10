@@ -110,7 +110,7 @@
             "@qa:deptrac",
             "@test:phpunit"
         ],
-        "fix:phpcbf": "vendor/bin/phpcbf --standard=phpcs.xml.dist",
+        "fix:phpcbf": "vendor/bin/phpcbf --standard=phpcs.xml.dist --runtime-set ignore_non_auto_fixable_on_exit 1",
         "fix:php-cs-fixer": "vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php",
         "fix:rector": "vendor/bin/rector process src --config=rector.php",
         "fix:line-ending-fixer": "bash bin/line-ending-fixer",

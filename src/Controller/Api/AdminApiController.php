@@ -7,6 +7,7 @@ namespace App\Controller\Api;
 use App\Api\ApiJson;
 use App\Api\AssignHostInput;
 use App\Api\CreateHostInput;
+use App\Api\CreatePermissionInput;
 use App\Api\CreateSiteInput;
 use App\Api\HostAlreadyAssignedException;
 use App\Api\HostAdminSurfaceNotAllowedException;
@@ -23,6 +24,12 @@ use App\Api\HostUnassigner;
 use App\Api\HostUpdater;
 use App\Api\HostVerificationFailedException;
 use App\Api\HostVerifier;
+use App\Api\PermissionApiMapper;
+use App\Api\PermissionCreator;
+use App\Api\PermissionDeleter;
+use App\Api\PermissionHasRolesException;
+use App\Api\PermissionNameTakenException;
+use App\Api\PermissionUpdater;
 use App\Api\SettingsApiMapper;
 use App\Api\SiteApiMapper;
 use App\Api\SiteCreator;
@@ -32,12 +39,15 @@ use App\Api\SiteProtectedException;
 use App\Api\SiteSlugTakenException;
 use App\Api\SiteUpdater;
 use App\Api\UpdateHostInput;
+use App\Api\UpdatePermissionInput;
 use App\Api\UpdateSettingsInput;
 use App\Api\UpdateSiteInput;
 use App\Config\AdminAccessMode;
 use App\Config\WebhemiConfigLoader;
+use App\Entity\Permission;
 use App\Entity\Site;
 use App\Entity\SiteHost;
+use App\Repository\PermissionRepository;
 use App\Repository\SiteHostRepository;
 use App\Repository\SiteRepository;
 use App\Routing\AdminEntryResolverInterface;
@@ -173,6 +183,128 @@ final class AdminApiController extends AbstractController
             return ApiJson::error(
                 'hosts_assigned',
                 'Unassign or delete hosts before deleting this site.',
+                409,
+            );
+        }
+
+        return new Response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    #[Route('/permissions', name: 'api_admin_permissions', methods: ['GET'])]
+    #[IsGranted('permission.list')]
+    public function permissions(PermissionRepository $permissions): JsonResponse
+    {
+        $data = array_map(
+            static fn (Permission $permission): array => PermissionApiMapper::toArray($permission),
+            $permissions->findBy([], ['name' => 'ASC']),
+        );
+
+        return ApiJson::data($data);
+    }
+
+    #[Route('/permissions', name: 'api_admin_permissions_create', methods: ['POST'])]
+    #[IsGranted('permission.edit')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function createPermission(Request $request, PermissionCreator $creator): JsonResponse
+    {
+        try {
+            $payload = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return ApiJson::error('invalid_json', 'Request body must be valid JSON.', 400);
+        }
+
+        $input = CreatePermissionInput::fromPayload($payload);
+        if (!$input->isValid()) {
+            return ApiJson::error(
+                'validation_failed',
+                'Permission could not be created.',
+                422,
+                $input->fieldErrors,
+            );
+        }
+
+        try {
+            $permission = $creator->create($input);
+        } catch (PermissionNameTakenException) {
+            return ApiJson::error(
+                'name_taken',
+                'A permission with this name already exists.',
+                409,
+                ['name' => 'Name is already taken.'],
+            );
+        }
+
+        return ApiJson::data(PermissionApiMapper::toArray($permission), 201);
+    }
+
+    #[Route('/permissions/{id}', name: 'api_admin_permissions_show', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[IsGranted('permission.list')]
+    public function showPermission(#[MapEntity(id: 'id')] Permission $permission): JsonResponse
+    {
+        return ApiJson::data(PermissionApiMapper::toArray($permission));
+    }
+
+    #[Route(
+        '/permissions/{id}',
+        name: 'api_admin_permissions_update',
+        requirements: ['id' => '\d+'],
+        methods: ['PATCH'],
+    )]
+    #[IsGranted('permission.edit')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function updatePermission(
+        #[MapEntity(id: 'id')] Permission $permission,
+        Request $request,
+        PermissionUpdater $updater,
+    ): JsonResponse {
+        try {
+            $payload = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return ApiJson::error('invalid_json', 'Request body must be valid JSON.', 400);
+        }
+
+        $input = UpdatePermissionInput::fromPayload($payload);
+        if (!$input->isValid()) {
+            return ApiJson::error(
+                'validation_failed',
+                'Permission could not be updated.',
+                422,
+                $input->fieldErrors,
+            );
+        }
+
+        try {
+            $updated = $updater->update($permission, $input);
+        } catch (PermissionNameTakenException) {
+            return ApiJson::error(
+                'name_taken',
+                'A permission with this name already exists.',
+                409,
+                ['name' => 'Name is already taken.'],
+            );
+        }
+
+        return ApiJson::data(PermissionApiMapper::toArray($updated));
+    }
+
+    #[Route(
+        '/permissions/{id}',
+        name: 'api_admin_permissions_delete',
+        requirements: ['id' => '\d+'],
+        methods: ['DELETE'],
+    )]
+    #[IsGranted('permission.edit')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function deletePermission(
+        #[MapEntity(id: 'id')] Permission $permission,
+        PermissionDeleter $deleter,
+    ): Response {
+        try {
+            $deleter->delete($permission);
+        } catch (PermissionHasRolesException) {
+            return ApiJson::error(
+                'roles_assigned',
+                'Detach this permission from all roles before deleting it.',
                 409,
             );
         }
