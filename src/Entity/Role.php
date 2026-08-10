@@ -7,6 +7,7 @@ namespace App\Entity;
 use App\Repository\RoleRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: RoleRepository::class)]
@@ -27,6 +28,9 @@ class Role
 
     #[ORM\Column(length: 128)]
     private string $label = '';
+
+    #[ORM\Column(type: Types::TEXT)]
+    private string $description = '';
 
     /** System roles (Admin, Site Admin): not deletable / not editable in product UI. */
     #[ORM\Column(name: 'is_read_only')]
@@ -72,6 +76,18 @@ class Role
     public function setLabel(string $label): self
     {
         $this->label = trim($label);
+
+        return $this;
+    }
+
+    public function getDescription(): string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(string $description): self
+    {
+        $this->description = trim($description);
 
         return $this;
     }
@@ -131,6 +147,7 @@ class Role
     {
         if (!$this->permissions->contains($permission)) {
             $this->permissions->add($permission);
+            $permission->getRoles()->add($this);
         }
 
         return $this;
@@ -138,7 +155,24 @@ class Role
 
     public function removePermission(Permission $permission): self
     {
-        $this->permissions->removeElement($permission);
+        if ($this->permissions->removeElement($permission)) {
+            $permission->getRoles()->removeElement($this);
+        }
+
+        return $this;
+    }
+
+    /** @return Collection<int, User> */
+    public function getUsers(): Collection
+    {
+        return $this->users;
+    }
+
+    public function clearPermissions(): self
+    {
+        foreach ($this->permissions->toArray() as $permission) {
+            $this->removePermission($permission);
+        }
 
         return $this;
     }

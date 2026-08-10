@@ -1562,7 +1562,7 @@ function findHostBlockTarget(anchor) {
     return null;
   }
   const host = anchor.closest(
-    ".sites-window, .hosts-window, .settings-window, .permissions-window, .site-file-explorer, .login-host, [data-shell-window], .desktop-window"
+    ".sites-window, .hosts-window, .settings-window, .permissions-window, .roles-window, .site-file-explorer, .login-host, [data-shell-window], .desktop-window"
   );
   return host instanceof HTMLElement ? host : null;
 }
@@ -3941,6 +3941,19 @@ function createAdminApiClient(options = {}) {
     }),
     deletePermission: (id) => request(`/permissions/${id}`, {
       method: "DELETE"
+    }),
+    listRoles: () => request("/roles"),
+    getRole: (id) => request(`/roles/${id}`),
+    createRole: (body) => request("/roles", {
+      method: "POST",
+      body: JSON.stringify(body)
+    }),
+    updateRole: (id, body) => request(`/roles/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body)
+    }),
+    deleteRole: (id) => request(`/roles/${id}`, {
+      method: "DELETE"
     })
   };
 }
@@ -3955,7 +3968,8 @@ var WINDOW_VALUES = /* @__PURE__ */ new Set([
   "site",
   "control-panel",
   "settings",
-  "permissions"
+  "permissions",
+  "roles"
 ]);
 function parsePositiveInt(raw) {
   if (raw == null || raw === "") {
@@ -4089,6 +4103,7 @@ function ControlPanel({
   onOpenHosts,
   onOpenSettings,
   onOpenPermissions,
+  onOpenRoles,
   onMinimize,
   onMaximize,
   onActivate,
@@ -4142,7 +4157,7 @@ function ControlPanel({
         /* @__PURE__ */ jsx46(StatusBarField, {})
       ] }),
       children: ICONS.map((icon) => {
-        const onOpen = icon.kind === "sites" ? onOpenSites : icon.kind === "hosts" ? onOpenHosts : icon.kind === "settings" ? onOpenSettings : icon.kind === "permissions" ? onOpenPermissions : void 0;
+        const onOpen = icon.kind === "sites" ? onOpenSites : icon.kind === "hosts" ? onOpenHosts : icon.kind === "settings" ? onOpenSettings : icon.kind === "permissions" ? onOpenPermissions : icon.kind === "roles" ? onOpenRoles : void 0;
         return /* @__PURE__ */ jsx46(
           SystemIcon,
           {
@@ -5717,6 +5732,15 @@ import {
   useState as useState15
 } from "react";
 
+// src/admin/lib/truncateWithEllipsis.ts
+function truncateWithEllipsis(value, maxLength = 30) {
+  const trimmed = value.trim();
+  if (trimmed.length <= maxLength) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, maxLength)}...`;
+}
+
 // src/admin/components/PermissionsWindow/PermissionFormDialog.tsx
 import { useEffect as useEffect11, useId as useId5, useState as useState14 } from "react";
 import { jsx as jsx52, jsxs as jsxs30 } from "react/jsx-runtime";
@@ -6117,7 +6141,7 @@ function PermissionsWindow({
                   children: [
                     /* @__PURE__ */ jsx53("td", { children: permission.name }),
                     /* @__PURE__ */ jsx53("td", { children: permission.label }),
-                    /* @__PURE__ */ jsx53("td", { children: permission.description || "\u2014" })
+                    /* @__PURE__ */ jsx53("td", { children: permission.description ? truncateWithEllipsis(permission.description) : "\u2014" })
                   ]
                 },
                 permission.id
@@ -6168,9 +6192,625 @@ function PermissionsWindow({
   );
 }
 
+// src/admin/components/RolesWindow/RolesWindow.tsx
+import {
+  useCallback as useCallback6,
+  useEffect as useEffect14,
+  useRef as useRef11,
+  useState as useState17
+} from "react";
+
+// src/admin/components/RolesWindow/RoleFormDialog.tsx
+import { useEffect as useEffect13, useId as useId6, useMemo as useMemo5, useState as useState16 } from "react";
+import { Fragment as Fragment13, jsx as jsx54, jsxs as jsxs32 } from "react/jsx-runtime";
+var NAME_PATTERN = /^ROLE_[A-Z0-9]+(?:_[A-Z0-9]+)*$/;
+function RoleFormDialog({
+  mode,
+  initial,
+  permissions = [],
+  fieldErrors,
+  saving = false,
+  onSave,
+  onError,
+  onClose,
+  onAddPermission,
+  className
+}) {
+  const nameId = useId6();
+  const labelId = useId6();
+  const descriptionId = useId6();
+  const assignSelectId = useId6();
+  const [tab, setTab] = useState16("general");
+  const [name, setName] = useState16(initial?.name ?? "");
+  const [label, setLabel] = useState16(initial?.label ?? "");
+  const [description, setDescription] = useState16(initial?.description ?? "");
+  const [permissionIds, setPermissionIds] = useState16(
+    initial?.permissionIds ?? []
+  );
+  const [selectedPermissionId, setSelectedPermissionId] = useState16(
+    null
+  );
+  const [assignPermissionId, setAssignPermissionId] = useState16(null);
+  const [localErrors, setLocalErrors] = useState16({});
+  useEffect13(() => {
+    setLocalErrors({});
+  }, [fieldErrors]);
+  useEffect13(() => {
+    if (selectedPermissionId != null && !permissionIds.includes(selectedPermissionId)) {
+      setSelectedPermissionId(null);
+    }
+  }, [permissionIds, selectedPermissionId]);
+  useEffect13(() => {
+    if (assignPermissionId != null && permissionIds.includes(assignPermissionId)) {
+      setAssignPermissionId(null);
+    }
+  }, [permissionIds, assignPermissionId]);
+  const mergedErrors = {
+    ...localErrors,
+    ...fieldErrors
+  };
+  const title = initial?.title ?? (mode === "edit" ? `Edit Role \u2014 ${initial?.name ?? ""}` : "New Role");
+  const assignedPermissions = useMemo5(
+    () => permissionIds.map((id) => permissions.find((row) => row.id === id)).filter((row) => row != null),
+    [permissionIds, permissions]
+  );
+  const assignablePermissions = useMemo5(
+    () => permissions.filter((row) => !permissionIds.includes(row.id)),
+    [permissions, permissionIds]
+  );
+  const busy = saving;
+  const canAssign = !busy && assignPermissionId != null && assignablePermissions.length > 0;
+  const canRemove = !busy && selectedPermissionId != null && permissionIds.includes(selectedPermissionId);
+  const validate = () => {
+    const next = {};
+    const trimmedName = name.trim().toUpperCase();
+    const trimmedLabel = label.trim();
+    if (!trimmedName) {
+      next.name = "Name is required.";
+    } else if (!NAME_PATTERN.test(trimmedName)) {
+      next.name = "Name must look like ROLE_CUSTOM_NAME (uppercase letters, digits, underscores).";
+    } else if (trimmedName === "ROLE_ADMIN" || trimmedName === "ROLE_SITE_ADMIN") {
+      next.name = "System role names are reserved.";
+    }
+    if (!trimmedLabel) {
+      next.label = "Label is required.";
+    }
+    setLocalErrors(next);
+    if (Object.keys(next).length > 0) {
+      setTab("general");
+      onError?.(Object.values(next).join("\n"));
+      return false;
+    }
+    return true;
+  };
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (saving || !validate()) {
+      return;
+    }
+    onSave({
+      mode,
+      roleId: initial?.roleId,
+      name: name.trim().toUpperCase(),
+      label: label.trim(),
+      description: description.trim(),
+      permissionIds: [...permissionIds]
+    });
+  };
+  const handleAssign = () => {
+    if (!canAssign || assignPermissionId == null) {
+      return;
+    }
+    const id = assignPermissionId;
+    setPermissionIds((prev) => prev.includes(id) ? prev : [...prev, id]);
+    setAssignPermissionId(null);
+    setSelectedPermissionId(id);
+  };
+  const handleRemove = () => {
+    if (!canRemove || selectedPermissionId == null) {
+      return;
+    }
+    const id = selectedPermissionId;
+    setPermissionIds((prev) => prev.filter((row) => row !== id));
+    setSelectedPermissionId(null);
+  };
+  return /* @__PURE__ */ jsx54(
+    PaneWindowShell,
+    {
+      className: cn("role-form-dialog", className),
+      width: 480,
+      title,
+      titleIcon: "roles",
+      titleBarControls: /* @__PURE__ */ jsx54(TitleBarControls, { children: /* @__PURE__ */ jsx54(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      children: /* @__PURE__ */ jsxs32("form", { className: "role-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
+        /* @__PURE__ */ jsxs32(TabList, { children: [
+          /* @__PURE__ */ jsx54(
+            Tab,
+            {
+              selected: tab === "general",
+              href: "#role-form-general",
+              onClick: (event) => {
+                event.preventDefault();
+                setTab("general");
+              },
+              children: "General"
+            }
+          ),
+          /* @__PURE__ */ jsx54(
+            Tab,
+            {
+              selected: tab === "permissions",
+              href: "#role-form-permissions",
+              onClick: (event) => {
+                event.preventDefault();
+                setTab("permissions");
+              },
+              children: "Permissions"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsx54(TabPanel, { children: /* @__PURE__ */ jsx54(WindowBody, { children: tab === "general" ? /* @__PURE__ */ jsxs32(Fragment13, { children: [
+          /* @__PURE__ */ jsx54(FieldRow, { children: /* @__PURE__ */ jsx54(
+            TextBox,
+            {
+              id: nameId,
+              label: "Name:",
+              accessKey: "n",
+              value: name,
+              onChange: (event) => setName(event.target.value),
+              "aria-invalid": Boolean(mergedErrors.name) || void 0,
+              disabled: busy,
+              autoFocus: true
+            }
+          ) }),
+          /* @__PURE__ */ jsx54(FieldRow, { children: /* @__PURE__ */ jsx54(
+            TextBox,
+            {
+              id: labelId,
+              label: "Label:",
+              accessKey: "l",
+              value: label,
+              onChange: (event) => setLabel(event.target.value),
+              "aria-invalid": Boolean(mergedErrors.label) || void 0,
+              disabled: busy
+            }
+          ) }),
+          /* @__PURE__ */ jsx54(FieldRow, { children: /* @__PURE__ */ jsx54(
+            TextArea,
+            {
+              id: descriptionId,
+              label: "Description:",
+              accessKey: "d",
+              rows: 4,
+              resizable: "vertical",
+              value: description,
+              onChange: (event) => setDescription(event.target.value),
+              "aria-invalid": Boolean(mergedErrors.description) || void 0,
+              disabled: busy
+            }
+          ) })
+        ] }) : /* @__PURE__ */ jsxs32(Fragment13, { children: [
+          /* @__PURE__ */ jsx54("p", { style: { marginTop: 0, marginBottom: 8 }, children: "Assigned permissions below. Assign from the catalog; Remove detaches without deleting the permission." }),
+          /* @__PURE__ */ jsx54(
+            SunkenPanel,
+            {
+              scrollable: true,
+              tone: "white",
+              className: "role-form-permission-list",
+              children: assignedPermissions.length === 0 ? /* @__PURE__ */ jsx54("p", { style: { margin: 8 }, children: "No permissions assigned." }) : /* @__PURE__ */ jsxs32(Table, { "aria-label": "Assigned permissions", children: [
+                /* @__PURE__ */ jsx54("thead", { children: /* @__PURE__ */ jsxs32("tr", { children: [
+                  /* @__PURE__ */ jsx54("th", { children: "Name" }),
+                  /* @__PURE__ */ jsx54("th", { children: "Label" })
+                ] }) }),
+                /* @__PURE__ */ jsx54("tbody", { children: assignedPermissions.map((row) => /* @__PURE__ */ jsxs32(
+                  TableRow,
+                  {
+                    highlighted: selectedPermissionId === row.id,
+                    onClick: () => setSelectedPermissionId(
+                      (current) => current === row.id ? null : row.id
+                    ),
+                    children: [
+                      /* @__PURE__ */ jsx54("td", { children: row.name }),
+                      /* @__PURE__ */ jsx54("td", { children: row.label })
+                    ]
+                  },
+                  row.id
+                )) })
+              ] })
+            }
+          ),
+          /* @__PURE__ */ jsxs32(FieldRow, { style: { marginTop: 8 }, children: [
+            /* @__PURE__ */ jsxs32(
+              Select,
+              {
+                id: assignSelectId,
+                label: "Assign:",
+                accessKey: "i",
+                value: assignPermissionId != null ? String(assignPermissionId) : "",
+                disabled: busy || assignablePermissions.length === 0,
+                title: assignablePermissions.length === 0 ? "No unassigned permissions available" : "Permissions not yet attached to this role",
+                onChange: (event) => {
+                  const value = event.target.value;
+                  setAssignPermissionId(value === "" ? null : Number(value));
+                },
+                children: [
+                  /* @__PURE__ */ jsx54("option", { value: "", children: assignablePermissions.length === 0 ? "None available" : "Select a permission\u2026" }),
+                  assignablePermissions.map((permission) => /* @__PURE__ */ jsxs32("option", { value: permission.id, children: [
+                    permission.label,
+                    " (",
+                    permission.name,
+                    ")"
+                  ] }, permission.id))
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsx54(
+              Button,
+              {
+                type: "button",
+                accessKey: "g",
+                disabled: !canAssign,
+                title: "Assign selected permission to this role",
+                onClick: handleAssign,
+                children: "Assign"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxs32(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: [
+            /* @__PURE__ */ jsx54(
+              Button,
+              {
+                type: "button",
+                accessKey: "a",
+                disabled: busy || !onAddPermission,
+                title: onAddPermission ? "Add a new permission" : "Opens Permissions \u2192 New (coming soon)",
+                onClick: onAddPermission,
+                children: "Add\u2026"
+              }
+            ),
+            /* @__PURE__ */ jsx54(
+              Button,
+              {
+                type: "button",
+                accessKey: "r",
+                disabled: !canRemove,
+                title: "Remove selected permission from this role",
+                onClick: handleRemove,
+                children: "Remove"
+              }
+            )
+          ] })
+        ] }) }) }),
+        /* @__PURE__ */ jsxs32(FieldRow, { className: "justify-end site-form-dialog-actions", children: [
+          /* @__PURE__ */ jsx54(Button, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
+          /* @__PURE__ */ jsx54(Button, { type: "button", accessKey: "c", disabled: busy, onClick: onClose, children: "Cancel" })
+        ] })
+      ] })
+    }
+  );
+}
+
+// src/admin/components/RolesWindow/RolesWindow.tsx
+import { Fragment as Fragment14, jsx as jsx55, jsxs as jsxs33 } from "react/jsx-runtime";
+function formatSaveErrors4(formError, fieldErrors) {
+  const parts = [
+    formError,
+    fieldErrors?.name,
+    fieldErrors?.label,
+    fieldErrors?.description
+  ].filter((part) => Boolean(part && part.trim()));
+  if (parts.length === 0) {
+    return null;
+  }
+  return [...new Set(parts)].join("\n");
+}
+function RolesWindow({
+  roles = [],
+  permissions = [],
+  preferSelectedId = null,
+  canEdit = false,
+  loading = false,
+  error = null,
+  fieldErrors,
+  formError = null,
+  statusMessage = null,
+  onClearStatusMessage,
+  saving = false,
+  deleting = false,
+  onSave,
+  onDelete,
+  onAddPermission,
+  errorSoundUrl,
+  dingSoundUrl,
+  onAlertClose,
+  onCancel,
+  onClose,
+  onMinimize,
+  onMaximize,
+  onActivate,
+  inactive = false,
+  maximized = false,
+  resizable = true,
+  className,
+  style,
+  width = 640,
+  tableMinHeight
+}) {
+  const [selectedId, setSelectedId] = useState17(null);
+  const [form, setForm] = useState17({ open: false });
+  const [showFormErrors, setShowFormErrors] = useState17(false);
+  const [alert, setAlert] = useState17(null);
+  const [confirmDelete, setConfirmDelete] = useState17(null);
+  const wasSavingRef = useRef11(false);
+  const alertSoundKeyRef = useRef11(null);
+  const confirmSoundKeyRef = useRef11(null);
+  const appliedPreferIdRef = useRef11(null);
+  const showErrorAlert = useCallback6(
+    (message, title = "Error") => {
+      const key = `${title}\0${message}`;
+      setAlert({ title, message });
+      if (alertSoundKeyRef.current !== key) {
+        alertSoundKeyRef.current = key;
+        playAdminSound("chord", errorSoundUrl);
+      }
+    },
+    [errorSoundUrl]
+  );
+  const closeAlert = useCallback6(() => {
+    setAlert(null);
+    alertSoundKeyRef.current = null;
+    onAlertClose?.();
+  }, [onAlertClose]);
+  const closeDeleteConfirm = useCallback6(() => {
+    setConfirmDelete(null);
+    confirmSoundKeyRef.current = null;
+  }, []);
+  const closeForm = () => {
+    setForm({ open: false });
+    setShowFormErrors(false);
+  };
+  useEffect14(() => {
+    if (preferSelectedId == null) {
+      appliedPreferIdRef.current = null;
+      return;
+    }
+    if (appliedPreferIdRef.current === preferSelectedId) {
+      return;
+    }
+    if (roles.some((row) => row.id === preferSelectedId)) {
+      setSelectedId(preferSelectedId);
+      appliedPreferIdRef.current = preferSelectedId;
+    }
+  }, [preferSelectedId, roles]);
+  useEffect14(() => {
+    if (error) {
+      showErrorAlert(error);
+    }
+  }, [error, showErrorAlert]);
+  useEffect14(() => {
+    const message = formatSaveErrors4(formError, fieldErrors);
+    if (message) {
+      setShowFormErrors(true);
+      showErrorAlert(message);
+    }
+  }, [formError, fieldErrors, showErrorAlert]);
+  useEffect14(() => {
+    if (wasSavingRef.current && !saving && form.open && !formError) {
+      const hasFieldError = Boolean(fieldErrors?.name) || Boolean(fieldErrors?.label) || Boolean(fieldErrors?.description);
+      if (!hasFieldError) {
+        closeForm();
+      }
+    }
+    wasSavingRef.current = saving;
+  }, [saving, form.open, formError, fieldErrors]);
+  const selected = roles.find((row) => row.id === selectedId) ?? null;
+  const hasSelection = selected != null;
+  const selectedProtected = Boolean(selected?.protected);
+  const busy = loading || saving || deleting;
+  const canSave = Boolean(onSave);
+  const selectRole = (id) => {
+    onClearStatusMessage?.();
+    setSelectedId(id);
+  };
+  const openNew = () => {
+    if (!canEdit || !onSave) {
+      return;
+    }
+    setShowFormErrors(false);
+    setForm({
+      open: true,
+      mode: "new",
+      name: "",
+      label: "",
+      description: "",
+      permissionIds: []
+    });
+  };
+  const openEdit = (role = selected) => {
+    if (!canEdit || !onSave || !role || role.protected) {
+      return;
+    }
+    setShowFormErrors(false);
+    setForm({
+      open: true,
+      mode: "edit",
+      roleId: role.id,
+      name: role.name,
+      label: role.label,
+      description: role.description,
+      permissionIds: [...role.permissionIds]
+    });
+  };
+  const handleDelete = () => {
+    if (!canEdit || !onDelete || !selected || selected.protected) {
+      return;
+    }
+    setConfirmDelete({ role: selected });
+    if (confirmSoundKeyRef.current !== String(selected.id)) {
+      confirmSoundKeyRef.current = String(selected.id);
+      playAdminSound("chord", errorSoundUrl);
+    }
+  };
+  const confirmDeleteRole = () => {
+    if (!confirmDelete || !onDelete) {
+      return;
+    }
+    const role = confirmDelete.role;
+    closeDeleteConfirm();
+    onDelete(role);
+  };
+  const handleFormSave = (payload) => {
+    onSave?.(payload);
+  };
+  const handleCancel = () => {
+    (onCancel ?? onClose)();
+  };
+  const statusLeft = loading ? "Loading\u2026" : `${roles.length} role${roles.length === 1 ? "" : "s"}`;
+  const statusMid = statusMessage ?? (selected ? selected.label : canEdit ? "Select a role, or choose New." : "");
+  return /* @__PURE__ */ jsx55(
+    HeadingPanelWindow,
+    {
+      className: cn("roles-window", className),
+      style: { width, minHeight: 420, ...style },
+      inactive,
+      resizable,
+      title: "Roles",
+      titleIcon: "roles",
+      titleBarControls: /* @__PURE__ */ jsxs33(TitleBarControls, { children: [
+        /* @__PURE__ */ jsx55(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+        resizable ? /* @__PURE__ */ jsx55(
+          TitleBarControl,
+          {
+            action: maximized ? "Restore" : "Maximize",
+            onClick: onMaximize
+          }
+        ) : null,
+        /* @__PURE__ */ jsx55(TitleBarControl, { action: "Close", onClick: onClose })
+      ] }),
+      onMouseDown: onActivate,
+      heading: /* @__PURE__ */ jsx55("p", { style: { margin: 0 }, children: "System roles are locked. Custom roles may attach permissions." }),
+      actions: canEdit ? /* @__PURE__ */ jsxs33(FieldRow, { className: "justify-end", children: [
+        /* @__PURE__ */ jsx55(
+          Button,
+          {
+            type: "button",
+            isDefault: true,
+            accessKey: "n",
+            disabled: busy || !canSave,
+            onClick: openNew,
+            children: "New"
+          }
+        ),
+        /* @__PURE__ */ jsx55(
+          Button,
+          {
+            type: "button",
+            accessKey: "e",
+            disabled: busy || !hasSelection || selectedProtected || !canSave,
+            onClick: () => openEdit(),
+            children: "Edit"
+          }
+        ),
+        /* @__PURE__ */ jsx55(
+          Button,
+          {
+            type: "button",
+            accessKey: "d",
+            disabled: busy || !hasSelection || selectedProtected || !onDelete,
+            onClick: handleDelete,
+            children: "Delete"
+          }
+        ),
+        /* @__PURE__ */ jsx55(Button, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" })
+      ] }) : /* @__PURE__ */ jsx55(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx55(Button, { type: "button", accessKey: "c", onClick: handleCancel, children: "Cancel" }) }),
+      statusBar: /* @__PURE__ */ jsxs33(StatusBar, { children: [
+        /* @__PURE__ */ jsx55(StatusBarField, { children: statusLeft }),
+        /* @__PURE__ */ jsx55(StatusBarField, { className: "description", children: statusMid }),
+        /* @__PURE__ */ jsx55(StatusBarField, {})
+      ] }),
+      children: /* @__PURE__ */ jsxs33(Fragment14, { children: [
+        /* @__PURE__ */ jsx55(
+          SunkenPanel,
+          {
+            scrollable: true,
+            tone: "white",
+            style: tableMinHeight != null ? { minHeight: tableMinHeight } : void 0,
+            children: loading && roles.length === 0 ? /* @__PURE__ */ jsx55("p", { style: { margin: 8 }, children: "Loading roles\u2026" }) : roles.length === 0 ? /* @__PURE__ */ jsx55("p", { style: { margin: 8 }, children: "No roles yet." }) : /* @__PURE__ */ jsxs33(Table, { "aria-label": "Roles", children: [
+              /* @__PURE__ */ jsx55("thead", { children: /* @__PURE__ */ jsxs33("tr", { children: [
+                /* @__PURE__ */ jsx55("th", { children: "Name" }),
+                /* @__PURE__ */ jsx55("th", { children: "Label" }),
+                /* @__PURE__ */ jsx55("th", { children: "Description" }),
+                /* @__PURE__ */ jsx55("th", { children: "Permissions" }),
+                /* @__PURE__ */ jsx55("th", { children: "Protected" })
+              ] }) }),
+              /* @__PURE__ */ jsx55("tbody", { children: roles.map((role) => /* @__PURE__ */ jsxs33(
+                TableRow,
+                {
+                  highlighted: selectedId === role.id,
+                  onClick: () => selectRole(role.id),
+                  onDoubleClick: () => openEdit(role),
+                  children: [
+                    /* @__PURE__ */ jsx55("td", { children: role.name }),
+                    /* @__PURE__ */ jsx55("td", { children: role.label }),
+                    /* @__PURE__ */ jsx55("td", { children: role.description ? truncateWithEllipsis(role.description) : "\u2014" }),
+                    /* @__PURE__ */ jsx55("td", { children: role.permissionCount }),
+                    /* @__PURE__ */ jsx55("td", { children: role.protected ? "Yes" : "No" })
+                  ]
+                },
+                role.id
+              )) })
+            ] })
+          }
+        ),
+        form.open ? /* @__PURE__ */ jsx55(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx55(
+          RoleFormDialog,
+          {
+            mode: form.mode,
+            initial: {
+              roleId: form.roleId,
+              name: form.name,
+              label: form.label,
+              description: form.description,
+              permissionIds: form.permissionIds,
+              title: form.title
+            },
+            permissions,
+            fieldErrors: showFormErrors ? fieldErrors : void 0,
+            saving,
+            onSave: handleFormSave,
+            onError: showErrorAlert,
+            onClose: closeForm,
+            onAddPermission
+          },
+          `${form.mode}-${form.roleId ?? "new"}`
+        ) }) : null,
+        confirmDelete ? /* @__PURE__ */ jsx55(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx55(
+          MessageDialog,
+          {
+            type: "question",
+            title: "Confirm",
+            message: `Delete role \u201C${confirmDelete.role.name}\u201D? This cannot be undone.`,
+            onClose: closeDeleteConfirm,
+            onConfirm: confirmDeleteRole
+          }
+        ) }) : null,
+        alert ? /* @__PURE__ */ jsx55(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx55(
+          MessageDialog,
+          {
+            type: "error",
+            title: alert.title,
+            message: alert.message,
+            onClose: closeAlert
+          }
+        ) }) : null
+      ] })
+    }
+  );
+}
+
 // src/admin/pages/LoginPage.tsx
-import { useEffect as useEffect13, useLayoutEffect as useLayoutEffect7, useRef as useRef11, useState as useState16 } from "react";
-import { jsx as jsx54, jsxs as jsxs32 } from "react/jsx-runtime";
+import { useEffect as useEffect15, useLayoutEffect as useLayoutEffect7, useRef as useRef12, useState as useState18 } from "react";
+import { jsx as jsx56, jsxs as jsxs34 } from "react/jsx-runtime";
 function normalizeError(error) {
   if (typeof error === "string") {
     const trimmed = error.trim();
@@ -6194,20 +6834,20 @@ function LoginPage({
   errorSoundUrl,
   dingSoundUrl
 }) {
-  const dashboardRef = useRef11(null);
-  const modalRootRef = useRef11(null);
-  const soundedFor = useRef11(null);
+  const dashboardRef = useRef12(null);
+  const modalRootRef = useRef12(null);
+  const soundedFor = useRef12(null);
   const message = normalizeError(error);
-  const [dismissed, setDismissed] = useState16(false);
-  const [boundsEl, setBoundsEl] = useState16(null);
+  const [dismissed, setDismissed] = useState18(false);
+  const [boundsEl, setBoundsEl] = useState18(null);
   const showAlert = Boolean(message && !dismissed);
   useLayoutEffect7(() => {
     setBoundsEl(dashboardRef.current);
   }, []);
-  useEffect13(() => {
+  useEffect15(() => {
     setDismissed(false);
   }, [message]);
-  useEffect13(() => {
+  useEffect15(() => {
     if (!message || dismissed) {
       if (!message) {
         soundedFor.current = null;
@@ -6220,9 +6860,9 @@ function LoginPage({
     soundedFor.current = message;
     playAdminSound("chord", errorSoundUrl);
   }, [message, dismissed, errorSoundUrl]);
-  return /* @__PURE__ */ jsxs32("div", { ref: dashboardRef, className: "dashboard login-desktop", children: [
-    /* @__PURE__ */ jsxs32("div", { className: "login-host", children: [
-      /* @__PURE__ */ jsx54(
+  return /* @__PURE__ */ jsxs34("div", { ref: dashboardRef, className: "dashboard login-desktop", children: [
+    /* @__PURE__ */ jsxs34("div", { className: "login-host", children: [
+      /* @__PURE__ */ jsx56(
         LoginForm,
         {
           action,
@@ -6232,7 +6872,7 @@ function LoginPage({
           bannerUrl
         }
       ),
-      showAlert ? /* @__PURE__ */ jsx54(
+      showAlert ? /* @__PURE__ */ jsx56(
         "div",
         {
           className: "modal-blocker",
@@ -6248,7 +6888,7 @@ function LoginPage({
         }
       ) : null
     ] }),
-    showAlert ? /* @__PURE__ */ jsx54("div", { className: "desktop-modal-layer is-alert", children: /* @__PURE__ */ jsx54(FloatingModal, { boundsEl, rootRef: modalRootRef, children: /* @__PURE__ */ jsx54(
+    showAlert ? /* @__PURE__ */ jsx56("div", { className: "desktop-modal-layer is-alert", children: /* @__PURE__ */ jsx56(FloatingModal, { boundsEl, rootRef: modalRootRef, children: /* @__PURE__ */ jsx56(
       MessageDialog,
       {
         type: "error",
@@ -6262,12 +6902,12 @@ function LoginPage({
 
 // src/admin/pages/AdminDesktop.tsx
 import {
-  useCallback as useCallback6,
-  useEffect as useEffect17,
+  useCallback as useCallback7,
+  useEffect as useEffect19,
   useLayoutEffect as useLayoutEffect8,
-  useMemo as useMemo5,
-  useRef as useRef14,
-  useState as useState18
+  useMemo as useMemo6,
+  useRef as useRef15,
+  useState as useState20
 } from "react";
 
 // src/admin/lib/safeAppPath.ts
@@ -6306,6 +6946,7 @@ var SITES_WINDOW_ID = "sites";
 var HOSTS_WINDOW_ID = "hosts";
 var SETTINGS_WINDOW_ID = "settings";
 var PERMISSIONS_WINDOW_ID = "permissions";
+var ROLES_WINDOW_ID = "roles";
 function siteWindowId(siteId) {
   return `site-${siteId}`;
 }
@@ -6316,8 +6957,8 @@ function parseSiteWindowId(id) {
 
 // src/admin/shell/DesktopWindow.tsx
 import {
-  useEffect as useEffect14,
-  useRef as useRef12
+  useEffect as useEffect16,
+  useRef as useRef13
 } from "react";
 
 // src/admin/shell/resize.ts
@@ -6337,7 +6978,8 @@ var DEFAULT_WINDOW_SIZE = {
   sites: { width: 560, height: 480 },
   hosts: { width: 640, height: 480 },
   settings: { width: 420, height: 340 },
-  permissions: { width: 560, height: 480 }
+  permissions: { width: 560, height: 480 },
+  roles: { width: 640, height: 480 }
 };
 function computeResizeBounds(dashboard, edge, start, pointer, minWidth = SHELL_MIN_WIDTH, minHeight = SHELL_MIN_HEIGHT) {
   const dx = pointer.clientX - pointer.startX;
@@ -6387,7 +7029,7 @@ function computeResizeBounds(dashboard, edge, start, pointer, minWidth = SHELL_M
 }
 
 // src/admin/shell/DesktopWindow.tsx
-import { jsx as jsx55, jsxs as jsxs33 } from "react/jsx-runtime";
+import { jsx as jsx57, jsxs as jsxs35 } from "react/jsx-runtime";
 function DesktopWindow({
   windowId,
   left,
@@ -6408,26 +7050,26 @@ function DesktopWindow({
   onPointerDown,
   ...rest
 }) {
-  const rootRef = useRef12(null);
-  const dragRef = useRef12(null);
-  const resizeRef = useRef12(null);
-  const onPositionChangeRef = useRef12(onPositionChange);
-  const onBoundsChangeRef = useRef12(onBoundsChange);
-  const dragDisabledRef = useRef12(dragDisabled);
-  const maximizedRef = useRef12(maximized);
-  useEffect14(() => {
+  const rootRef = useRef13(null);
+  const dragRef = useRef13(null);
+  const resizeRef = useRef13(null);
+  const onPositionChangeRef = useRef13(onPositionChange);
+  const onBoundsChangeRef = useRef13(onBoundsChange);
+  const dragDisabledRef = useRef13(dragDisabled);
+  const maximizedRef = useRef13(maximized);
+  useEffect16(() => {
     onPositionChangeRef.current = onPositionChange;
   }, [onPositionChange]);
-  useEffect14(() => {
+  useEffect16(() => {
     onBoundsChangeRef.current = onBoundsChange;
   }, [onBoundsChange]);
-  useEffect14(() => {
+  useEffect16(() => {
     dragDisabledRef.current = dragDisabled;
   }, [dragDisabled]);
-  useEffect14(() => {
+  useEffect16(() => {
     maximizedRef.current = maximized;
   }, [maximized]);
-  useEffect14(() => {
+  useEffect16(() => {
     const onMove = (event) => {
       const node = rootRef.current;
       if (!node) {
@@ -6612,7 +7254,7 @@ function DesktopWindow({
     ...sized ? { width, height } : null
   };
   const showHandles = resizable && !maximized && !dragDisabled;
-  return /* @__PURE__ */ jsxs33(
+  return /* @__PURE__ */ jsxs35(
     "div",
     {
       ref: rootRef,
@@ -6630,7 +7272,7 @@ function DesktopWindow({
       ...rest,
       children: [
         children,
-        showHandles ? RESIZE_EDGES.map((edge) => /* @__PURE__ */ jsx55(
+        showHandles ? RESIZE_EDGES.map((edge) => /* @__PURE__ */ jsx57(
           "div",
           {
             className: "window-resize-handle",
@@ -6646,26 +7288,26 @@ function DesktopWindow({
 }
 
 // src/admin/shell/TaskbarClock.tsx
-import { useEffect as useEffect15, useState as useState17 } from "react";
-import { jsx as jsx56 } from "react/jsx-runtime";
+import { useEffect as useEffect17, useState as useState19 } from "react";
+import { jsx as jsx58 } from "react/jsx-runtime";
 function formatClock(date) {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
 }
 function TaskbarClock() {
-  const [label, setLabel] = useState17(() => formatClock(/* @__PURE__ */ new Date()));
-  useEffect15(() => {
+  const [label, setLabel] = useState19(() => formatClock(/* @__PURE__ */ new Date()));
+  useEffect17(() => {
     const tick = () => setLabel(formatClock(/* @__PURE__ */ new Date()));
     tick();
     const id = window.setInterval(tick, 1e3);
     return () => window.clearInterval(id);
   }, []);
-  return /* @__PURE__ */ jsx56("div", { className: "sunken-panel clock", "aria-live": "polite", children: label });
+  return /* @__PURE__ */ jsx58("div", { className: "sunken-panel clock", "aria-live": "polite", children: label });
 }
 
 // src/admin/shell/Taskbar.tsx
-import { jsx as jsx57, jsxs as jsxs34 } from "react/jsx-runtime";
+import { jsx as jsx59, jsxs as jsxs36 } from "react/jsx-runtime";
 function taskClassName(win, active) {
   return cn(
     "task",
@@ -6675,6 +7317,7 @@ function taskClassName(win, active) {
     win.kind === "hosts" && "hosts",
     win.kind === "settings" && "settings",
     win.kind === "permissions" && "permissions",
+    win.kind === "roles" && "roles",
     active && "active"
   );
 }
@@ -6687,10 +7330,10 @@ function Taskbar({
   startMenu,
   className
 }) {
-  return /* @__PURE__ */ jsxs34("div", { id: "toolbar", className: cn("window", className), children: [
+  return /* @__PURE__ */ jsxs36("div", { id: "toolbar", className: cn("window", className), children: [
     startMenu,
-    /* @__PURE__ */ jsxs34("div", { className: "window-body", children: [
-      /* @__PURE__ */ jsx57(
+    /* @__PURE__ */ jsxs36("div", { className: "window-body", children: [
+      /* @__PURE__ */ jsx59(
         "button",
         {
           type: "button",
@@ -6702,9 +7345,9 @@ function Taskbar({
           children: "Menu"
         }
       ),
-      /* @__PURE__ */ jsx57("div", { className: "task-buttons", children: windows.map((win) => {
+      /* @__PURE__ */ jsx59("div", { className: "task-buttons", children: windows.map((win) => {
         const pressed = win.id === activeId && !win.minimized;
-        return /* @__PURE__ */ jsx57(
+        return /* @__PURE__ */ jsx59(
           "button",
           {
             type: "button",
@@ -6713,27 +7356,27 @@ function Taskbar({
             "aria-pressed": pressed,
             title: win.title,
             onClick: () => onTaskClick(win.id),
-            children: /* @__PURE__ */ jsx57("span", { className: "task-title", children: win.title })
+            children: /* @__PURE__ */ jsx59("span", { className: "task-title", children: win.title })
           },
           win.id
         );
       }) }),
-      /* @__PURE__ */ jsx57(TaskbarClock, {})
+      /* @__PURE__ */ jsx59(TaskbarClock, {})
     ] })
   ] });
 }
 
 // src/admin/shell/StartMenu.tsx
-import { useEffect as useEffect16, useRef as useRef13 } from "react";
-import { jsx as jsx58, jsxs as jsxs35 } from "react/jsx-runtime";
+import { useEffect as useEffect18, useRef as useRef14 } from "react";
+import { jsx as jsx60, jsxs as jsxs37 } from "react/jsx-runtime";
 function StartMenu({
   open,
   onClose,
   onOpenControlPanel,
   logoutHref
 }) {
-  const rootRef = useRef13(null);
-  useEffect16(() => {
+  const rootRef = useRef14(null);
+  useEffect18(() => {
     if (!open) {
       return;
     }
@@ -6787,7 +7430,7 @@ function StartMenu({
       } : void 0
     }
   ];
-  return /* @__PURE__ */ jsxs35(
+  return /* @__PURE__ */ jsxs37(
     "div",
     {
       ref: rootRef,
@@ -6795,18 +7438,18 @@ function StartMenu({
       id: "start-menu",
       hidden: !open,
       children: [
-        /* @__PURE__ */ jsx58("div", { className: "start-menu-banner", "aria-hidden": "true", children: /* @__PURE__ */ jsx58("span", { children: "WebHemi 1.0" }) }),
-        /* @__PURE__ */ jsxs35("ul", { className: "start-menu-list", role: "menu", "aria-label": "Menu", children: [
-          items.slice(0, 4).map((item) => /* @__PURE__ */ jsx58("li", { role: "none", children: /* @__PURE__ */ jsx58(StartMenuItem, { item }) }, item.id)),
-          /* @__PURE__ */ jsx58("li", { className: "separator", role: "separator" }),
-          items.slice(4).map((item) => /* @__PURE__ */ jsx58("li", { role: "none", children: /* @__PURE__ */ jsx58(StartMenuItem, { item }) }, item.id))
+        /* @__PURE__ */ jsx60("div", { className: "start-menu-banner", "aria-hidden": "true", children: /* @__PURE__ */ jsx60("span", { children: "WebHemi 1.0" }) }),
+        /* @__PURE__ */ jsxs37("ul", { className: "start-menu-list", role: "menu", "aria-label": "Menu", children: [
+          items.slice(0, 4).map((item) => /* @__PURE__ */ jsx60("li", { role: "none", children: /* @__PURE__ */ jsx60(StartMenuItem, { item }) }, item.id)),
+          /* @__PURE__ */ jsx60("li", { className: "separator", role: "separator" }),
+          items.slice(4).map((item) => /* @__PURE__ */ jsx60("li", { role: "none", children: /* @__PURE__ */ jsx60(StartMenuItem, { item }) }, item.id))
         ] })
       ]
     }
   );
 }
 function StartMenuItem({ item }) {
-  return /* @__PURE__ */ jsx58(
+  return /* @__PURE__ */ jsx60(
     "button",
     {
       type: "button",
@@ -6848,7 +7491,7 @@ function parseEntry(id, value) {
     return null;
   }
   const raw = value;
-  const kind = raw.kind === "site" || raw.kind === "control-panel" || raw.kind === "sites" || raw.kind === "hosts" || raw.kind === "settings" || raw.kind === "permissions" ? raw.kind : null;
+  const kind = raw.kind === "site" || raw.kind === "control-panel" || raw.kind === "sites" || raw.kind === "hosts" || raw.kind === "settings" || raw.kind === "permissions" || raw.kind === "roles" ? raw.kind : null;
   if (!kind) {
     return null;
   }
@@ -6869,6 +7512,9 @@ function parseEntry(id, value) {
     return null;
   }
   if (kind === "permissions" && id !== PERMISSIONS_WINDOW_ID) {
+    return null;
+  }
+  if (kind === "roles" && id !== ROLES_WINDOW_ID) {
     return null;
   }
   if (kind === "control-panel" && id !== CONTROL_PANEL_WINDOW_ID) {
@@ -7000,6 +7646,10 @@ function hydrateDesktopFromPersistence(persisted, sites) {
       windows.push(windowFromEntry(entry));
       continue;
     }
+    if (entry.kind === "roles" && entry.id === ROLES_WINDOW_ID) {
+      windows.push(windowFromEntry(entry));
+      continue;
+    }
     if (entry.kind === "site" && entry.siteId != null && siteIds.has(entry.siteId)) {
       windows.push({
         ...windowFromEntry(entry),
@@ -7056,7 +7706,7 @@ function geometryFromPersistence(persisted, id, kind) {
 }
 
 // src/admin/pages/AdminDesktop.tsx
-import { jsx as jsx59, jsxs as jsxs36 } from "react/jsx-runtime";
+import { jsx as jsx61, jsxs as jsxs38 } from "react/jsx-runtime";
 var CASCADE_ORIGIN = { left: 48, top: 24 };
 var CASCADE_STEP = 28;
 var PERSIST_DEBOUNCE_MS = 200;
@@ -7090,6 +7740,17 @@ function toWindowPermission(permission) {
     name: permission.name,
     label: permission.label,
     description: permission.description
+  };
+}
+function toWindowRole(role) {
+  return {
+    id: role.id,
+    name: role.name,
+    label: role.label,
+    description: role.description,
+    protected: role.protected,
+    permissionIds: [...role.permissionIds],
+    permissionCount: role.permissionCount
   };
 }
 function toWindowHost(host) {
@@ -7133,73 +7794,86 @@ function AdminDesktop({
   className
 }) {
   const storageKey = persistenceKey === false ? null : persistenceKey;
-  const persistedRef = useRef14(
+  const persistedRef = useRef15(
     storageKey ? loadPersistedDesktop(storageKey) : null
   );
-  const hydratedRef = useRef14(
+  const hydratedRef = useRef15(
     hydrateDesktopFromPersistence(persistedRef.current, sites)
   );
-  const nextZRef = useRef14(hydratedRef.current.nextZ);
-  const cascadeRef = useRef14(hydratedRef.current.cascade);
-  const dashboardRef = useRef14(null);
-  const [shell, setShell] = useState18(() => ({
+  const nextZRef = useRef15(hydratedRef.current.nextZ);
+  const cascadeRef = useRef15(hydratedRef.current.cascade);
+  const dashboardRef = useRef15(null);
+  const [shell, setShell] = useState20(() => ({
     windows: hydratedRef.current.windows,
     activeId: hydratedRef.current.activeId
   }));
-  const [deepLink] = useState18(() => {
+  const [deepLink] = useState20(() => {
     const search = locationSearch !== void 0 ? locationSearch : typeof window !== "undefined" ? window.location.search : "";
     return parseAdminDeepLink(search);
   });
-  const deepLinkAppliedRef = useRef14(false);
+  const deepLinkAppliedRef = useRef15(false);
   const sitesPreferSelectedId = deepLink?.window === "sites" ? deepLink.id : null;
   const hostsPreferSelectedId = deepLink?.window === "hosts" ? deepLink.id : null;
   const permissionsPreferSelectedId = deepLink?.window === "permissions" ? deepLink.id : null;
-  const [startMenuOpen, setStartMenuOpen] = useState18(false);
-  const [desktopSites, setDesktopSites] = useState18(sites);
-  const [sitesRows, setSitesRows] = useState18([]);
-  const [sitesLoading, setSitesLoading] = useState18(false);
-  const [sitesCreating, setSitesCreating] = useState18(false);
-  const [sitesDeleting, setSitesDeleting] = useState18(false);
-  const [sitesError, setSitesError] = useState18(null);
-  const [sitesFormError, setSitesFormError] = useState18(null);
-  const [sitesFieldErrors, setSitesFieldErrors] = useState18({});
-  const [permissionsRows, setPermissionsRows] = useState18([]);
-  const [permissionsLoading, setPermissionsLoading] = useState18(false);
-  const [permissionsCreating, setPermissionsCreating] = useState18(false);
-  const [permissionsDeleting, setPermissionsDeleting] = useState18(false);
-  const [permissionsError, setPermissionsError] = useState18(null);
-  const [permissionsFormError, setPermissionsFormError] = useState18(
+  const rolesPreferSelectedId = deepLink?.window === "roles" ? deepLink.id : null;
+  const [startMenuOpen, setStartMenuOpen] = useState20(false);
+  const [desktopSites, setDesktopSites] = useState20(sites);
+  const [sitesRows, setSitesRows] = useState20([]);
+  const [sitesLoading, setSitesLoading] = useState20(false);
+  const [sitesCreating, setSitesCreating] = useState20(false);
+  const [sitesDeleting, setSitesDeleting] = useState20(false);
+  const [sitesError, setSitesError] = useState20(null);
+  const [sitesFormError, setSitesFormError] = useState20(null);
+  const [sitesFieldErrors, setSitesFieldErrors] = useState20({});
+  const [permissionsRows, setPermissionsRows] = useState20([]);
+  const [permissionsLoading, setPermissionsLoading] = useState20(false);
+  const [permissionsCreating, setPermissionsCreating] = useState20(false);
+  const [permissionsDeleting, setPermissionsDeleting] = useState20(false);
+  const [permissionsError, setPermissionsError] = useState20(null);
+  const [permissionsFormError, setPermissionsFormError] = useState20(
     null
   );
-  const [permissionsFieldErrors, setPermissionsFieldErrors] = useState18({});
-  const [permissionsStatusMessage, setPermissionsStatusMessage] = useState18(null);
-  const [hostsRows, setHostsRows] = useState18([]);
-  const [hostsLoading, setHostsLoading] = useState18(false);
-  const [hostsCreating, setHostsCreating] = useState18(false);
-  const [hostsDeleting, setHostsDeleting] = useState18(false);
-  const [hostsUnassigning, setHostsUnassigning] = useState18(false);
-  const [hostsAssigning, setHostsAssigning] = useState18(false);
-  const [hostsVerifying, setHostsVerifying] = useState18(false);
-  const [hostsError, setHostsError] = useState18(null);
-  const [hostsFormError, setHostsFormError] = useState18(null);
-  const [hostsFieldErrors, setHostsFieldErrors] = useState18({});
-  const [sitesStatusMessage, setSitesStatusMessage] = useState18(null);
-  const [hostsStatusMessage, setHostsStatusMessage] = useState18(null);
-  const [settings, setSettings] = useState18(null);
-  const [settingsLoading, setSettingsLoading] = useState18(false);
-  const [settingsSaving, setSettingsSaving] = useState18(false);
-  const [settingsError, setSettingsError] = useState18(null);
-  const [settingsStatusMessage, setSettingsStatusMessage] = useState18(
+  const [permissionsFieldErrors, setPermissionsFieldErrors] = useState20({});
+  const [permissionsStatusMessage, setPermissionsStatusMessage] = useState20(null);
+  const [rolesRows, setRolesRows] = useState20([]);
+  const [rolesPermissionOptions, setRolesPermissionOptions] = useState20([]);
+  const [rolesLoading, setRolesLoading] = useState20(false);
+  const [rolesCreating, setRolesCreating] = useState20(false);
+  const [rolesDeleting, setRolesDeleting] = useState20(false);
+  const [rolesError, setRolesError] = useState20(null);
+  const [rolesFormError, setRolesFormError] = useState20(null);
+  const [rolesFieldErrors, setRolesFieldErrors] = useState20({});
+  const [rolesStatusMessage, setRolesStatusMessage] = useState20(
     null
   );
-  const pendingLoginRedirectRef = useRef14(false);
-  const sitesStatusTimerRef = useRef14(null);
-  const hostsStatusTimerRef = useRef14(null);
-  const permissionsStatusTimerRef = useRef14(
+  const [hostsRows, setHostsRows] = useState20([]);
+  const [hostsLoading, setHostsLoading] = useState20(false);
+  const [hostsCreating, setHostsCreating] = useState20(false);
+  const [hostsDeleting, setHostsDeleting] = useState20(false);
+  const [hostsUnassigning, setHostsUnassigning] = useState20(false);
+  const [hostsAssigning, setHostsAssigning] = useState20(false);
+  const [hostsVerifying, setHostsVerifying] = useState20(false);
+  const [hostsError, setHostsError] = useState20(null);
+  const [hostsFormError, setHostsFormError] = useState20(null);
+  const [hostsFieldErrors, setHostsFieldErrors] = useState20({});
+  const [sitesStatusMessage, setSitesStatusMessage] = useState20(null);
+  const [hostsStatusMessage, setHostsStatusMessage] = useState20(null);
+  const [settings, setSettings] = useState20(null);
+  const [settingsLoading, setSettingsLoading] = useState20(false);
+  const [settingsSaving, setSettingsSaving] = useState20(false);
+  const [settingsError, setSettingsError] = useState20(null);
+  const [settingsStatusMessage, setSettingsStatusMessage] = useState20(
     null
   );
-  const settingsStatusTimerRef = useRef14(null);
-  const api = useMemo5(
+  const pendingLoginRedirectRef = useRef15(false);
+  const sitesStatusTimerRef = useRef15(null);
+  const hostsStatusTimerRef = useRef15(null);
+  const permissionsStatusTimerRef = useRef15(
+    null
+  );
+  const rolesStatusTimerRef = useRef15(null);
+  const settingsStatusTimerRef = useRef15(null);
+  const api = useMemo6(
     () => sitesApi ?? createAdminApiClient({
       csrfToken: apiCsrfToken,
       baseUrl: apiBaseUrl,
@@ -7210,29 +7884,37 @@ function AdminDesktop({
   const canEditSites = Boolean(sitesApi) || Boolean(apiCsrfToken);
   const canEditHosts = canEditSites;
   const canEditPermissions = canEditSites;
+  const canEditRoles = canEditSites;
   const canEditSettings = canEditSites;
-  const clearSitesStatusMessage = useCallback6(() => {
+  const clearSitesStatusMessage = useCallback7(() => {
     if (sitesStatusTimerRef.current != null) {
       clearTimeout(sitesStatusTimerRef.current);
       sitesStatusTimerRef.current = null;
     }
     setSitesStatusMessage(null);
   }, []);
-  const clearHostsStatusMessage = useCallback6(() => {
+  const clearHostsStatusMessage = useCallback7(() => {
     if (hostsStatusTimerRef.current != null) {
       clearTimeout(hostsStatusTimerRef.current);
       hostsStatusTimerRef.current = null;
     }
     setHostsStatusMessage(null);
   }, []);
-  const clearPermissionsStatusMessage = useCallback6(() => {
+  const clearPermissionsStatusMessage = useCallback7(() => {
     if (permissionsStatusTimerRef.current != null) {
       clearTimeout(permissionsStatusTimerRef.current);
       permissionsStatusTimerRef.current = null;
     }
     setPermissionsStatusMessage(null);
   }, []);
-  const flashSitesStatus = useCallback6(
+  const clearRolesStatusMessage = useCallback7(() => {
+    if (rolesStatusTimerRef.current != null) {
+      clearTimeout(rolesStatusTimerRef.current);
+      rolesStatusTimerRef.current = null;
+    }
+    setRolesStatusMessage(null);
+  }, []);
+  const flashSitesStatus = useCallback7(
     (message) => {
       clearSitesStatusMessage();
       setSitesStatusMessage(message);
@@ -7243,7 +7925,7 @@ function AdminDesktop({
     },
     [clearSitesStatusMessage]
   );
-  const flashHostsStatus = useCallback6(
+  const flashHostsStatus = useCallback7(
     (message) => {
       clearHostsStatusMessage();
       setHostsStatusMessage(message);
@@ -7254,7 +7936,7 @@ function AdminDesktop({
     },
     [clearHostsStatusMessage]
   );
-  const flashPermissionsStatus = useCallback6(
+  const flashPermissionsStatus = useCallback7(
     (message) => {
       clearPermissionsStatusMessage();
       setPermissionsStatusMessage(message);
@@ -7265,14 +7947,25 @@ function AdminDesktop({
     },
     [clearPermissionsStatusMessage]
   );
-  const clearSettingsStatusMessage = useCallback6(() => {
+  const flashRolesStatus = useCallback7(
+    (message) => {
+      clearRolesStatusMessage();
+      setRolesStatusMessage(message);
+      rolesStatusTimerRef.current = setTimeout(() => {
+        rolesStatusTimerRef.current = null;
+        setRolesStatusMessage(null);
+      }, 4e3);
+    },
+    [clearRolesStatusMessage]
+  );
+  const clearSettingsStatusMessage = useCallback7(() => {
     if (settingsStatusTimerRef.current != null) {
       clearTimeout(settingsStatusTimerRef.current);
       settingsStatusTimerRef.current = null;
     }
     setSettingsStatusMessage(null);
   }, []);
-  const flashSettingsStatus = useCallback6(
+  const flashSettingsStatus = useCallback7(
     (message) => {
       clearSettingsStatusMessage();
       setSettingsStatusMessage(message);
@@ -7283,7 +7976,7 @@ function AdminDesktop({
     },
     [clearSettingsStatusMessage]
   );
-  useEffect17(() => {
+  useEffect19(() => {
     return () => {
       if (sitesStatusTimerRef.current != null) {
         clearTimeout(sitesStatusTimerRef.current);
@@ -7294,16 +7987,19 @@ function AdminDesktop({
       if (permissionsStatusTimerRef.current != null) {
         clearTimeout(permissionsStatusTimerRef.current);
       }
+      if (rolesStatusTimerRef.current != null) {
+        clearTimeout(rolesStatusTimerRef.current);
+      }
       if (settingsStatusTimerRef.current != null) {
         clearTimeout(settingsStatusTimerRef.current);
       }
     };
   }, []);
-  const noteUnauthorized = useCallback6((setError, message) => {
+  const noteUnauthorized = useCallback7((setError, message) => {
     pendingLoginRedirectRef.current = true;
     setError(message);
   }, []);
-  const handleApiFailure = useCallback6(
+  const handleApiFailure = useCallback7(
     (result, setError) => {
       if (result.ok) {
         return;
@@ -7317,27 +8013,32 @@ function AdminDesktop({
     },
     [noteUnauthorized]
   );
-  const handleAlertClose = useCallback6(() => {
+  const handleAlertClose = useCallback7(() => {
     if (pendingLoginRedirectRef.current) {
       pendingLoginRedirectRef.current = false;
       assignSafeAppPath(loginHref, "/admin/login");
     }
   }, [loginHref]);
-  const dismissSitesAlert = useCallback6(() => {
+  const dismissSitesAlert = useCallback7(() => {
     setSitesError(null);
     handleAlertClose();
   }, [handleAlertClose]);
-  const dismissHostsAlert = useCallback6(() => {
+  const dismissHostsAlert = useCallback7(() => {
     setHostsError(null);
     setHostsFormError(null);
     handleAlertClose();
   }, [handleAlertClose]);
-  const dismissPermissionsAlert = useCallback6(() => {
+  const dismissPermissionsAlert = useCallback7(() => {
     setPermissionsError(null);
     setPermissionsFormError(null);
     handleAlertClose();
   }, [handleAlertClose]);
-  const dismissSettingsAlert = useCallback6(() => {
+  const dismissRolesAlert = useCallback7(() => {
+    setRolesError(null);
+    setRolesFormError(null);
+    handleAlertClose();
+  }, [handleAlertClose]);
+  const dismissSettingsAlert = useCallback7(() => {
     setSettingsError(null);
     handleAlertClose();
   }, [handleAlertClose]);
@@ -7346,12 +8047,13 @@ function AdminDesktop({
   const permissionsWindowOpen = shell.windows.some(
     (win) => win.id === PERMISSIONS_WINDOW_ID
   );
+  const rolesWindowOpen = shell.windows.some((win) => win.id === ROLES_WINDOW_ID);
   const settingsWindowOpen = shell.windows.some((win) => win.id === SETTINGS_WINDOW_ID);
-  const siteFormHosts = useMemo5(
+  const siteFormHosts = useMemo6(
     () => hostsRows.map(toSiteFormHostOption),
     [hostsRows]
   );
-  const hostFormSites = useMemo5(
+  const hostFormSites = useMemo6(
     () => desktopSites.map((site) => ({
       id: site.id,
       name: site.name,
@@ -7359,10 +8061,10 @@ function AdminDesktop({
     })),
     [desktopSites]
   );
-  useEffect17(() => {
+  useEffect19(() => {
     setDesktopSites(sites);
   }, [sites]);
-  useEffect17(() => {
+  useEffect19(() => {
     if (!storageKey) {
       return;
     }
@@ -7379,7 +8081,7 @@ function AdminDesktop({
     }, PERSIST_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [shell, storageKey]);
-  useEffect17(() => {
+  useEffect19(() => {
     if (!sitesWindowOpen) {
       return;
     }
@@ -7405,7 +8107,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [sitesWindowOpen, api, handleApiFailure, clearSitesStatusMessage]);
-  useEffect17(() => {
+  useEffect19(() => {
     if (!permissionsWindowOpen) {
       return;
     }
@@ -7430,7 +8132,44 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [permissionsWindowOpen, api, handleApiFailure, clearPermissionsStatusMessage]);
-  useEffect17(() => {
+  useEffect19(() => {
+    if (!rolesWindowOpen) {
+      return;
+    }
+    let cancelled = false;
+    setRolesLoading(true);
+    setRolesError(null);
+    clearRolesStatusMessage();
+    void (async () => {
+      const [rolesResult, permissionsResult] = await Promise.all([
+        api.listRoles(),
+        api.listPermissions()
+      ]);
+      if (cancelled) {
+        return;
+      }
+      setRolesLoading(false);
+      if (!rolesResult.ok) {
+        handleApiFailure(rolesResult, setRolesError);
+        return;
+      }
+      pendingLoginRedirectRef.current = false;
+      setRolesRows(rolesResult.data.map(toWindowRole));
+      if (permissionsResult.ok) {
+        setRolesPermissionOptions(
+          permissionsResult.data.map((row) => ({
+            id: row.id,
+            name: row.name,
+            label: row.label
+          }))
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [rolesWindowOpen, api, handleApiFailure, clearRolesStatusMessage]);
+  useEffect19(() => {
     if (!hostsWindowOpen && !sitesWindowOpen) {
       return;
     }
@@ -7470,7 +8209,7 @@ function AdminDesktop({
     noteUnauthorized,
     clearHostsStatusMessage
   ]);
-  useEffect17(() => {
+  useEffect19(() => {
     if (!settingsWindowOpen && !hostsWindowOpen && !sitesWindowOpen) {
       return;
     }
@@ -7508,8 +8247,8 @@ function AdminDesktop({
     handleApiFailure,
     clearSettingsStatusMessage
   ]);
-  const closeStartMenu = useCallback6(() => setStartMenuOpen(false), []);
-  const toggleStartMenu = useCallback6(() => {
+  const closeStartMenu = useCallback7(() => setStartMenuOpen(false), []);
+  const toggleStartMenu = useCallback7(() => {
     setStartMenuOpen((open) => !open);
   }, []);
   const allocatePlacement = () => {
@@ -7717,7 +8456,15 @@ function AdminDesktop({
       DEFAULT_WINDOW_SIZE.permissions
     );
   };
-  const refreshSettings = useCallback6(async () => {
+  const openRoles = () => {
+    openOrRaiseWindow(
+      ROLES_WINDOW_ID,
+      "roles",
+      "Roles",
+      DEFAULT_WINDOW_SIZE.roles
+    );
+  };
+  const refreshSettings = useCallback7(async () => {
     const result = await api.getSettings();
     if (!result.ok) {
       return;
@@ -7725,7 +8472,7 @@ function AdminDesktop({
     pendingLoginRedirectRef.current = false;
     setSettings(result.data);
   }, [api]);
-  const handleSaveSettings = useCallback6(
+  const handleSaveSettings = useCallback7(
     async (adminAccess) => {
       setSettingsSaving(true);
       setSettingsError(null);
@@ -7809,6 +8556,9 @@ function AdminDesktop({
         break;
       case "permissions":
         openPermissions();
+        break;
+      case "roles":
+        openRoles();
         break;
       case "site": {
         if (deepLink.id == null) {
@@ -7979,6 +8729,69 @@ function AdminDesktop({
       setPermissionsRows(list.data.map(toWindowPermission));
     } else {
       setPermissionsRows((prev) => prev.filter((row) => row.id !== permission.id));
+    }
+  };
+  const handleSaveRole = async (payload) => {
+    clearRolesStatusMessage();
+    setRolesCreating(true);
+    setRolesFormError(null);
+    setRolesFieldErrors({});
+    const result = payload.mode === "new" ? await api.createRole({
+      name: payload.name,
+      label: payload.label,
+      description: payload.description,
+      permissionIds: payload.permissionIds
+    }) : payload.roleId != null ? await api.updateRole(payload.roleId, {
+      name: payload.name,
+      label: payload.label,
+      description: payload.description,
+      permissionIds: payload.permissionIds
+    }) : null;
+    setRolesCreating(false);
+    if (!result) {
+      setRolesFormError("Role could not be saved.");
+      return;
+    }
+    if (!result.ok) {
+      if (result.error.fields) {
+        setRolesFieldErrors({
+          name: result.error.fields.name,
+          label: result.error.fields.label,
+          description: result.error.fields.description
+        });
+      }
+      handleApiFailure(result, setRolesFormError);
+      return;
+    }
+    flashRolesStatus(payload.mode === "new" ? "Role created." : "Role updated.");
+    const list = await api.listRoles();
+    if (list.ok) {
+      setRolesRows(list.data.map(toWindowRole));
+      return;
+    }
+    const saved = toWindowRole(result.data);
+    setRolesRows(
+      (prev) => [...prev.filter((row) => row.id !== saved.id), saved].sort(
+        (a, b) => a.name.localeCompare(b.name)
+      )
+    );
+  };
+  const handleDeleteRole = async (role) => {
+    clearRolesStatusMessage();
+    setRolesDeleting(true);
+    setRolesError(null);
+    const result = await api.deleteRole(role.id);
+    setRolesDeleting(false);
+    if (!result.ok) {
+      handleApiFailure(result, setRolesError);
+      return;
+    }
+    flashRolesStatus("Role deleted.");
+    const list = await api.listRoles();
+    if (list.ok) {
+      setRolesRows(list.data.map(toWindowRole));
+    } else {
+      setRolesRows((prev) => prev.filter((row) => row.id !== role.id));
     }
   };
   const handleSaveHost = async (payload) => {
@@ -8157,9 +8970,9 @@ function AdminDesktop({
       );
     }
   };
-  return /* @__PURE__ */ jsxs36("div", { ref: dashboardRef, className: cn("dashboard", className), children: [
-    /* @__PURE__ */ jsxs36("div", { className: "icon-list", children: [
-      desktopSites.map((site) => /* @__PURE__ */ jsx59(
+  return /* @__PURE__ */ jsxs38("div", { ref: dashboardRef, className: cn("dashboard", className), children: [
+    /* @__PURE__ */ jsxs38("div", { className: "icon-list", children: [
+      desktopSites.map((site) => /* @__PURE__ */ jsx61(
         SystemIcon,
         {
           kind: "site",
@@ -8169,7 +8982,7 @@ function AdminDesktop({
         },
         site.id
       )),
-      /* @__PURE__ */ jsx59(
+      /* @__PURE__ */ jsx61(
         SystemIcon,
         {
           kind: "control-panel",
@@ -8182,7 +8995,7 @@ function AdminDesktop({
     shell.windows.map((win) => {
       const active = win.id === shell.activeId && !win.minimized;
       const maximizeAction = win.maximized ? "Restore" : "Maximize";
-      const shellFrame = (child) => /* @__PURE__ */ jsx59(
+      const shellFrame = (child) => /* @__PURE__ */ jsx61(
         DesktopWindow,
         {
           windowId: win.id,
@@ -8204,7 +9017,7 @@ function AdminDesktop({
       );
       if (win.kind === "control-panel") {
         return shellFrame(
-          /* @__PURE__ */ jsx59(
+          /* @__PURE__ */ jsx61(
             ControlPanel,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -8217,14 +9030,15 @@ function AdminDesktop({
               onOpenSites: openSites,
               onOpenHosts: openHosts,
               onOpenSettings: openSettings,
-              onOpenPermissions: openPermissions
+              onOpenPermissions: openPermissions,
+              onOpenRoles: openRoles
             }
           )
         );
       }
       if (win.kind === "sites") {
         return shellFrame(
-          /* @__PURE__ */ jsx59(
+          /* @__PURE__ */ jsx61(
             SitesWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -8266,7 +9080,7 @@ function AdminDesktop({
       }
       if (win.kind === "hosts") {
         return shellFrame(
-          /* @__PURE__ */ jsx59(
+          /* @__PURE__ */ jsx61(
             HostsWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -8309,7 +9123,7 @@ function AdminDesktop({
       }
       if (win.kind === "settings") {
         return shellFrame(
-          /* @__PURE__ */ jsx59(
+          /* @__PURE__ */ jsx61(
             SettingsWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -8340,7 +9154,7 @@ function AdminDesktop({
       }
       if (win.kind === "permissions") {
         return shellFrame(
-          /* @__PURE__ */ jsx59(
+          /* @__PURE__ */ jsx61(
             PermissionsWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -8373,12 +9187,49 @@ function AdminDesktop({
           )
         );
       }
+      if (win.kind === "roles") {
+        return shellFrame(
+          /* @__PURE__ */ jsx61(
+            RolesWindow,
+            {
+              className: cn(win.maximized && "is-maximized"),
+              inactive: !active,
+              maximized: win.maximized,
+              roles: rolesRows,
+              permissions: rolesPermissionOptions,
+              preferSelectedId: rolesPreferSelectedId,
+              canEdit: canEditRoles,
+              loading: rolesLoading,
+              saving: rolesCreating,
+              deleting: rolesDeleting,
+              error: rolesError,
+              formError: rolesFormError,
+              fieldErrors: rolesFieldErrors,
+              statusMessage: rolesStatusMessage,
+              onClearStatusMessage: clearRolesStatusMessage,
+              onSave: handleSaveRole,
+              onDelete: handleDeleteRole,
+              onAddPermission: openPermissions,
+              errorSoundUrl,
+              dingSoundUrl,
+              onAlertClose: dismissRolesAlert,
+              onClose: () => closeWindow(win.id),
+              onCancel: () => closeWindow(win.id),
+              onMinimize: () => minimizeWindow(win.id),
+              onMaximize: () => toggleMaximize(win.id),
+              onActivate: () => activateWindow(win.id),
+              width: win.width,
+              style: { height: "100%", minHeight: 0, width: "100%" }
+            }
+          )
+        );
+      }
       const site = desktopSites.find((entry) => entry.id === win.siteId) ?? {
         id: win.siteId ?? 0,
         name: win.title
       };
       return shellFrame(
-        /* @__PURE__ */ jsx59(
+        /* @__PURE__ */ jsx61(
           SiteFileExplorer,
           {
             className: cn(win.maximized && "is-maximized"),
@@ -8394,7 +9245,7 @@ function AdminDesktop({
         )
       );
     }),
-    /* @__PURE__ */ jsx59(
+    /* @__PURE__ */ jsx61(
       Taskbar,
       {
         windows: shell.windows,
@@ -8402,7 +9253,7 @@ function AdminDesktop({
         onTaskClick: handleTaskClick,
         onMenuClick: toggleStartMenu,
         menuExpanded: startMenuOpen,
-        startMenu: /* @__PURE__ */ jsx59(
+        startMenu: /* @__PURE__ */ jsx61(
           StartMenu,
           {
             open: startMenuOpen,
@@ -8417,17 +9268,17 @@ function AdminDesktop({
 }
 
 // src/themes/default/components/SiteHeader/SiteHeader.tsx
-import { jsx as jsx60, jsxs as jsxs37 } from "react/jsx-runtime";
+import { jsx as jsx62, jsxs as jsxs39 } from "react/jsx-runtime";
 function SiteHeader({ siteName, navItems = [], actions, className }) {
-  return /* @__PURE__ */ jsx60(
+  return /* @__PURE__ */ jsx62(
     "header",
     {
       className: cn(
         "wh-ui border-b border-[var(--wh-color-line)] bg-[var(--wh-color-surface)]",
         className
       ),
-      children: /* @__PURE__ */ jsxs37("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
-        /* @__PURE__ */ jsx60(
+      children: /* @__PURE__ */ jsxs39("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
+        /* @__PURE__ */ jsx62(
           "a",
           {
             href: "/",
@@ -8435,7 +9286,7 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
             children: siteName
           }
         ),
-        /* @__PURE__ */ jsx60("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx60(
+        /* @__PURE__ */ jsx62("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx62(
           "a",
           {
             href: item.href,
@@ -8447,16 +9298,16 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
           },
           `${item.label}:${item.href}`
         )) }),
-        actions ? /* @__PURE__ */ jsx60("div", { className: "flex items-center gap-2", children: actions }) : null
+        actions ? /* @__PURE__ */ jsx62("div", { className: "flex items-center gap-2", children: actions }) : null
       ] })
     }
   );
 }
 
 // src/themes/default/components/Hero/Hero.tsx
-import { jsx as jsx61, jsxs as jsxs38 } from "react/jsx-runtime";
+import { jsx as jsx63, jsxs as jsxs40 } from "react/jsx-runtime";
 function Hero({ title, subtitle, actions, className }) {
-  return /* @__PURE__ */ jsxs38(
+  return /* @__PURE__ */ jsxs40(
     "section",
     {
       className: cn(
@@ -8464,7 +9315,7 @@ function Hero({ title, subtitle, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsx61(
+        /* @__PURE__ */ jsx63(
           "div",
           {
             className: "pointer-events-none absolute inset-0 opacity-40",
@@ -8474,10 +9325,10 @@ function Hero({ title, subtitle, actions, className }) {
             "aria-hidden": true
           }
         ),
-        /* @__PURE__ */ jsxs38("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
-          /* @__PURE__ */ jsx61("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
-          subtitle ? /* @__PURE__ */ jsx61("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
-          actions ? /* @__PURE__ */ jsx61("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
+        /* @__PURE__ */ jsxs40("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
+          /* @__PURE__ */ jsx63("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
+          subtitle ? /* @__PURE__ */ jsx63("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
+          actions ? /* @__PURE__ */ jsx63("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
         ] })
       ]
     }
@@ -8529,6 +9380,8 @@ export {
   PermissionsWindow,
   Progress,
   Radio,
+  RoleFormDialog,
+  RolesWindow,
   SESSION_EXPIRED_MESSAGE,
   Scrollable,
   Select,

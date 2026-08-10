@@ -2724,6 +2724,9 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] #toolbar .task-buttons > .task.permissions {
   background-image: url("./icons/system/permissions.svg");
 }
+[data-wh-theme=admin] #toolbar .task-buttons > .task.roles {
+  background-image: url("./icons/system/roles.svg");
+}
 [data-wh-theme=admin] #toolbar .task-buttons > .task > .task-title {
   display: block;
   min-width: 0;
@@ -3931,7 +3934,8 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .sites-window.window,
 [data-wh-theme=admin] .hosts-window.window,
 [data-wh-theme=admin] .settings-window.window,
-[data-wh-theme=admin] .permissions-window.window {
+[data-wh-theme=admin] .permissions-window.window,
+[data-wh-theme=admin] .roles-window.window {
   position: relative;
 }
 [data-wh-theme=admin] {
@@ -3944,7 +3948,9 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .dashboard > .desktop-window.is-sized .settings-window.window,
 [data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .settings-window.window,
 [data-wh-theme=admin] .dashboard > .desktop-window.is-sized .permissions-window.window,
-[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .permissions-window.window {
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .permissions-window.window,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized .roles-window.window,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .roles-window.window {
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -3958,7 +3964,9 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .dashboard > .desktop-window.is-sized .settings-window .heading-panel-layout,
 [data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .settings-window .heading-panel-layout,
 [data-wh-theme=admin] .dashboard > .desktop-window.is-sized .permissions-window .heading-panel-layout,
-[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .permissions-window .heading-panel-layout {
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .permissions-window .heading-panel-layout,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-sized .roles-window .heading-panel-layout,
+[data-wh-theme=admin] .dashboard > .desktop-window.is-maximized .roles-window .heading-panel-layout {
   flex: 1 1 auto;
   min-height: 0;
   height: 100%;
@@ -4018,12 +4026,20 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .permission-form-dialog {
   max-width: 100%;
 }
+[data-wh-theme=admin] .role-form-dialog {
+  max-width: 100%;
+}
 [data-wh-theme=admin] .site-form-dialog-form {
   display: flex;
   flex-direction: column;
   gap: 0;
 }
 [data-wh-theme=admin] .permission-form-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+[data-wh-theme=admin] .role-form-dialog-form {
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -4035,7 +4051,8 @@ html[data-wh-theme=admin] {
   /* Align Name/Slug (and similar) inputs: equal-width captions before controls. */
 }
 [data-wh-theme=admin] .site-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above),
-[data-wh-theme=admin] .permission-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) {
+[data-wh-theme=admin] .permission-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above),
+[data-wh-theme=admin] .role-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) {
   flex: 1 1 auto;
   min-width: 0;
   width: 100%;
@@ -4046,7 +4063,8 @@ html[data-wh-theme=admin] {
   width: 4.5em;
   min-width: 4.5em;
 }
-[data-wh-theme=admin] .permission-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > label {
+[data-wh-theme=admin] .permission-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > label,
+[data-wh-theme=admin] .role-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > label {
   flex: 0 0 6.5em;
   box-sizing: border-box;
   width: 6.5em;
@@ -4057,11 +4075,23 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .site-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > textarea,
 [data-wh-theme=admin] .permission-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > input,
 [data-wh-theme=admin] .permission-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > select,
-[data-wh-theme=admin] .permission-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > textarea {
+[data-wh-theme=admin] .permission-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > textarea,
+[data-wh-theme=admin] .role-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > input,
+[data-wh-theme=admin] .role-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > select,
+[data-wh-theme=admin] .role-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > textarea {
   flex: 1 1 auto;
   min-width: 0;
   width: 100%;
   max-width: none;
+}
+[data-wh-theme=admin] .role-form-permission-list {
+  height: 160px;
+  min-height: 96px;
+  box-sizing: border-box;
+}
+[data-wh-theme=admin] .role-form-permission-list > .scrollable-viewport {
+  padding: 6px 8px;
+  box-sizing: border-box;
 }
 [data-wh-theme=admin] .site-form-host-list {
   /* Fixed height so `.scrollable` grid + custom rails get a definite viewport. */

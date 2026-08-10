@@ -8,6 +8,7 @@ use App\Api\ApiJson;
 use App\Api\AssignHostInput;
 use App\Api\CreateHostInput;
 use App\Api\CreatePermissionInput;
+use App\Api\CreateRoleInput;
 use App\Api\CreateSiteInput;
 use App\Api\HostAlreadyAssignedException;
 use App\Api\HostAdminSurfaceNotAllowedException;
@@ -30,6 +31,14 @@ use App\Api\PermissionDeleter;
 use App\Api\PermissionHasRolesException;
 use App\Api\PermissionNameTakenException;
 use App\Api\PermissionUpdater;
+use App\Api\RoleApiMapper;
+use App\Api\RoleCreator;
+use App\Api\RoleDeleter;
+use App\Api\RoleHasUsersException;
+use App\Api\RoleNameTakenException;
+use App\Api\RolePermissionNotFoundException;
+use App\Api\RoleProtectedException;
+use App\Api\RoleUpdater;
 use App\Api\SettingsApiMapper;
 use App\Api\SiteApiMapper;
 use App\Api\SiteCreator;
@@ -40,14 +49,17 @@ use App\Api\SiteSlugTakenException;
 use App\Api\SiteUpdater;
 use App\Api\UpdateHostInput;
 use App\Api\UpdatePermissionInput;
+use App\Api\UpdateRoleInput;
 use App\Api\UpdateSettingsInput;
 use App\Api\UpdateSiteInput;
 use App\Config\AdminAccessMode;
 use App\Config\WebhemiConfigLoader;
 use App\Entity\Permission;
+use App\Entity\Role;
 use App\Entity\Site;
 use App\Entity\SiteHost;
 use App\Repository\PermissionRepository;
+use App\Repository\RoleRepository;
 use App\Repository\SiteHostRepository;
 use App\Repository\SiteRepository;
 use App\Routing\AdminEntryResolverInterface;
@@ -305,6 +317,154 @@ final class AdminApiController extends AbstractController
             return ApiJson::error(
                 'roles_assigned',
                 'Detach this permission from all roles before deleting it.',
+                409,
+            );
+        }
+
+        return new Response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    #[Route('/roles', name: 'api_admin_roles', methods: ['GET'])]
+    #[IsGranted('role.list')]
+    public function roles(RoleRepository $roles): JsonResponse
+    {
+        $data = array_map(
+            static fn (Role $role): array => RoleApiMapper::toArray($role),
+            $roles->findBy([], ['name' => 'ASC']),
+        );
+
+        return ApiJson::data($data);
+    }
+
+    #[Route('/roles', name: 'api_admin_roles_create', methods: ['POST'])]
+    #[IsGranted('role.edit')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function createRole(Request $request, RoleCreator $creator): JsonResponse
+    {
+        try {
+            $payload = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return ApiJson::error('invalid_json', 'Request body must be valid JSON.', 400);
+        }
+
+        $input = CreateRoleInput::fromPayload($payload);
+        if (!$input->isValid()) {
+            return ApiJson::error(
+                'validation_failed',
+                'Role could not be created.',
+                422,
+                $input->fieldErrors,
+            );
+        }
+
+        try {
+            $role = $creator->create($input);
+        } catch (RoleNameTakenException) {
+            return ApiJson::error(
+                'name_taken',
+                'A role with this name already exists.',
+                409,
+                ['name' => 'Name is already taken.'],
+            );
+        } catch (RolePermissionNotFoundException) {
+            return ApiJson::error(
+                'permission_not_found',
+                'One or more permissions were not found.',
+                422,
+                ['permissionIds' => 'Unknown permission id.'],
+            );
+        }
+
+        return ApiJson::data(RoleApiMapper::toArray($role), 201);
+    }
+
+    #[Route('/roles/{id}', name: 'api_admin_roles_show', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[IsGranted('role.list')]
+    public function showRole(#[MapEntity(id: 'id')] Role $role): JsonResponse
+    {
+        return ApiJson::data(RoleApiMapper::toArray($role));
+    }
+
+    #[Route(
+        '/roles/{id}',
+        name: 'api_admin_roles_update',
+        requirements: ['id' => '\d+'],
+        methods: ['PATCH'],
+    )]
+    #[IsGranted('role.edit')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function updateRole(
+        #[MapEntity(id: 'id')] Role $role,
+        Request $request,
+        RoleUpdater $updater,
+    ): JsonResponse {
+        try {
+            $payload = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return ApiJson::error('invalid_json', 'Request body must be valid JSON.', 400);
+        }
+
+        $input = UpdateRoleInput::fromPayload($payload);
+        if (!$input->isValid()) {
+            return ApiJson::error(
+                'validation_failed',
+                'Role could not be updated.',
+                422,
+                $input->fieldErrors,
+            );
+        }
+
+        try {
+            $updated = $updater->update($role, $input);
+        } catch (RoleProtectedException $e) {
+            return ApiJson::error(
+                'role_protected',
+                $e->getMessage(),
+                409,
+            );
+        } catch (RoleNameTakenException) {
+            return ApiJson::error(
+                'name_taken',
+                'A role with this name already exists.',
+                409,
+                ['name' => 'Name is already taken.'],
+            );
+        } catch (RolePermissionNotFoundException) {
+            return ApiJson::error(
+                'permission_not_found',
+                'One or more permissions were not found.',
+                422,
+                ['permissionIds' => 'Unknown permission id.'],
+            );
+        }
+
+        return ApiJson::data(RoleApiMapper::toArray($updated));
+    }
+
+    #[Route(
+        '/roles/{id}',
+        name: 'api_admin_roles_delete',
+        requirements: ['id' => '\d+'],
+        methods: ['DELETE'],
+    )]
+    #[IsGranted('role.edit')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function deleteRole(
+        #[MapEntity(id: 'id')] Role $role,
+        RoleDeleter $deleter,
+    ): Response {
+        try {
+            $deleter->delete($role);
+        } catch (RoleProtectedException $e) {
+            return ApiJson::error(
+                'role_protected',
+                $e->getMessage(),
+                409,
+            );
+        } catch (RoleHasUsersException) {
+            return ApiJson::error(
+                'users_assigned',
+                'Detach this role from all users before deleting it.',
                 409,
             );
         }

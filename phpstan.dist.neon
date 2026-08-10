@@ -8,6 +8,3 @@ parameters:
         -
             identifier: property.unusedType
             path: src/Entity/*
-        -
-            identifier: property.onlyWritten
-            path: src/Entity/*
