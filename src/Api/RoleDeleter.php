@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Api;
 
 use App\Entity\Role;
+use App\Repository\SiteAssignmentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 final class RoleDeleter
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
+        private readonly SiteAssignmentRepository $siteAssignments,
     ) {
     }
 
@@ -25,6 +27,10 @@ final class RoleDeleter
         }
 
         if (!$role->getUsers()->isEmpty()) {
+            throw new RoleHasUsersException();
+        }
+
+        if ($this->siteAssignments->count(['role' => $role]) > 0) {
             throw new RoleHasUsersException();
         }
 

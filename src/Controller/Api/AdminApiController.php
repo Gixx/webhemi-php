@@ -10,6 +10,7 @@ use App\Api\CreateHostInput;
 use App\Api\CreatePermissionInput;
 use App\Api\CreateRoleInput;
 use App\Api\CreateSiteInput;
+use App\Api\CreateUserInput;
 use App\Api\HostAlreadyAssignedException;
 use App\Api\HostAdminSurfaceNotAllowedException;
 use App\Api\HostApiMapper;
@@ -52,16 +53,33 @@ use App\Api\UpdatePermissionInput;
 use App\Api\UpdateRoleInput;
 use App\Api\UpdateSettingsInput;
 use App\Api\UpdateSiteInput;
+use App\Api\UpdateUserInput;
+use App\Api\UserApiMapper;
+use App\Api\UserCreator;
+use App\Api\UserDeleter;
+use App\Api\UserEmailTakenException;
+use App\Api\UserInvalidRoleException;
+use App\Api\UserLastAdminException;
+use App\Api\UserPasswordMismatchException;
+use App\Api\UserPasswordSetter;
+use App\Api\UserRoleNotFoundException;
+use App\Api\UserSelfDeleteException;
+use App\Api\UserSiteNotFoundException;
+use App\Api\UserUpdater;
+use App\Api\SetUserPasswordInput;
+use App\Api\UserAccess;
 use App\Config\AdminAccessMode;
 use App\Config\WebhemiConfigLoader;
 use App\Entity\Permission;
 use App\Entity\Role;
 use App\Entity\Site;
 use App\Entity\SiteHost;
+use App\Entity\User;
 use App\Repository\PermissionRepository;
 use App\Repository\RoleRepository;
 use App\Repository\SiteHostRepository;
 use App\Repository\SiteRepository;
+use App\Repository\UserRepository;
 use App\Routing\AdminEntryResolverInterface;
 use App\Routing\CanonicalAdminEntry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -472,6 +490,234 @@ final class AdminApiController extends AbstractController
         return new Response(null, Response::HTTP_NO_CONTENT);
     }
 
+    #[Route('/users', name: 'api_admin_users', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function users(UserRepository $users, UserAccess $access): JsonResponse
+    {
+        $actor = $this->getUser();
+        if (!$actor instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $all = $users->findBy([], ['email' => 'ASC']);
+        if ($access->canListUsers($actor)) {
+            $filtered = $all;
+        } else {
+            $actorId = $actor->getId();
+            $filtered = array_values(array_filter(
+                $all,
+                static fn (User $user): bool => $user->getId() === $actorId,
+            ));
+        }
+
+        usort(
+            $filtered,
+            static function (User $a, User $b) use ($actor): int {
+                $actorId = $actor->getId();
+                if ($a->getId() === $actorId) {
+                    return -1;
+                }
+                if ($b->getId() === $actorId) {
+                    return 1;
+                }
+
+                return strcasecmp($a->getEmail(), $b->getEmail());
+            },
+        );
+
+        $data = array_map(
+            static fn (User $user): array => UserApiMapper::toArray($user),
+            $filtered,
+        );
+
+        return ApiJson::data($data);
+    }
+
+    #[Route('/users', name: 'api_admin_users_create', methods: ['POST'])]
+    #[IsGranted('user.create')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function createUser(Request $request, UserCreator $creator): JsonResponse
+    {
+        try {
+            $payload = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return ApiJson::error('invalid_json', 'Request body must be valid JSON.', 400);
+        }
+
+        $input = CreateUserInput::fromPayload($payload);
+        if (!$input->isValid()) {
+            return ApiJson::error(
+                'validation_failed',
+                'User could not be created.',
+                422,
+                $input->fieldErrors,
+            );
+        }
+
+        try {
+            $user = $creator->create($input);
+        } catch (UserEmailTakenException) {
+            return ApiJson::error(
+                'email_taken',
+                'A user with this email already exists.',
+                409,
+                ['email' => 'Email is already taken.'],
+            );
+        } catch (UserInvalidRoleException $e) {
+            return ApiJson::error('invalid_role', $e->getMessage(), 409);
+        } catch (UserRoleNotFoundException) {
+            return ApiJson::error('invalid_role', 'One or more roles were not found.', 409);
+        } catch (UserSiteNotFoundException) {
+            return ApiJson::error('site_not_found', 'One or more sites were not found.', 409);
+        } catch (UserLastAdminException $e) {
+            return ApiJson::error('last_admin', $e->getMessage(), 409);
+        }
+
+        return ApiJson::data(UserApiMapper::toArray($user), 201);
+    }
+
+    #[Route('/users/{id}', name: 'api_admin_users_show', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function showUser(
+        #[MapEntity(id: 'id')] User $user,
+        UserAccess $access,
+    ): JsonResponse {
+        $actor = $this->getUser();
+        if (!$actor instanceof User || !$access->canViewUser($actor, $user)) {
+            throw $this->createAccessDeniedException();
+        }
+
+        return ApiJson::data(UserApiMapper::toArray($user));
+    }
+
+    #[Route(
+        '/users/{id}',
+        name: 'api_admin_users_update',
+        requirements: ['id' => '\d+'],
+        methods: ['PATCH'],
+    )]
+    #[IsGranted('user.edit')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function updateUser(
+        #[MapEntity(id: 'id')] User $user,
+        Request $request,
+        UserUpdater $updater,
+    ): JsonResponse {
+        try {
+            $payload = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return ApiJson::error('invalid_json', 'Request body must be valid JSON.', 400);
+        }
+
+        $input = UpdateUserInput::fromPayload($payload);
+        if (!$input->isValid()) {
+            return ApiJson::error(
+                'validation_failed',
+                'User could not be updated.',
+                422,
+                $input->fieldErrors,
+            );
+        }
+
+        try {
+            $updated = $updater->update($user, $input);
+        } catch (UserEmailTakenException) {
+            return ApiJson::error(
+                'email_taken',
+                'A user with this email already exists.',
+                409,
+                ['email' => 'Email is already taken.'],
+            );
+        } catch (UserInvalidRoleException $e) {
+            return ApiJson::error('invalid_role', $e->getMessage(), 409);
+        } catch (UserRoleNotFoundException) {
+            return ApiJson::error('invalid_role', 'One or more roles were not found.', 409);
+        } catch (UserSiteNotFoundException) {
+            return ApiJson::error('site_not_found', 'One or more sites were not found.', 409);
+        } catch (UserLastAdminException $e) {
+            return ApiJson::error('last_admin', $e->getMessage(), 409);
+        }
+
+        return ApiJson::data(UserApiMapper::toArray($updated));
+    }
+
+    #[Route(
+        '/users/{id}',
+        name: 'api_admin_users_delete',
+        requirements: ['id' => '\d+'],
+        methods: ['DELETE'],
+    )]
+    #[IsGranted('user.delete')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function deleteUser(
+        #[MapEntity(id: 'id')] User $user,
+        UserDeleter $deleter,
+    ): Response {
+        $actor = $this->getUser();
+        $actorEntity = $actor instanceof User ? $actor : null;
+
+        try {
+            $deleter->delete($user, $actorEntity);
+        } catch (UserSelfDeleteException $e) {
+            return ApiJson::error('self_delete', $e->getMessage(), 409);
+        } catch (UserLastAdminException $e) {
+            return ApiJson::error('last_admin', $e->getMessage(), 409);
+        }
+
+        return new Response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    #[Route(
+        '/users/{id}/password',
+        name: 'api_admin_users_password',
+        requirements: ['id' => '\d+'],
+        methods: ['POST'],
+    )]
+    #[IsGranted('ROLE_USER')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function setUserPassword(
+        #[MapEntity(id: 'id')] User $user,
+        Request $request,
+        UserPasswordSetter $passwordSetter,
+        UserAccess $access,
+    ): JsonResponse {
+        $actor = $this->getUser();
+        if (!$actor instanceof User || !$access->canSetPassword($actor, $user)) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $isSelf = $actor->getId() !== null && $actor->getId() === $user->getId();
+
+        try {
+            $payload = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return ApiJson::error('invalid_json', 'Request body must be valid JSON.', 400);
+        }
+
+        $input = SetUserPasswordInput::fromPayload($payload, requireCurrentPassword: $isSelf);
+        if (!$input->isValid()) {
+            return ApiJson::error(
+                'validation_failed',
+                'Password could not be set.',
+                422,
+                $input->fieldErrors,
+            );
+        }
+
+        try {
+            $passwordSetter->setPassword($user, $input);
+        } catch (UserPasswordMismatchException $e) {
+            return ApiJson::error(
+                'password_mismatch',
+                $e->getMessage(),
+                409,
+                ['currentPassword' => 'Current password is incorrect.'],
+            );
+        }
+
+        return ApiJson::data(['ok' => true]);
+    }
+
     #[Route('/hosts', name: 'api_admin_hosts', methods: ['GET'])]
     #[IsGranted('host.list')]
     public function hosts(SiteHostRepository $hosts): JsonResponse
@@ -831,13 +1077,22 @@ final class AdminApiController extends AbstractController
 
     #[Route('/me', name: 'api_admin_me', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
-    public function me(): JsonResponse
+    public function me(UserAccess $access): JsonResponse
     {
         $user = $this->getUser();
+        if (!$user instanceof User) {
+            return $this->json([
+                'user' => null,
+                'roles' => [],
+            ]);
+        }
 
         return $this->json([
-            'user' => $user?->getUserIdentifier(),
-            'roles' => $user?->getRoles() ?? [],
+            'user' => $user->getUserIdentifier(),
+            'id' => $user->getId(),
+            'email' => $user->getEmail(),
+            'roles' => $user->getRoles(),
+            'capabilities' => $access->capabilities($user),
         ]);
     }
 

@@ -13,6 +13,7 @@ use App\Entity\Role;
 use App\Entity\User;
 use App\Repository\PermissionRepository;
 use App\Repository\RoleRepository;
+use App\Repository\SiteAssignmentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -82,7 +83,7 @@ final class RoleUpdateDeleteTest extends TestCase
         $em->expects(self::never())->method('remove');
 
         $this->expectException(RoleProtectedException::class);
-        (new RoleDeleter($em))->delete($role);
+        (new RoleDeleter($em, $this->createStub(SiteAssignmentRepository::class)))->delete($role);
     }
 
     public function testDeleteWithUsersThrows(): void
@@ -95,17 +96,20 @@ final class RoleUpdateDeleteTest extends TestCase
         $em->expects(self::never())->method('remove');
 
         $this->expectException(RoleHasUsersException::class);
-        (new RoleDeleter($em))->delete($role);
+        (new RoleDeleter($em, $this->createStub(SiteAssignmentRepository::class)))->delete($role);
     }
 
     public function testDeleteCustomSucceeds(): void
     {
         $role = (new Role())->setName('ROLE_AUTHOR')->setLabel('Author');
 
+        $assignments = $this->createMock(SiteAssignmentRepository::class);
+        $assignments->expects(self::once())->method('count')->with(['role' => $role])->willReturn(0);
+
         $em = $this->createMock(EntityManagerInterface::class);
         $em->expects(self::once())->method('remove')->with($role);
         $em->expects(self::once())->method('flush');
 
-        (new RoleDeleter($em))->delete($role);
+        (new RoleDeleter($em, $assignments))->delete($role);
     }
 }

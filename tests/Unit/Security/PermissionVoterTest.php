@@ -103,6 +103,23 @@ final class PermissionVoterTest extends TestCase
         self::assertFalse($method->invoke($voter, 'host.list', 3, $token));
     }
 
+    public function testCustomGlobalRoleGrantsCatalogPermission(): void
+    {
+        $perm = (new Permission())->setName('user.edit')->setLabel('Edit users');
+        $custom = (new Role())->setName('ROLE_USER_MANAGER')->setLabel('User manager')->addPermission($perm);
+        $user = (new User())->setEmail('mgr@example.com')->addRole($custom);
+
+        $assignments = $this->createStub(SiteAssignmentRepository::class);
+        $assignments->method('findBy')->willReturn([]);
+
+        $voter = new PermissionVoter($assignments);
+        $token = new UsernamePasswordToken($user, 'main', $user->getRoles());
+        $method = (new \ReflectionClass($voter))->getMethod('voteOnAttribute');
+
+        self::assertTrue($method->invoke($voter, 'user.edit', null, $token));
+        self::assertFalse($method->invoke($voter, 'user.delete', null, $token));
+    }
+
     public function testSupportsDotPermissionsOnly(): void
     {
         $voter = new PermissionVoter($this->createStub(SiteAssignmentRepository::class));

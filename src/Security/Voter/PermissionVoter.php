@@ -66,6 +66,16 @@ final class PermissionVoter extends Voter
             }
         }
 
+        // Global custom roles (user_role) with catalog grants — not Site Admin auto-interior.
+        foreach ($user->getRoleEntities() as $role) {
+            if ($role->isAdmin() || $role->isSiteAdmin()) {
+                continue;
+            }
+            if ($role->hasPermission($attribute)) {
+                return true;
+            }
+        }
+
         return false;
     }
 

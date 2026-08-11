@@ -6,7 +6,10 @@ namespace App\Security;
 
 /**
  * Interim attribute matrix for Site Admin vs Admin-only actions.
+ * Admin-only prefixes deny Site Admin auto-interior grants; custom roles still
+ * use Role::hasPermission (including user.* catalog codes).
  * @see docs/plan/RBAC_Reset.md
+ * @see docs/plan/Users_RBAC_and_My_Account.md
  */
 final class RbacAttributes
 {

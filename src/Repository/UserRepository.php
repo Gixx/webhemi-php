@@ -29,4 +29,20 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->getEntityManager()->persist($user);
         $this->getEntityManager()->flush();
     }
+
+    /** Users with global ROLE_ADMIN (via user_role). */
+    public function countAdmins(?int $excludeUserId = null): int
+    {
+        $qb = $this->createQueryBuilder('u')
+            ->select('COUNT(DISTINCT u.id)')
+            ->innerJoin('u.roles', 'r')
+            ->andWhere('r.name = :admin')
+            ->setParameter('admin', \App\Entity\Role::ADMIN);
+
+        if (null !== $excludeUserId) {
+            $qb->andWhere('u.id != :exclude')->setParameter('exclude', $excludeUserId);
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
 }

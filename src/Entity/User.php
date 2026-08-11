@@ -124,6 +124,42 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->siteAssignments;
     }
 
+    public function addSiteAssignment(SiteAssignment $assignment): self
+    {
+        if (!$this->siteAssignments->contains($assignment)) {
+            $this->siteAssignments->add($assignment);
+            $assignment->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function clearSiteAssignments(): self
+    {
+        $this->siteAssignments->clear();
+
+        return $this;
+    }
+
+    public function clearRoles(): self
+    {
+        $this->roles->clear();
+
+        return $this;
+    }
+
+    public function hasRoleName(string $name): bool
+    {
+        $name = strtoupper(trim($name));
+        foreach ($this->roles as $role) {
+            if ($role->getName() === $name) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function eraseCredentials(): void
     {
     }
