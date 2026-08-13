@@ -82,6 +82,42 @@ YAML);
         ]);
     }
 
+    public function testLoadsSymfonyDebugToolbarAndDefaultsTrueWhenMissing(): void
+    {
+        $this->writeConfig(<<<'YAML'
+webhemi:
+  access:
+    admin: path
+  paths:
+    admin: /admin
+    admin_api: /admin/api
+    public_api: /api
+    login: /login
+    register: /register
+YAML);
+
+        $loader = new WebhemiConfigLoader($this->projectDir);
+        self::assertTrue($loader->get()->symfonyDebugToolbar);
+
+        $this->writeConfig(<<<'YAML'
+webhemi:
+  access:
+    admin: path
+  symfony:
+    debug_toolbar: false
+  paths:
+    admin: /admin
+    admin_api: /admin/api
+    public_api: /api
+    login: /login
+    register: /register
+YAML);
+
+        self::assertFalse($loader->reload()->symfonyDebugToolbar);
+        $loader->save($loader->get()->withSymfonyDebugToolbar(true));
+        self::assertTrue($loader->reload()->symfonyDebugToolbar);
+    }
+
     public function testSaveRoundTripAndEnsureFileExists(): void
     {
         $loader = new WebhemiConfigLoader($this->projectDir);

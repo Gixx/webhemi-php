@@ -49,7 +49,8 @@ final class WebhemiConfigLoader
 
         $yaml = Yaml::dump($config->toArray(), 4, 2);
         $header = "# WebHemi install config (not in git). See config/webhemi.yaml.dist\n"
-            . "# access.admin: path | domain\n\n";
+            . "# access.admin: path | domain\n"
+            . "# symfony.debug_toolbar: bool (editable in dev/stage only)\n\n";
         $tmp = $path . '.tmp.' . bin2hex(random_bytes(4));
         if (false === file_put_contents($tmp, $header . $yaml)) {
             throw new \RuntimeException(sprintf('Unable to write config temp file "%s".', $tmp));
@@ -136,6 +137,11 @@ final class WebhemiConfigLoader
             throw new \InvalidArgumentException(sprintf('"%s": webhemi.paths must be a mapping.', $source));
         }
 
+        $symfony = $root['symfony'] ?? [];
+        if (!\is_array($symfony)) {
+            throw new \InvalidArgumentException(sprintf('"%s": webhemi.symfony must be a mapping.', $source));
+        }
+
         return new WebhemiConfig(
             adminAccess: $adminAccess,
             adminPath: $this->normalizePath(
@@ -163,7 +169,37 @@ final class WebhemiConfigLoader
                 'register',
                 $source,
             ),
+            symfonyDebugToolbar: $this->normalizeBool(
+                $symfony['debug_toolbar'] ?? $defaults->symfonyDebugToolbar,
+                'debug_toolbar',
+                $source,
+            ),
         );
+    }
+
+    private function normalizeBool(mixed $value, string $key, string $source): bool
+    {
+        if (\is_bool($value)) {
+            return $value;
+        }
+        if (\is_int($value) && ($value === 0 || $value === 1)) {
+            return $value === 1;
+        }
+        if (\is_string($value)) {
+            $normalized = strtolower(trim($value));
+            if (\in_array($normalized, ['1', 'true', 'yes', 'on'], true)) {
+                return true;
+            }
+            if (\in_array($normalized, ['0', 'false', 'no', 'off'], true)) {
+                return false;
+            }
+        }
+
+        throw new \InvalidArgumentException(sprintf(
+            '"%s": webhemi.symfony.%s must be a boolean.',
+            $source,
+            $key,
+        ));
     }
 
     private function normalizePath(mixed $value, string $key, string $source): string

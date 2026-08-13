@@ -11,38 +11,64 @@ use App\Config\AdminAccessMode;
  */
 final class UpdateSettingsInput
 {
-    /** @param array<string, string> $fieldErrors */
+    /**
+     * @param array<string, string> $fieldErrors
+     */
     public function __construct(
         public readonly ?AdminAccessMode $adminAccess,
+        public readonly ?bool $symfonyDebugToolbar = null,
         public readonly array $fieldErrors = [],
     ) {
     }
 
     public function isValid(): bool
     {
-        return [] === $this->fieldErrors && $this->adminAccess instanceof AdminAccessMode;
+        return [] === $this->fieldErrors
+            && ($this->adminAccess instanceof AdminAccessMode || null !== $this->symfonyDebugToolbar);
     }
 
     public static function fromPayload(mixed $payload): self
     {
         if (!\is_array($payload)) {
-            return new self(null, ['adminAccess' => 'Request body must be a JSON object.']);
+            return new self(null, null, ['_' => 'Request body must be a JSON object.']);
         }
 
-        if (!\array_key_exists('adminAccess', $payload)) {
-            return new self(null, ['adminAccess' => 'Admin access mode is required.']);
+        $hasAccess = \array_key_exists('adminAccess', $payload);
+        $hasToolbar = \array_key_exists('symfonyDebugToolbar', $payload);
+
+        if (!$hasAccess && !$hasToolbar) {
+            return new self(null, null, [
+                '_' => 'At least one of adminAccess or symfonyDebugToolbar is required.',
+            ]);
         }
 
-        $raw = $payload['adminAccess'];
-        if (!\is_string($raw) && !\is_int($raw)) {
-            return new self(null, ['adminAccess' => 'Admin access must be "path" or "domain".']);
+        $adminAccess = null;
+        $fieldErrors = [];
+
+        if ($hasAccess) {
+            $raw = $payload['adminAccess'];
+            if (!\is_string($raw) && !\is_int($raw)) {
+                $fieldErrors['adminAccess'] = 'Admin access must be "path" or "domain".';
+            } else {
+                $mode = AdminAccessMode::tryFrom(strtolower(trim((string) $raw)));
+                if (null === $mode) {
+                    $fieldErrors['adminAccess'] = 'Admin access must be "path" or "domain".';
+                } else {
+                    $adminAccess = $mode;
+                }
+            }
         }
 
-        $mode = AdminAccessMode::tryFrom(strtolower(trim((string) $raw)));
-        if (null === $mode) {
-            return new self(null, ['adminAccess' => 'Admin access must be "path" or "domain".']);
+        $toolbar = null;
+        if ($hasToolbar) {
+            $rawToolbar = $payload['symfonyDebugToolbar'];
+            if (!\is_bool($rawToolbar)) {
+                $fieldErrors['symfonyDebugToolbar'] = 'Debug toolbar must be a boolean.';
+            } else {
+                $toolbar = $rawToolbar;
+            }
         }
 
-        return new self($mode);
+        return new self($adminAccess, $toolbar, $fieldErrors);
     }
 }

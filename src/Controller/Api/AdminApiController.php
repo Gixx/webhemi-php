@@ -69,6 +69,7 @@ use App\Api\UserUpdater;
 use App\Api\SetUserPasswordInput;
 use App\Api\UserAccess;
 use App\Config\AdminAccessMode;
+use App\Config\SymfonyDebugToolbarSupport;
 use App\Config\WebhemiConfigLoader;
 use App\Entity\Permission;
 use App\Entity\Role;
@@ -86,6 +87,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -1002,6 +1004,7 @@ final class AdminApiController extends AbstractController
         WebhemiConfigLoader $configLoader,
         AdminEntryResolverInterface $entryResolver,
         SiteHostRepository $hosts,
+        KernelInterface $kernel,
     ): JsonResponse {
         $config = $configLoader->get();
         $adminHost = $hosts->findMainAdminHost();
@@ -1010,6 +1013,7 @@ final class AdminApiController extends AbstractController
             $config,
             $entryResolver->resolve()->effectiveMode,
             $adminHost,
+            $kernel->getEnvironment(),
         ));
     }
 
@@ -1022,6 +1026,7 @@ final class AdminApiController extends AbstractController
         AdminEntryResolverInterface $entryResolver,
         SiteHostRepository $hosts,
         TokenStorageInterface $tokenStorage,
+        KernelInterface $kernel,
     ): JsonResponse {
         try {
             $payload = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
@@ -1039,9 +1044,26 @@ final class AdminApiController extends AbstractController
             );
         }
 
-        $previousAccess = $configLoader->get()->adminAccess;
+        $environment = $kernel->getEnvironment();
+        if (
+            null !== $input->symfonyDebugToolbar
+            && !SymfonyDebugToolbarSupport::isEditable($environment)
+        ) {
+            return ApiJson::error(
+                'toolbar_not_editable',
+                'Symfony debug toolbar can only be changed in the dev or stage environment.',
+                422,
+                ['symfonyDebugToolbar' => 'Not editable in this environment.'],
+            );
+        }
+
+        $previous = $configLoader->get();
+        $previousAccess = $previous->adminAccess;
         $adminHost = $hosts->findMainAdminHost();
-        if (AdminAccessMode::Domain === $input->adminAccess && !$adminHost instanceof SiteHost) {
+        if (
+            AdminAccessMode::Domain === $input->adminAccess
+            && !$adminHost instanceof SiteHost
+        ) {
             return ApiJson::error(
                 'domain_unavailable',
                 'Domain admin access requires a verified, enabled Main-site admin host.',
@@ -1050,11 +1072,18 @@ final class AdminApiController extends AbstractController
             );
         }
 
-        $config = $configLoader->get()->withAdminAccess($input->adminAccess);
+        $config = $previous;
+        if ($input->adminAccess instanceof AdminAccessMode) {
+            $config = $config->withAdminAccess($input->adminAccess);
+        }
+        if (null !== $input->symfonyDebugToolbar) {
+            $config = $config->withSymfonyDebugToolbar($input->symfonyDebugToolbar);
+        }
         $configLoader->save($config);
         $entry = $entryResolver->resolve();
         $adminHost = $hosts->findMainAdminHost();
-        $accessChanged = $previousAccess !== $input->adminAccess;
+        $accessChanged = $input->adminAccess instanceof AdminAccessMode
+            && $previousAccess !== $input->adminAccess;
         $loginUrl = null;
         $sessionEnded = false;
 
@@ -1070,6 +1099,7 @@ final class AdminApiController extends AbstractController
             $configLoader->get(),
             $entry->effectiveMode,
             $adminHost,
+            $environment,
             $loginUrl,
             $sessionEnded,
         ));

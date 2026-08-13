@@ -5611,6 +5611,8 @@ var ACCESS_SWITCH_WARNING = "Changing admin access mode will discard unfinished 
 function SettingsWindow({
   adminAccess = "path",
   domainAvailable = false,
+  symfonyDebugToolbar = true,
+  symfonyDebugToolbarEditable = true,
   canEdit = true,
   loading = false,
   saving = false,
@@ -5634,6 +5636,7 @@ function SettingsWindow({
   width = 420
 }) {
   const [draft, setDraft] = useState13(adminAccess);
+  const [toolbarDraft, setToolbarDraft] = useState13(symfonyDebugToolbar);
   const [pendingAccess, setPendingAccess] = useState13(
     null
   );
@@ -5644,9 +5647,14 @@ function SettingsWindow({
   const busy = loading || saving;
   const showAlert = Boolean(alert);
   const showSwitchWarning = pendingAccess != null && !showAlert;
+  const toolbarChecked = symfonyDebugToolbarEditable ? toolbarDraft : false;
+  const toolbarDisabled = !symfonyDebugToolbarEditable || !canEdit || busy;
   useEffect10(() => {
     setDraft(adminAccess);
   }, [adminAccess]);
+  useEffect10(() => {
+    setToolbarDraft(symfonyDebugToolbar);
+  }, [symfonyDebugToolbar]);
   useEffect10(() => {
     if (draft === "domain" && !domainAvailable) {
       setDraft("path");
@@ -5657,8 +5665,9 @@ function SettingsWindow({
       return;
     }
     setPendingAccess(null);
+    setToolbarDraft(symfonyDebugToolbar);
     setAlert(error);
-  }, [error]);
+  }, [error, symfonyDebugToolbar]);
   useLayoutEffect5(() => {
     if (!alert) {
       soundedFor.current = null;
@@ -5703,7 +5712,15 @@ function SettingsWindow({
     }
     const next = pendingAccess;
     setPendingAccess(null);
-    onSave(next);
+    onSave({ adminAccess: next });
+  };
+  const requestToolbarChange = (next) => {
+    if (toolbarDisabled || next === toolbarDraft) {
+      return;
+    }
+    onClearStatusMessage?.();
+    setToolbarDraft(next);
+    onSave?.({ symfonyDebugToolbar: next });
   };
   const domainDisabled = !domainAvailable || !canEdit || busy;
   return /* @__PURE__ */ jsxs29(
@@ -5759,6 +5776,16 @@ function SettingsWindow({
             }
           )
         ] }) }),
+        /* @__PURE__ */ jsx51(GroupBox, { legend: "Symfony", style: { marginTop: 12 }, children: /* @__PURE__ */ jsx51(FieldRow, { children: /* @__PURE__ */ jsx51(
+          Checkbox,
+          {
+            id: "settings-symfony-debug-toolbar",
+            label: "Debug toolbar",
+            checked: toolbarChecked,
+            disabled: toolbarDisabled,
+            onChange: (event) => requestToolbarChange(event.target.checked)
+          }
+        ) }) }),
         showSwitchWarning ? /* @__PURE__ */ jsx51(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx51(
           MessageDialog,
           {
@@ -8130,7 +8157,7 @@ var DEFAULT_WINDOW_SIZE = {
   site: { width: 640, height: 440 },
   sites: { width: 560, height: 480 },
   hosts: { width: 640, height: 480 },
-  settings: { width: 420, height: 340 },
+  settings: { width: 420, height: 400 },
   permissions: { width: 560, height: 480 },
   roles: { width: 640, height: 480 },
   /** Height is unused for Users (content-sized shell); width is applied. */
@@ -9795,11 +9822,11 @@ function AdminDesktop({
     setSettings(result.data);
   }, [api]);
   const handleSaveSettings = useCallback8(
-    async (adminAccess) => {
+    async (patch) => {
       setSettingsSaving(true);
       setSettingsError(null);
       clearSettingsStatusMessage();
-      const result = await api.updateSettings({ adminAccess });
+      const result = await api.updateSettings(patch);
       setSettingsSaving(false);
       if (!result.ok) {
         handleApiFailure(result, setSettingsError);
@@ -9809,6 +9836,10 @@ function AdminDesktop({
       setSettings(result.data);
       if (result.data.sessionEnded && result.data.loginUrl) {
         assignSafeNavigationUrl(result.data.loginUrl, loginHref);
+        return;
+      }
+      if (typeof patch.symfonyDebugToolbar === "boolean") {
+        window.location.reload();
         return;
       }
       flashSettingsStatus("Settings saved.");
@@ -10582,6 +10613,8 @@ function AdminDesktop({
               maximized: win.maximized,
               adminAccess: settings?.adminAccess ?? "path",
               domainAvailable: settings?.domainAvailable ?? false,
+              symfonyDebugToolbar: settings?.symfonyDebugToolbar ?? true,
+              symfonyDebugToolbarEditable: settings?.symfonyDebugToolbarEditable ?? false,
               canEdit: canEditSettings,
               loading: settingsLoading,
               saving: settingsSaving,

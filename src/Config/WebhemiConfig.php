@@ -8,6 +8,7 @@ namespace App\Config;
  * Install-global WebHemi settings (var/config/webhemi.yaml).
  *
  * @see docs/plan/Admin_API_Access_Mode.md in the hub repo
+ * @see docs/plan/Settings_Symfony_Debug_Toolbar.md in the hub repo
  */
 final readonly class WebhemiConfig
 {
@@ -18,6 +19,7 @@ final readonly class WebhemiConfig
         public string $publicApiPath,
         public string $loginPath,
         public string $registerPath,
+        public bool $symfonyDebugToolbar = true,
     ) {
     }
 
@@ -30,6 +32,7 @@ final readonly class WebhemiConfig
             publicApiPath: '/api',
             loginPath: '/login',
             registerPath: '/register',
+            symfonyDebugToolbar: true,
         );
     }
 
@@ -42,6 +45,20 @@ final readonly class WebhemiConfig
             publicApiPath: $this->publicApiPath,
             loginPath: $this->loginPath,
             registerPath: $this->registerPath,
+            symfonyDebugToolbar: $this->symfonyDebugToolbar,
+        );
+    }
+
+    public function withSymfonyDebugToolbar(bool $symfonyDebugToolbar): self
+    {
+        return new self(
+            adminAccess: $this->adminAccess,
+            adminPath: $this->adminPath,
+            adminApiPath: $this->adminApiPath,
+            publicApiPath: $this->publicApiPath,
+            loginPath: $this->loginPath,
+            registerPath: $this->registerPath,
+            symfonyDebugToolbar: $symfonyDebugToolbar,
         );
     }
 
@@ -70,6 +87,7 @@ final readonly class WebhemiConfig
      * @return array{
      *     webhemi: array{
      *         access: array{admin: string},
+     *         symfony: array{debug_toolbar: bool},
      *         paths: array{
      *             admin: string,
      *             admin_api: string,
@@ -86,6 +104,9 @@ final readonly class WebhemiConfig
             'webhemi' => [
                 'access' => [
                     'admin' => $this->adminAccess->value,
+                ],
+                'symfony' => [
+                    'debug_toolbar' => $this->symfonyDebugToolbar,
                 ],
                 'paths' => [
                     'admin' => $this->adminPath,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Api;
 
 use App\Config\AdminAccessMode;
+use App\Config\SymfonyDebugToolbarSupport;
 use App\Config\WebhemiConfig;
 use App\Entity\SiteHost;
 
@@ -26,6 +27,8 @@ final class SettingsApiMapper
      *         login: string,
      *         register: string
      *     },
+     *     symfonyDebugToolbar: bool,
+     *     symfonyDebugToolbarEditable: bool,
      *     loginUrl?: string,
      *     sessionEnded?: bool
      * }
@@ -34,9 +37,11 @@ final class SettingsApiMapper
         WebhemiConfig $config,
         AdminAccessMode $effectiveAdminAccess,
         ?SiteHost $adminHost,
+        string $environment,
         ?string $loginUrl = null,
         bool $sessionEnded = false,
     ): array {
+        $editable = SymfonyDebugToolbarSupport::isEditable($environment);
         $data = [
             'adminAccess' => $config->adminAccess->value,
             'effectiveAdminAccess' => $effectiveAdminAccess->value,
@@ -54,6 +59,8 @@ final class SettingsApiMapper
                 'login' => $config->loginPath,
                 'register' => $config->registerPath,
             ],
+            'symfonyDebugToolbar' => $editable && $config->symfonyDebugToolbar,
+            'symfonyDebugToolbarEditable' => $editable,
         ];
 
         if (null !== $loginUrl) {

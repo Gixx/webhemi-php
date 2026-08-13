@@ -30,6 +30,12 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
 
+    App\EventSubscriber\SymfonyDebugToolbarSubscriber:
+        arguments:
+            $environment: '%kernel.environment%'
+            $profiler: '@?profiler'
+            $toolbarListener: '@?web_profiler.debug_toolbar'
+
     App\Routing\AdminEntryResolverInterface: '@App\Routing\AdminEntryResolver'
 
     App\Routing\HostContextHolder:
