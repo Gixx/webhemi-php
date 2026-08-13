@@ -9,7 +9,8 @@ use App\Entity\SiteHost;
 
 /**
  * Admin host surface is allowed only on the Main site, and only one admin host at a time.
- * Main site is identified by {@see Site::MAIN_SLUG} until an is_protected flag lands.
+ * Main site identity for this rule is {@see Site::isMain()} / slug `main` (routing convention).
+ * Deletion/disable locks use the separate {@see Site::isProtected()} / host flags.
  */
 final class HostAdminSurfaceRules
 {
