@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en" data-wh-theme="{{ themeId }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{{ siteName }} — WebHemi{% endblock %}</title>
+    <link rel="stylesheet" href="{{ asset(assetPrefix ~ '/theme.css') }}">
+    {% block stylesheets %}{% endblock %}
+</head>
+<body class="wh-site">
+{% block body %}{% endblock %}
+</body>
+</html>

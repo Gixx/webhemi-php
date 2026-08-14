@@ -59,7 +59,11 @@ final class SeedCommand extends Command
 
         $site = $this->sites->findOneBy(['slug' => 'main']);
         if (!$site instanceof Site) {
-            $site = (new Site())->setSlug('main')->setName('Main site')->setIsEnabled(true);
+            $site = (new Site())
+                ->setSlug('main')
+                ->setName('Main site')
+                ->setThemeId(Site::DEFAULT_THEME_ID)
+                ->setIsEnabled(true);
         }
         $site->setIsProtected(true);
         $this->em->persist($site);

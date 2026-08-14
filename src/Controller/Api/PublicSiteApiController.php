@@ -2,27 +2,29 @@
 
 declare(strict_types=1);
 
-namespace App\Controller\Site;
+namespace App\Controller\Api;
 
+use App\Api\ApiJson;
 use App\Routing\HostContextHolder;
 use App\Site\CurrentPublicSite;
 use App\Theme\ThemeNotFoundException;
-use App\Theme\ThemeRenderer;
 use App\Theme\ThemeResolver;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 
-final class HomeController extends AbstractController
+/**
+ * Thin public (site-scoped) API — Phase 9 proof; not the protected admin API.
+ */
+final class PublicSiteApiController extends AbstractController
 {
-    #[Route('/', name: 'site_home', methods: ['GET'])]
-    public function index(
+    #[Route('/api/site', name: 'public_api_site', methods: ['GET'])]
+    public function site(
         HostContextHolder $holder,
         CurrentPublicSite $currentPublicSite,
         ThemeResolver $themes,
-        ThemeRenderer $renderer,
-    ): Response {
+    ): JsonResponse {
         $resolved = $currentPublicSite->require($holder->get());
         $site = $resolved['site'];
         $host = $resolved['host'];
@@ -33,14 +35,18 @@ final class HomeController extends AbstractController
             throw new NotFoundHttpException($e->getMessage(), $e);
         }
 
-        $html = $renderer->render($theme, 'home.html.twig', [
-            'siteName' => $site->getName(),
-            'siteSlug' => $site->getSlug(),
+        return ApiJson::data([
+            'id' => (int) $site->getId(),
+            'slug' => $site->getSlug(),
+            'name' => $site->getName(),
             'themeId' => $theme->id,
-            'hostName' => $host->getHost(),
-            'assetPrefix' => $theme->assetPrefix(),
+            'theme' => [
+                'id' => $theme->manifest->id,
+                'name' => $theme->manifest->name,
+                'version' => $theme->manifest->version,
+                'source' => $theme->source->value,
+            ],
+            'host' => $host->getHost(),
         ]);
-
-        return new Response($html);
     }
 }

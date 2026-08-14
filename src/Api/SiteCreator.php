@@ -33,6 +33,7 @@ final class SiteCreator
         $site = (new Site())
             ->setName($input->name)
             ->setSlug($input->slug)
+            ->setThemeId(Site::DEFAULT_THEME_ID)
             ->setIsEnabled($input->enabled);
 
         $this->em->persist($site);

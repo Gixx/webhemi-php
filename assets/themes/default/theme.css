@@ -1,0 +1,52 @@
+/* Shipped frontend theme: default (Phase 9 Hello world stub). */
+[data-wh-theme="default"] {
+  color-scheme: light;
+}
+
+[data-wh-theme="default"] body.wh-site {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: linear-gradient(160deg, #f4f7fb 0%, #e8eef7 55%, #dfe8f4 100%);
+  color: #1a2433;
+}
+
+[data-wh-theme="default"] .wh-hello {
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: 4.5rem 1.5rem;
+}
+
+[data-wh-theme="default"] .wh-hello__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #3d6ea8;
+}
+
+[data-wh-theme="default"] .wh-hello__title {
+  margin: 0 0 1rem;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+[data-wh-theme="default"] .wh-hello__meta,
+[data-wh-theme="default"] .wh-hello__hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+  color: #445466;
+}
+
+[data-wh-theme="default"] .wh-hello code {
+  font-size: 0.9em;
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+  background: rgba(26, 36, 51, 0.06);
+}
+
+[data-wh-theme="default"] .wh-hello a {
+  color: #2a5f9e;
+}

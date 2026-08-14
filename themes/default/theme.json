@@ -1,0 +1,6 @@
+{
+  "id": "default",
+  "name": "WebHemi Default",
+  "version": "0.1.0",
+  "engine": "webhemi-php"
+}

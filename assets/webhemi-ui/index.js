@@ -8931,6 +8931,7 @@ function toWindowSite(site) {
     name: site.name,
     slug: site.slug,
     enabled: site.enabled,
+    themeId: site.themeId,
     protected: site.protected,
     hostCount: site.hostCount
   };

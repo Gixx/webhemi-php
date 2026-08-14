@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace App\Controller\Site;
 
+use App\Routing\HostContextHolder;
+use App\Site\CurrentPublicSite;
+use App\Theme\ThemeNotFoundException;
+use App\Theme\ThemeResolver;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
@@ -16,15 +21,28 @@ use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 final class FrontendLoginController extends AbstractController
 {
     #[Route('/login', name: 'frontend_login', methods: ['GET', 'POST'])]
-    public function login(AuthenticationUtils $authenticationUtils): Response
-    {
+    public function login(
+        AuthenticationUtils $authenticationUtils,
+        HostContextHolder $holder,
+        CurrentPublicSite $currentPublicSite,
+        ThemeResolver $themes,
+    ): Response {
         if ($this->getUser() instanceof UserInterface) {
             return $this->redirectToRoute('site_home');
+        }
+
+        $themeId = 'default';
+        try {
+            $resolved = $currentPublicSite->require($holder->get());
+            $themeId = $themes->resolve($resolved['site']->getThemeId())->id;
+        } catch (NotFoundHttpException | ThemeNotFoundException) {
+            // Unknown host still shows a themed login shell.
         }
 
         return $this->render('site/login.html.twig', [
             'last_username' => $authenticationUtils->getLastUsername(),
             'error' => $authenticationUtils->getLastAuthenticationError()?->getMessageKey(),
+            'themeId' => $themeId,
         ]);
     }
 

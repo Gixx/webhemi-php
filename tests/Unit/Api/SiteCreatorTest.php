@@ -30,6 +30,7 @@ final class SiteCreatorTest extends TestCase
             static function (Site $site): bool {
                 return 'Blog' === $site->getName()
                     && 'blog' === $site->getSlug()
+                    && Site::DEFAULT_THEME_ID === $site->getThemeId()
                     && $site->isEnabled();
             },
         ));

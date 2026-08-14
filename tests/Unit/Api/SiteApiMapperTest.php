@@ -21,6 +21,7 @@ final class SiteApiMapperTest extends TestCase
                 'id' => 7,
                 'slug' => 'main',
                 'name' => 'Main',
+                'themeId' => 'default',
                 'enabled' => true,
                 'protected' => false,
                 'hostCount' => 0,

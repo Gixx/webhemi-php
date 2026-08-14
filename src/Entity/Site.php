@@ -16,6 +16,9 @@ class Site
 {
     public const MAIN_SLUG = 'main';
 
+    /** First shipped frontend theme id (Phase 9). */
+    public const DEFAULT_THEME_ID = 'default';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -26,6 +29,10 @@ class Site
 
     #[ORM\Column(length: 128)]
     private string $name = '';
+
+    /** Frontend theme package id (`theme.json` id / `data-wh-theme`). */
+    #[ORM\Column(length: 64)]
+    private string $themeId = self::DEFAULT_THEME_ID;
 
     #[ORM\Column]
     private bool $isEnabled = true;
@@ -67,6 +74,18 @@ class Site
     public function setName(string $name): self
     {
         $this->name = trim($name);
+
+        return $this;
+    }
+
+    public function getThemeId(): string
+    {
+        return $this->themeId;
+    }
+
+    public function setThemeId(string $themeId): self
+    {
+        $this->themeId = strtolower(trim($themeId));
 
         return $this;
     }

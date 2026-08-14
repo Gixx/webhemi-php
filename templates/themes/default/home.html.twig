@@ -1,0 +1,18 @@
+{% extends 'themes/default/base.html.twig' %}
+
+{% block title %}{{ siteName }} — WebHemi{% endblock %}
+
+{% block body %}
+<main class="wh-hello">
+  <p class="wh-hello__eyebrow">WebHemi</p>
+  <h1 class="wh-hello__title">Hello, {{ siteName }}</h1>
+  <p class="wh-hello__meta">
+    Site <code>{{ siteSlug }}</code>
+    · theme <code>{{ themeId }}</code>
+    · host <code>{{ hostName }}</code>
+  </p>
+  <p class="wh-hello__hint">
+    Public API: <a href="{{ path('public_api_site') }}"><code>/api/site</code></a>
+  </p>
+</main>
+{% endblock %}

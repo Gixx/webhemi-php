@@ -30,6 +30,10 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
 
+    App\Theme\ThemeResolver:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
     App\EventSubscriber\SymfonyDebugToolbarSubscriber:
         arguments:
             $environment: '%kernel.environment%'
