@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\Site;
 use App\Entity\SiteAssignment;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -20,5 +21,23 @@ class SiteAssignmentRepository extends ServiceEntityRepository
     public function findForUserAndSite(User $user, int $siteId): ?SiteAssignment
     {
         return $this->findOneBy(['user' => $user, 'site' => $siteId]);
+    }
+
+    /**
+     * @return list<SiteAssignment>
+     */
+    public function findBySite(Site $site): array
+    {
+        /** @var list<SiteAssignment> */
+        return $this->createQueryBuilder('a')
+            ->andWhere('a.site = :site')
+            ->setParameter('site', $site)
+            ->leftJoin('a.user', 'u')
+            ->addSelect('u')
+            ->leftJoin('a.role', 'r')
+            ->addSelect('r')
+            ->orderBy('u.email', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 }

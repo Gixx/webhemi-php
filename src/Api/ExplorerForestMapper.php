@@ -132,7 +132,6 @@ final class ExplorerForestMapper
             'role' => 'settings',
             'typeLabel' => 'Settings',
             'expandable' => false,
-            'disabled' => true,
         ];
     }
 

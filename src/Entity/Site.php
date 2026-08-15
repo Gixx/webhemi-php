@@ -40,6 +40,13 @@ class Site
     #[ORM\Column]
     private bool $isProtected = false;
 
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $description = null;
+
+    #[ORM\ManyToOne(targetEntity: MediaAsset::class)]
+    #[ORM\JoinColumn(name: 'favicon_media_id', nullable: true, onDelete: 'SET NULL')]
+    private ?MediaAsset $faviconMedia = null;
+
     /** @var Collection<int, SiteHost> */
     #[ORM\OneToMany(targetEntity: SiteHost::class, mappedBy: 'site', cascade: ['persist'])]
     private Collection $hosts;
@@ -117,6 +124,37 @@ class Site
     public function isMain(): bool
     {
         return self::MAIN_SLUG === $this->slug;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): self
+    {
+        if (null === $description) {
+            $this->description = null;
+
+            return $this;
+        }
+
+        $trimmed = trim($description);
+        $this->description = '' === $trimmed ? null : $trimmed;
+
+        return $this;
+    }
+
+    public function getFaviconMedia(): ?MediaAsset
+    {
+        return $this->faviconMedia;
+    }
+
+    public function setFaviconMedia(?MediaAsset $faviconMedia): self
+    {
+        $this->faviconMedia = $faviconMedia;
+
+        return $this;
     }
 
     /** @return Collection<int, SiteHost> */

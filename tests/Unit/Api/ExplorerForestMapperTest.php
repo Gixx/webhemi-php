@@ -113,6 +113,6 @@ final class ExplorerForestMapperTest extends TestCase
         self::assertFalse($forest[2]['children'][0]['expandable']);
 
         self::assertSame('site-3-settings', $forest[3]['id']);
-        self::assertTrue($forest[3]['disabled']);
+        self::assertArrayNotHasKey('disabled', $forest[3]);
     }
 }
