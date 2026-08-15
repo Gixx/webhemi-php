@@ -30,6 +30,7 @@ final class ContentNodeUpdater
      * @throws ContentNodeSlugTakenException
      * @throws ContentNodeInvalidParentException
      * @throws ContentReservedSlugException
+     * @throws ContentNodeInvalidBodyException
      */
     public function update(ContentNode $node, UpdateContentNodeInput $input): ContentNode
     {
@@ -98,6 +99,14 @@ final class ContentNodeUpdater
             $node->setFolderType(FolderType::from((string) $input->folderType));
         }
         if ($input->bodyProvided) {
+            if (
+                ContentNodeKind::Document === $node->getKind()
+                && !LexicalDocumentBody::isValid($input->body)
+            ) {
+                throw new ContentNodeInvalidBodyException(
+                    'Document body must be Lexical editor JSON (object with root) or empty.',
+                );
+            }
             $node->setBody($input->body);
         }
         if ($input->redirectTargetProvided) {

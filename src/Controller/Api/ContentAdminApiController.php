@@ -7,6 +7,7 @@ namespace App\Controller\Api;
 use App\Api\ApiJson;
 use App\Api\ContentNodeApiMapper;
 use App\Api\ContentNodeCreator;
+use App\Api\ContentNodeInvalidBodyException;
 use App\Api\ContentNodeInvalidParentException;
 use App\Api\ContentNodePurger;
 use App\Api\ContentNodeRestoreConflictException;
@@ -171,6 +172,10 @@ final class ContentAdminApiController extends AbstractController
             ]);
         } catch (ContentNodeInvalidParentException $e) {
             return ApiJson::error('invalid_parent', $e->getMessage(), 422);
+        } catch (ContentNodeInvalidBodyException $e) {
+            return ApiJson::error('validation_failed', $e->getMessage(), 422, [
+                'body' => $e->getMessage(),
+            ]);
         }
 
         return ApiJson::data(ContentNodeApiMapper::toArray($updated));
