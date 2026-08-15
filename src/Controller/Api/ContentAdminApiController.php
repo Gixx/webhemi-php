@@ -16,6 +16,7 @@ use App\Api\ContentNodeSoftDeleter;
 use App\Api\ContentNodeUpdater;
 use App\Api\ContentReservedSlugException;
 use App\Api\CreateContentNodeInput;
+use App\Api\ExplorerForestMapper;
 use App\Api\MediaAssetApiMapper;
 use App\Api\MediaAssetCreator;
 use App\Api\MediaAssetInUseException;
@@ -240,18 +241,36 @@ final class ContentAdminApiController extends AbstractController
         return ApiJson::data(['id' => (int) $node->getId(), 'purged' => true]);
     }
 
+    #[Route('/explorer', name: 'api_admin_content_explorer', methods: ['GET'])]
+    public function explorer(
+        #[MapEntity(id: 'siteId')] Site $site,
+        ExplorerForestMapper $forest,
+    ): JsonResponse {
+        $this->requireSitePermission('content.list', $site);
+        $this->requireSitePermission('media.list', $site);
+
+        return ApiJson::data($forest->build($site));
+    }
+
     #[Route('/trash', name: 'api_admin_content_trash', methods: ['GET'])]
     public function trash(
         #[MapEntity(id: 'siteId')] Site $site,
         ContentNodeRepository $nodes,
+        MediaAssetRepository $media,
     ): JsonResponse {
         $this->requireSitePermission('content.list', $site);
-        $data = array_map(
-            static fn (ContentNode $node): array => ContentNodeApiMapper::toArray($node),
-            $nodes->findTrash($site),
-        );
+        $this->requireSitePermission('media.list', $site);
 
-        return ApiJson::data($data);
+        return ApiJson::data([
+            'nodes' => array_map(
+                static fn (ContentNode $node): array => ContentNodeApiMapper::toArray($node),
+                $nodes->findTrash($site),
+            ),
+            'media' => array_map(
+                static fn (MediaAsset $asset): array => MediaAssetApiMapper::toArray($asset),
+                $media->findTrash($site),
+            ),
+        ]);
     }
 
     #[Route('/media', name: 'api_admin_media_list', methods: ['GET'])]

@@ -74,6 +74,26 @@ class ContentNodeRepository extends ServiceEntityRepository
     }
 
     /**
+     * All live nodes in one tree (for explorer forest assembly).
+     *
+     * @return list<ContentNode>
+     */
+    public function findLiveByTree(Site $site, ContentTree $tree): array
+    {
+        /** @var list<ContentNode> */
+        return $this->createQueryBuilder('n')
+            ->andWhere('n.site = :site')
+            ->andWhere('n.tree = :tree')
+            ->andWhere('n.deletedAt IS NULL')
+            ->setParameter('site', $site)
+            ->setParameter('tree', $tree)
+            ->orderBy('n.sortOrder', 'ASC')
+            ->addOrderBy('n.title', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * @return list<ContentNode>
      */
     public function findTrash(Site $site): array

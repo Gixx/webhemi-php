@@ -50,6 +50,23 @@ class MediaAssetRepository extends ServiceEntityRepository
     }
 
     /**
+     * All live media for a site (for explorer forest assembly).
+     *
+     * @return list<MediaAsset>
+     */
+    public function findLiveAll(Site $site): array
+    {
+        /** @var list<MediaAsset> */
+        return $this->createQueryBuilder('a')
+            ->andWhere('a.site = :site')
+            ->andWhere('a.deletedAt IS NULL')
+            ->setParameter('site', $site)
+            ->orderBy('a.originalFilename', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * @return list<MediaAsset>
      */
     public function findTrash(Site $site): array
