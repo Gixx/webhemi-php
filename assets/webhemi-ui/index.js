@@ -1920,7 +1920,7 @@ function isExplorerFolder(item) {
   if (item.role === "folder") {
     return true;
   }
-  return item.kind === "folder" || item.kind === "folder-open" || item.kind === "folder-documents" || item.kind === "folder-gallery";
+  return item.kind === "folder" || item.kind === "folder-open" || item.kind === "folder-documents" || item.kind === "folder-gallery" || item.kind === "folder-draft" || item.kind === "folder-scheduled";
 }
 function isExplorerDocument(item) {
   return item.role === "document" || item.kind === "file-document" || item.kind === "file-draft";
@@ -2966,54 +2966,7 @@ function FileExplorerWindow({
 }
 
 // src/admin/bricks/FileExplorerWindow/ExplorerPropertiesDialog.tsx
-import { jsx as jsx43, jsxs as jsxs21 } from "react/jsx-runtime";
-function ExplorerPropertiesDialog({
-  item,
-  parentLabel = null,
-  onClose,
-  className
-}) {
-  const sizeLabel = formatExplorerSize(item.sizeBytes) || "\u2014";
-  return /* @__PURE__ */ jsx43(
-    DialogWindow,
-    {
-      className: cn("explorer-properties-dialog", className),
-      title: `${item.label} Properties`,
-      titleBarControls: /* @__PURE__ */ jsx43(TitleBarControls, { children: /* @__PURE__ */ jsx43(TitleBarControl, { action: "Close", onClick: onClose }) }),
-      actions: /* @__PURE__ */ jsxs21(FieldRow, { className: "justify-end", children: [
-        /* @__PURE__ */ jsx43(Button, { type: "button", isDefault: true, accessKey: "o", onClick: onClose, children: "OK" }),
-        /* @__PURE__ */ jsx43(Button, { type: "button", accessKey: "c", onClick: onClose, children: "Cancel" })
-      ] }),
-      children: /* @__PURE__ */ jsxs21("div", { className: "explorer-properties", children: [
-        /* @__PURE__ */ jsxs21("div", { className: "explorer-properties-identity", children: [
-          /* @__PURE__ */ jsx43("span", { className: cn("explorer-glyph", item.kind), "aria-hidden": true }),
-          /* @__PURE__ */ jsx43("span", { className: "explorer-properties-name", children: item.label })
-        ] }),
-        /* @__PURE__ */ jsxs21("dl", { className: "explorer-properties-list", children: [
-          /* @__PURE__ */ jsxs21("div", { children: [
-            /* @__PURE__ */ jsx43("dt", { children: "Type:" }),
-            /* @__PURE__ */ jsx43("dd", { children: item.typeLabel ?? "\u2014" })
-          ] }),
-          /* @__PURE__ */ jsxs21("div", { children: [
-            /* @__PURE__ */ jsx43("dt", { children: "Location:" }),
-            /* @__PURE__ */ jsx43("dd", { children: parentLabel ?? "\u2014" })
-          ] }),
-          /* @__PURE__ */ jsxs21("div", { children: [
-            /* @__PURE__ */ jsx43("dt", { children: "Size:" }),
-            /* @__PURE__ */ jsx43("dd", { children: sizeLabel })
-          ] }),
-          /* @__PURE__ */ jsxs21("div", { children: [
-            /* @__PURE__ */ jsx43("dt", { children: "Modified:" }),
-            /* @__PURE__ */ jsx43("dd", { children: item.modifiedAt ?? "\u2014" })
-          ] })
-        ] })
-      ] })
-    }
-  );
-}
-
-// src/admin/bricks/FileExplorerWindow/SiteFileExplorer.tsx
-import { useCallback as useCallback3, useEffect as useEffect6, useMemo as useMemo3, useState as useState8 } from "react";
+import { useEffect as useEffect6, useState as useState7 } from "react";
 
 // src/admin/bricks/FileExplorerWindow/explorerApi.ts
 var NODE_ID = /^node-(\d+)$/;
@@ -3046,6 +2999,7 @@ function mapApiExplorerItem(item) {
     sizeBytes: item.sizeBytes,
     modifiedAt: item.modifiedAt,
     hidden: item.hidden,
+    publication: item.publication,
     expandable: item.expandable,
     disabled: item.disabled,
     children: item.children?.map(mapApiExplorerItem)
@@ -3087,8 +3041,129 @@ function isUnderMediaLibrary(forest, itemId, findParent) {
   return false;
 }
 
+// src/admin/bricks/FileExplorerWindow/ExplorerPropertiesDialog.tsx
+import { jsx as jsx43, jsxs as jsxs21 } from "react/jsx-runtime";
+function canEditNodePublication(item) {
+  const ref = parseExplorerEntityId(item.id);
+  if (ref?.type !== "node") {
+    return false;
+  }
+  return item.role === "folder" || item.role === "document" || item.kind === "folder" || item.kind === "file-document" || item.kind === "file-draft";
+}
+function ExplorerPropertiesDialog({
+  item,
+  parentLabel = null,
+  canEditPublication = false,
+  savingPublication = false,
+  onSavePublication,
+  onClose,
+  className
+}) {
+  const sizeLabel = formatExplorerSize(item.sizeBytes) || "\u2014";
+  const showPublication = canEditNodePublication(item);
+  const [publication, setPublication] = useState7(
+    item.publication ?? "draft"
+  );
+  useEffect6(() => {
+    setPublication(item.publication ?? "draft");
+  }, [item.id, item.publication]);
+  const publicationDirty = publication !== (item.publication ?? "draft");
+  const editable = Boolean(canEditPublication && onSavePublication && showPublication);
+  return /* @__PURE__ */ jsx43(
+    DialogWindow,
+    {
+      className: cn("explorer-properties-dialog", className),
+      title: `${item.label} Properties`,
+      titleBarControls: /* @__PURE__ */ jsx43(TitleBarControls, { children: /* @__PURE__ */ jsx43(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      actions: /* @__PURE__ */ jsxs21(FieldRow, { className: "justify-end", children: [
+        editable ? /* @__PURE__ */ jsx43(
+          Button,
+          {
+            type: "button",
+            isDefault: true,
+            accessKey: "o",
+            disabled: savingPublication,
+            onClick: () => {
+              if (!publicationDirty) {
+                onClose();
+                return;
+              }
+              onSavePublication?.(publication);
+            },
+            children: "OK"
+          }
+        ) : /* @__PURE__ */ jsx43(Button, { type: "button", isDefault: true, accessKey: "o", onClick: onClose, children: "OK" }),
+        /* @__PURE__ */ jsx43(Button, { type: "button", accessKey: "c", onClick: onClose, disabled: savingPublication, children: "Cancel" })
+      ] }),
+      children: /* @__PURE__ */ jsxs21("div", { className: "explorer-properties", children: [
+        /* @__PURE__ */ jsxs21("div", { className: "explorer-properties-identity", children: [
+          /* @__PURE__ */ jsx43("span", { className: cn("explorer-glyph", item.kind), "aria-hidden": true }),
+          /* @__PURE__ */ jsx43("span", { className: "explorer-properties-name", children: item.label })
+        ] }),
+        /* @__PURE__ */ jsxs21("dl", { className: "explorer-properties-list", children: [
+          /* @__PURE__ */ jsxs21("div", { children: [
+            /* @__PURE__ */ jsx43("dt", { children: "Type:" }),
+            /* @__PURE__ */ jsx43("dd", { children: item.typeLabel ?? "\u2014" })
+          ] }),
+          /* @__PURE__ */ jsxs21("div", { children: [
+            /* @__PURE__ */ jsx43("dt", { children: "Location:" }),
+            /* @__PURE__ */ jsx43("dd", { children: parentLabel ?? "\u2014" })
+          ] }),
+          /* @__PURE__ */ jsxs21("div", { children: [
+            /* @__PURE__ */ jsx43("dt", { children: "Size:" }),
+            /* @__PURE__ */ jsx43("dd", { children: sizeLabel })
+          ] }),
+          /* @__PURE__ */ jsxs21("div", { children: [
+            /* @__PURE__ */ jsx43("dt", { children: "Modified:" }),
+            /* @__PURE__ */ jsx43("dd", { children: item.modifiedAt ?? "\u2014" })
+          ] }),
+          showPublication ? /* @__PURE__ */ jsxs21("div", { children: [
+            /* @__PURE__ */ jsx43("dt", { children: /* @__PURE__ */ jsx43("label", { htmlFor: "wh-explorer-publication", children: "Publication:" }) }),
+            /* @__PURE__ */ jsx43("dd", { children: editable ? /* @__PURE__ */ jsxs21("div", { className: "explorer-properties-publication", children: [
+              /* @__PURE__ */ jsxs21(
+                Select,
+                {
+                  id: "wh-explorer-publication",
+                  value: publication,
+                  disabled: savingPublication,
+                  onChange: (event) => setPublication(event.target.value),
+                  children: [
+                    /* @__PURE__ */ jsx43("option", { value: "draft", children: "Draft" }),
+                    /* @__PURE__ */ jsx43("option", { value: "published", children: "Published" }),
+                    /* @__PURE__ */ jsx43("option", { value: "scheduled", children: "Scheduled" })
+                  ]
+                }
+              ),
+              publication === "published" ? /* @__PURE__ */ jsx43(
+                Button,
+                {
+                  type: "button",
+                  disabled: savingPublication,
+                  onClick: () => onSavePublication?.("draft"),
+                  children: "Unpublish"
+                }
+              ) : /* @__PURE__ */ jsx43(
+                Button,
+                {
+                  type: "button",
+                  disabled: savingPublication,
+                  onClick: () => onSavePublication?.("published"),
+                  children: "Publish"
+                }
+              )
+            ] }) : item.publication ?? "draft" })
+          ] }) : null
+        ] })
+      ] })
+    }
+  );
+}
+
+// src/admin/bricks/FileExplorerWindow/SiteFileExplorer.tsx
+import { useCallback as useCallback3, useEffect as useEffect7, useMemo as useMemo3, useState as useState9 } from "react";
+
 // src/admin/bricks/FileExplorerWindow/ExplorerPromptDialog.tsx
-import { useId as useId3, useState as useState7 } from "react";
+import { useId as useId3, useState as useState8 } from "react";
 import { Fragment as Fragment9, jsx as jsx44, jsxs as jsxs22 } from "react/jsx-runtime";
 function ExplorerPromptDialog({
   title,
@@ -3099,7 +3174,7 @@ function ExplorerPromptDialog({
   onCancel
 }) {
   const inputId = useId3();
-  const [value, setValue] = useState7(initialValue);
+  const [value, setValue] = useState8(initialValue);
   const submit = () => {
     const trimmed = value.trim();
     if (!trimmed) {
@@ -3696,6 +3771,7 @@ function SiteFileExplorer({
   initialLocationId,
   onOpenSiteSettings,
   onOpenDocument,
+  forestRefreshKey = 0,
   onClose,
   onMinimize,
   onMaximize,
@@ -3712,19 +3788,20 @@ function SiteFileExplorer({
   };
   const fallbackTree = treeProp ?? buildEmptySiteExplorerTree(siteIdentity);
   const rootId = initialLocationId ?? fallbackTree[0]?.id ?? "";
-  const [forest, setForest] = useState8(() => cloneExplorerForest(fallbackTree));
-  const [view, setView] = useState8("large-icons");
-  const [locationId, setLocationId] = useState8(rootId);
-  const [selectedIds, setSelectedIds] = useState8([]);
-  const [selectionAnchorId, setSelectionAnchorId] = useState8(null);
-  const [statusBarVisible, setStatusBarVisible] = useState8(true);
-  const [clipboard, setClipboard] = useState8(null);
-  const [undoEntry, setUndoEntry] = useState8(null);
-  const [softDeleteUndo, setSoftDeleteUndo] = useState8(null);
-  const [propertiesItem, setPropertiesItem] = useState8(null);
-  const [errorMessage, setErrorMessage] = useState8(null);
-  const [busy, setBusy] = useState8(false);
-  const [prompt, setPrompt] = useState8(null);
+  const [forest, setForest] = useState9(() => cloneExplorerForest(fallbackTree));
+  const [view, setView] = useState9("large-icons");
+  const [locationId, setLocationId] = useState9(rootId);
+  const [selectedIds, setSelectedIds] = useState9([]);
+  const [selectionAnchorId, setSelectionAnchorId] = useState9(null);
+  const [statusBarVisible, setStatusBarVisible] = useState9(true);
+  const [clipboard, setClipboard] = useState9(null);
+  const [undoEntry, setUndoEntry] = useState9(null);
+  const [softDeleteUndo, setSoftDeleteUndo] = useState9(null);
+  const [propertiesItem, setPropertiesItem] = useState9(null);
+  const [propertiesSaving, setPropertiesSaving] = useState9(false);
+  const [errorMessage, setErrorMessage] = useState9(null);
+  const [busy, setBusy] = useState9(false);
+  const [prompt, setPrompt] = useState9(null);
   const location = useMemo3(() => findExplorerItem(forest, locationId), [forest, locationId]);
   const items = useMemo3(() => explorerContentItems(location), [location]);
   const parent = useMemo3(() => findExplorerParent(forest, locationId), [forest, locationId]);
@@ -3773,7 +3850,7 @@ function SiteFileExplorer({
     });
     return true;
   }, [api, siteId]);
-  useEffect6(() => {
+  useEffect7(() => {
     if (!live) {
       return;
     }
@@ -3789,6 +3866,22 @@ function SiteFileExplorer({
       cancelled = true;
     };
   }, [live, reloadForest]);
+  useEffect7(() => {
+    if (!live || forestRefreshKey <= 0) {
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setBusy(true);
+      await reloadForest();
+      if (!cancelled) {
+        setBusy(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [forestRefreshKey, live, reloadForest]);
   const resolveCreateContext = () => {
     if (!location) {
       return null;
@@ -4178,6 +4271,24 @@ function SiteFileExplorer({
     setBusy(false);
   };
   const propertiesParentLabel = propertiesItem ? findExplorerParent(forest, propertiesItem.id)?.label ?? null : null;
+  const handleSavePublication = async (publication) => {
+    if (!live || !api || siteId == null || !propertiesItem) {
+      return;
+    }
+    const ref = parseExplorerEntityId(propertiesItem.id);
+    if (ref?.type !== "node") {
+      return;
+    }
+    setPropertiesSaving(true);
+    const result = await api.updateContentNode(siteId, ref.id, { publication });
+    setPropertiesSaving(false);
+    if (!result.ok) {
+      setErrorMessage(result.error.message);
+      return;
+    }
+    setPropertiesItem(null);
+    await reloadForest();
+  };
   const statusCountLabel = selectedIds.length > 0 ? `${selectedIds.length} object(s) selected` : `${items.length} object(s)${hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}${busy ? " \u2014 updating\u2026" : ""}`;
   const canUndo = live ? softDeleteUndo != null : undoEntry != null;
   const copyHandler = live ? void 0 : canCutOrCopyExplorerItems(forest, selectedItems) ? handleCopy : void 0;
@@ -4242,6 +4353,11 @@ function SiteFileExplorer({
       {
         item: propertiesItem,
         parentLabel: propertiesParentLabel,
+        canEditPublication: live,
+        savingPublication: propertiesSaving,
+        onSavePublication: (publication) => {
+          void handleSavePublication(publication);
+        },
         onClose: () => setPropertiesItem(null)
       }
     ) }) : null,
@@ -19483,9 +19599,9 @@ var tokenizeRawText2 = mod2.tokenizeRawText;
 var unmountSlotContainer2 = mod2.unmountSlotContainer;
 
 // node_modules/@lexical/react/dist/LexicalComposer.dev.mjs
-import { useLayoutEffect as useLayoutEffect3, useEffect as useEffect7, useMemo as useMemo4 } from "react";
+import { useLayoutEffect as useLayoutEffect3, useEffect as useEffect8, useMemo as useMemo4 } from "react";
 import { jsx as jsx46 } from "react/jsx-runtime";
-var useLayoutEffectImpl = CAN_USE_DOM2 ? useLayoutEffect3 : useEffect7;
+var useLayoutEffectImpl = CAN_USE_DOM2 ? useLayoutEffect3 : useEffect8;
 var HISTORY_MERGE_OPTIONS = {
   tag: HISTORY_MERGE_TAG2
 };
@@ -19588,12 +19704,12 @@ var useLexicalEditable_dev_exports = {};
 __export(useLexicalEditable_dev_exports, {
   useLexicalEditable: () => useLexicalEditable
 });
-import { useLayoutEffect as useLayoutEffect4, useEffect as useEffect8, useMemo as useMemo5, useState as useState9, useRef as useRef7 } from "react";
-var useLayoutEffectImpl2 = CAN_USE_DOM2 ? useLayoutEffect4 : useEffect8;
+import { useLayoutEffect as useLayoutEffect4, useEffect as useEffect9, useMemo as useMemo5, useState as useState10, useRef as useRef7 } from "react";
+var useLayoutEffectImpl2 = CAN_USE_DOM2 ? useLayoutEffect4 : useEffect9;
 function useLexicalSubscription(subscription2) {
   const [editor] = useLexicalComposerContext2();
   const initializedSubscription = useMemo5(() => subscription2(editor), [editor, subscription2]);
-  const [value, setValue] = useState9(() => initializedSubscription.initialValueFn());
+  const [value, setValue] = useState10(() => initializedSubscription.initialValueFn());
   const valueRef = useRef7(value);
   useLayoutEffectImpl2(() => {
     const {
@@ -23648,7 +23764,7 @@ var mod8 = true ? LexicalReactProviderExtension_dev_exports : LexicalReactProvid
 var ReactProviderExtension2 = mod8.ReactProviderExtension;
 
 // node_modules/@lexical/react/dist/LexicalRichTextPlugin.dev.mjs
-import { useLayoutEffect as useLayoutEffect5, useEffect as useEffect9, useState as useState10, useMemo as useMemo6, Suspense } from "react";
+import { useLayoutEffect as useLayoutEffect5, useEffect as useEffect10, useState as useState11, useMemo as useMemo6, Suspense } from "react";
 import { flushSync, createPortal as createPortal2 } from "react-dom";
 import { jsx as jsx47, jsxs as jsxs24, Fragment as Fragment10 } from "react/jsx-runtime";
 
@@ -28222,9 +28338,9 @@ var registerRichText2 = mod13.registerRichText;
 function formatDevErrorMessage9(message) {
   throw new Error(message);
 }
-var useLayoutEffectImpl3 = CAN_USE_DOM2 ? useLayoutEffect5 : useEffect9;
+var useLayoutEffectImpl3 = CAN_USE_DOM2 ? useLayoutEffect5 : useEffect10;
 function useDecorators(editor, ErrorBoundary2) {
-  const [decorators, setDecorators] = useState10(() => editor.getDecorators());
+  const [decorators, setDecorators] = useState11(() => editor.getDecorators());
   useLayoutEffectImpl3(() => {
     return editor.registerDecoratorListener((nextDecorators) => {
       flushSync(() => {
@@ -28232,7 +28348,7 @@ function useDecorators(editor, ErrorBoundary2) {
       });
     });
   }, [editor]);
-  useEffect9(() => {
+  useEffect10(() => {
     setDecorators(editor.getDecorators());
   }, [editor]);
   return useMemo6(() => {
@@ -28287,7 +28403,7 @@ function canShowPlaceholderFromCurrentEditorState(editor) {
   return currentCanShowPlaceholder;
 }
 function useCanShowPlaceholder(editor) {
-  const [canShowPlaceholder, setCanShowPlaceholder] = useState10(() => canShowPlaceholderFromCurrentEditorState(editor));
+  const [canShowPlaceholder, setCanShowPlaceholder] = useState11(() => canShowPlaceholderFromCurrentEditorState(editor));
   useLayoutEffectImpl3(() => {
     function resetCanShowPlaceholder() {
       const currentCanShowPlaceholder = canShowPlaceholderFromCurrentEditorState(editor);
@@ -28350,7 +28466,7 @@ __export(LexicalContentEditable_dev_exports, {
   ContentEditable: () => ContentEditable,
   ContentEditableElement: () => ContentEditableElement
 });
-import { useLayoutEffect as useLayoutEffect6, useEffect as useEffect10, forwardRef, useState as useState11, useCallback as useCallback4, useMemo as useMemo7 } from "react";
+import { useLayoutEffect as useLayoutEffect6, useEffect as useEffect11, forwardRef, useState as useState12, useCallback as useCallback4, useMemo as useMemo7 } from "react";
 import { jsx as jsx48, jsxs as jsxs25, Fragment as Fragment11 } from "react/jsx-runtime";
 function mergeRefs(...refs) {
   return (value) => {
@@ -28363,7 +28479,7 @@ function mergeRefs(...refs) {
     }
   };
 }
-var useLayoutEffectImpl4 = CAN_USE_DOM2 ? useLayoutEffect6 : useEffect10;
+var useLayoutEffectImpl4 = CAN_USE_DOM2 ? useLayoutEffect6 : useEffect11;
 function ContentEditableElementImpl({
   editor,
   ariaActiveDescendant,
@@ -28388,7 +28504,7 @@ function ContentEditableElementImpl({
   "data-testid": testid,
   ...rest
 }, ref) {
-  const [isEditable, setEditable] = useState11(editor.isEditable());
+  const [isEditable, setEditable] = useState12(editor.isEditable());
   const handleRef = useCallback4((rootElement) => {
     if (rootElement && rootElement.ownerDocument && rootElement.ownerDocument.defaultView) {
       editor.setRootElement(rootElement);
@@ -28440,7 +28556,7 @@ function canShowPlaceholderFromCurrentEditorState2(editor) {
   return currentCanShowPlaceholder;
 }
 function useCanShowPlaceholder2(editor) {
-  const [canShowPlaceholder, setCanShowPlaceholder] = useState11(() => canShowPlaceholderFromCurrentEditorState2(editor));
+  const [canShowPlaceholder, setCanShowPlaceholder] = useState12(() => canShowPlaceholderFromCurrentEditorState2(editor));
   useLayoutEffectImpl4(() => {
     function resetCanShowPlaceholder() {
       const currentCanShowPlaceholder = canShowPlaceholderFromCurrentEditorState2(editor);
@@ -28478,7 +28594,7 @@ function Placeholder2({
   editor
 }) {
   const showPlaceholder = useCanShowPlaceholder2(editor);
-  const [isEditable, setEditable] = useState11(editor.isEditable());
+  const [isEditable, setEditable] = useState12(editor.isEditable());
   useLayoutEffect6(() => {
     setEditable(editor.isEditable());
     return editor.registerEditableListener((currentIsEditable) => {
@@ -28910,10 +29026,10 @@ var createEmptyHistoryState2 = mod16.createEmptyHistoryState;
 var registerHistory2 = mod16.registerHistory;
 
 // node_modules/@lexical/react/dist/LexicalHistoryPlugin.dev.mjs
-import { useMemo as useMemo8, useEffect as useEffect11 } from "react";
+import { useMemo as useMemo8, useEffect as useEffect12 } from "react";
 function useHistory(editor, externalHistoryState, delay = 1e3) {
   const historyState = useMemo8(() => externalHistoryState || createEmptyHistoryState2(), [externalHistoryState]);
-  useEffect11(() => {
+  useEffect12(() => {
     return registerHistory2(editor, historyState, delay);
   }, [delay, editor, historyState]);
 }
@@ -30681,9 +30797,9 @@ var registerList2 = mod18.registerList;
 var registerListStrictIndentTransform2 = mod18.registerListStrictIndentTransform;
 
 // node_modules/@lexical/react/dist/LexicalListPlugin.dev.mjs
-import { useEffect as useEffect12 } from "react";
+import { useEffect as useEffect13 } from "react";
 function useList(editor) {
-  useEffect12(() => {
+  useEffect13(() => {
     return registerList2(editor);
   }, [editor]);
 }
@@ -30692,12 +30808,12 @@ function ListPlugin({
   shouldPreserveNumbering = false
 }) {
   const [editor] = useLexicalComposerContext2();
-  useEffect12(() => {
+  useEffect13(() => {
     if (!editor.hasNodes([ListNode2, ListItemNode2])) {
       throw new Error("ListPlugin: ListNode and/or ListItemNode not registered on editor");
     }
   }, [editor]);
-  useEffect12(() => {
+  useEffect13(() => {
     return mergeRegister2(registerList2(editor, {
       restoreNumbering: shouldPreserveNumbering
     }), hasStrictIndent ? registerListStrictIndentTransform2(editor) : () => {
@@ -31932,18 +32048,18 @@ var registerClickableLink2 = mod20.registerClickableLink;
 var registerLink2 = mod20.registerLink;
 
 // node_modules/@lexical/react/dist/LexicalLinkPlugin.dev.mjs
-import { useEffect as useEffect13 } from "react";
+import { useEffect as useEffect14 } from "react";
 function LinkPlugin({
   validateUrl,
   attributes
 }) {
   const [editor] = useLexicalComposerContext2();
-  useEffect13(() => {
+  useEffect14(() => {
     if (!editor.hasNodes([LinkNode2])) {
       throw new Error("LinkPlugin: LinkNode not registered on editor");
     }
   });
-  useEffect13(() => {
+  useEffect14(() => {
     return registerLink2(editor, namedSignals2({
       attributes,
       validateUrl
@@ -31961,8 +32077,8 @@ var LexicalOnChangePlugin_dev_exports = {};
 __export(LexicalOnChangePlugin_dev_exports, {
   OnChangePlugin: () => OnChangePlugin
 });
-import { useLayoutEffect as useLayoutEffect7, useEffect as useEffect14 } from "react";
-var useLayoutEffectImpl5 = CAN_USE_DOM2 ? useLayoutEffect7 : useEffect14;
+import { useLayoutEffect as useLayoutEffect7, useEffect as useEffect15 } from "react";
+var useLayoutEffectImpl5 = CAN_USE_DOM2 ? useLayoutEffect7 : useEffect15;
 function OnChangePlugin({
   ignoreHistoryMergeTagChange = true,
   ignoreSelectionChange = false,
@@ -32099,10 +32215,10 @@ var $isDecoratorBlockNode2 = mod24.$isDecoratorBlockNode;
 var DecoratorBlockNode2 = mod24.DecoratorBlockNode;
 
 // src/admin/bricks/DocumentEditor/nodes/AccordionPlaceholder.tsx
-import { useCallback as useCallback5, useState as useState13 } from "react";
+import { useCallback as useCallback5, useState as useState14 } from "react";
 
 // src/admin/bricks/DocumentEditor/AccordionSettingsDialog.tsx
-import { useId as useId4, useState as useState12 } from "react";
+import { useId as useId4, useState as useState13 } from "react";
 import { Fragment as Fragment12, jsx as jsx50, jsxs as jsxs26 } from "react/jsx-runtime";
 function newItemId() {
   return `acc-${Math.random().toString(36).slice(2, 10)}`;
@@ -32112,7 +32228,7 @@ function AccordionSettingsDialog({
   onConfirm,
   onCancel
 }) {
-  const [items, setItems] = useState12(
+  const [items, setItems] = useState13(
     () => initial.map((item) => ({ ...item }))
   );
   const baseId = useId4();
@@ -32204,7 +32320,7 @@ function AccordionPlaceholder({
   items
 }) {
   const [editor] = useLexicalComposerContext2();
-  const [open, setOpen] = useState13(false);
+  const [open, setOpen] = useState14(false);
   const applyItems = useCallback5(
     (next) => {
       editor.update(() => {
@@ -32537,12 +32653,13 @@ function DocumentEditorCanvas({
 }
 
 // src/admin/bricks/DocumentEditor/DocumentEditorWindow.tsx
-import { useEffect as useEffect15, useState as useState14 } from "react";
+import { useEffect as useEffect16, useState as useState15 } from "react";
 import { Fragment as Fragment14, jsx as jsx55, jsxs as jsxs30 } from "react/jsx-runtime";
 function DocumentEditorWindow({
   title,
   documentTitle: documentTitleProp = "",
   bodyJson = null,
+  publication: publicationProp = "draft",
   loading = false,
   saving = false,
   canEdit = true,
@@ -32563,25 +32680,28 @@ function DocumentEditorWindow({
   style,
   width
 }) {
-  const [documentTitle, setDocumentTitle] = useState14(documentTitleProp);
-  const [draftBody, setDraftBody] = useState14(null);
-  const [editorKey, setEditorKey] = useState14(0);
-  const [alertMessage, setAlertMessage] = useState14(null);
-  const [dirty, setDirty] = useState14(false);
-  useEffect15(() => {
+  const [documentTitle, setDocumentTitle] = useState15(documentTitleProp);
+  const [publication, setPublication] = useState15(publicationProp);
+  const [draftBody, setDraftBody] = useState15(null);
+  const [editorKey, setEditorKey] = useState15(0);
+  const [alertMessage, setAlertMessage] = useState15(null);
+  const [dirty, setDirty] = useState15(false);
+  useEffect16(() => {
     setDocumentTitle(documentTitleProp);
+    setPublication(publicationProp);
     setDraftBody(null);
     setDirty(false);
     setEditorKey((value) => value + 1);
-  }, [documentTitleProp, bodyJson]);
-  useEffect15(() => {
+  }, [documentTitleProp, bodyJson, publicationProp]);
+  useEffect16(() => {
     if (!error) {
       return;
     }
     setAlertMessage(error);
     playAdminSound("chord", errorSoundUrl);
   }, [error, errorSoundUrl]);
-  const handleSave = () => {
+  const bodySnapshot = () => draftBody ?? bodyJson ?? "";
+  const persist = (nextPublication) => {
     if (!canEdit || !onSave || saving || loading) {
       return;
     }
@@ -32591,10 +32711,24 @@ function DocumentEditorWindow({
       playAdminSound("chord", errorSoundUrl);
       return;
     }
-    const body = draftBody ?? bodyJson ?? "";
-    onSave({ title: trimmed, body });
+    onSave({
+      title: trimmed,
+      body: bodySnapshot(),
+      publication: nextPublication
+    });
+    setPublication(nextPublication);
     setDirty(false);
   };
+  const handleSave = () => {
+    persist(publication);
+  };
+  const handlePublish = () => {
+    persist("published");
+  };
+  const handleUnpublish = () => {
+    persist("draft");
+  };
+  const isPublished = publication === "published";
   return /* @__PURE__ */ jsxs30(Fragment14, { children: [
     /* @__PURE__ */ jsxs30(
       HeadingPanelWindow,
@@ -32619,7 +32753,7 @@ function DocumentEditorWindow({
           /* @__PURE__ */ jsx55(TitleBarControl, { action: "Close", onClick: onClose })
         ] }),
         statusBar: /* @__PURE__ */ jsxs30(StatusBar, { children: [
-          /* @__PURE__ */ jsx55(StatusBarField, { children: loading ? "Loading\u2026" : saving ? "Saving\u2026" : statusMessage ? statusMessage : dirty ? "Unsaved changes" : "Ready" }),
+          /* @__PURE__ */ jsx55(StatusBarField, { children: loading ? "Loading\u2026" : saving ? "Saving\u2026" : statusMessage ? statusMessage : dirty ? "Unsaved changes" : isPublished ? "Published" : publication === "scheduled" ? "Scheduled" : "Draft" }),
           statusMessage ? /* @__PURE__ */ jsx55(StatusBarField, { children: /* @__PURE__ */ jsx55(Button, { type: "button", onClick: onClearStatusMessage, children: "Clear" }) }) : null
         ] }),
         children: [
@@ -32638,6 +32772,26 @@ function DocumentEditorWindow({
               }
             )
           ] }),
+          /* @__PURE__ */ jsxs30(FieldRow, { children: [
+            /* @__PURE__ */ jsx55("label", { htmlFor: "wh-doc-publication", children: "Publication" }),
+            /* @__PURE__ */ jsxs30(
+              Select,
+              {
+                id: "wh-doc-publication",
+                value: publication === "scheduled" ? "scheduled" : publication,
+                disabled: !canEdit || loading || saving,
+                onChange: (event) => {
+                  setPublication(event.target.value);
+                  setDirty(true);
+                },
+                children: [
+                  /* @__PURE__ */ jsx55("option", { value: "draft", children: "Draft" }),
+                  /* @__PURE__ */ jsx55("option", { value: "published", children: "Published" }),
+                  /* @__PURE__ */ jsx55("option", { value: "scheduled", children: "Scheduled" })
+                ]
+              }
+            )
+          ] }),
           /* @__PURE__ */ jsx55("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }, children: loading ? /* @__PURE__ */ jsx55("p", { children: "Loading document\u2026" }) : /* @__PURE__ */ jsx55(
             DocumentEditorCanvas,
             {
@@ -32651,6 +32805,23 @@ function DocumentEditorWindow({
             }
           ) }),
           /* @__PURE__ */ jsxs30(FieldRow, { className: "justify-end", children: [
+            isPublished ? /* @__PURE__ */ jsx55(
+              Button,
+              {
+                type: "button",
+                disabled: !canEdit || loading || saving || !onSave,
+                onClick: handleUnpublish,
+                children: "Unpublish"
+              }
+            ) : /* @__PURE__ */ jsx55(
+              Button,
+              {
+                type: "button",
+                disabled: !canEdit || loading || saving || !onSave,
+                onClick: handlePublish,
+                children: "Publish"
+              }
+            ),
             /* @__PURE__ */ jsx55(
               Button,
               {
@@ -33080,7 +33251,7 @@ function LoginForm({
 }
 
 // src/admin/components/ControlPanel/ControlPanel.tsx
-import { useState as useState15 } from "react";
+import { useState as useState16 } from "react";
 import { jsx as jsx57, jsxs as jsxs32 } from "react/jsx-runtime";
 var ICONS = [
   { kind: "sites", label: "Sites", description: "Manage sites and their contents." },
@@ -33110,7 +33281,7 @@ function ControlPanel({
   width = 600,
   paneHeight = 300
 }) {
-  const [selected, setSelected] = useState15(null);
+  const [selected, setSelected] = useState16(null);
   return /* @__PURE__ */ jsx57(
     IconPanelWindow,
     {
@@ -33170,7 +33341,7 @@ function ControlPanel({
 }
 
 // src/admin/components/SitesWindow/SitesWindow.tsx
-import { useCallback as useCallback6, useEffect as useEffect17, useLayoutEffect as useLayoutEffect8, useRef as useRef8, useState as useState17 } from "react";
+import { useCallback as useCallback6, useEffect as useEffect18, useLayoutEffect as useLayoutEffect8, useRef as useRef8, useState as useState18 } from "react";
 
 // src/admin/lib/accessModeResetWarning.ts
 var ACCESS_MODE_RESET_WARNING = "This change will switch Admin access to path.\nUnfinished work in this session will be discarded, and you will need to sign in again on the path admin login page.";
@@ -33179,7 +33350,7 @@ Unfinished work in this session will be discarded, and you will need to sign in 
 This cannot be undone.`;
 
 // src/admin/components/SitesWindow/SiteFormDialog.tsx
-import { useEffect as useEffect16, useId as useId5, useMemo as useMemo10, useState as useState16 } from "react";
+import { useEffect as useEffect17, useId as useId5, useMemo as useMemo10, useState as useState17 } from "react";
 
 // src/admin/components/HostsWindow/hostFormAccess.ts
 var MAIN_SITE_SLUG = "main";
@@ -33253,13 +33424,13 @@ function SiteFormDialog({
   const slugId = useId5();
   const enabledId = useId5();
   const assignSelectId = useId5();
-  const [tab, setTab] = useState16("general");
-  const [name, setName] = useState16(initial?.name ?? "");
-  const [slug, setSlug] = useState16(initial?.slug ?? "");
-  const [enabled, setEnabled] = useState16(initial?.enabled ?? true);
-  const [selectedHostId, setSelectedHostId] = useState16(null);
-  const [assignHostId, setAssignHostId] = useState16(null);
-  const [localErrors, setLocalErrors] = useState16(
+  const [tab, setTab] = useState17("general");
+  const [name, setName] = useState17(initial?.name ?? "");
+  const [slug, setSlug] = useState17(initial?.slug ?? "");
+  const [enabled, setEnabled] = useState17(initial?.enabled ?? true);
+  const [selectedHostId, setSelectedHostId] = useState17(null);
+  const [assignHostId, setAssignHostId] = useState17(null);
+  const [localErrors, setLocalErrors] = useState17(
     {}
   );
   const assignedHosts = useMemo10(() => {
@@ -33274,15 +33445,15 @@ function SiteFormDialog({
     ),
     [hosts]
   );
-  useEffect16(() => {
+  useEffect17(() => {
     setLocalErrors({});
   }, [fieldErrors]);
-  useEffect16(() => {
+  useEffect17(() => {
     if (selectedHostId != null && !assignedHosts.some((host) => host.id === selectedHostId)) {
       setSelectedHostId(null);
     }
   }, [assignedHosts, selectedHostId]);
-  useEffect16(() => {
+  useEffect17(() => {
     if (assignHostId != null && !assignableHosts.some((host) => host.id === assignHostId)) {
       setAssignHostId(null);
     }
@@ -33561,12 +33732,12 @@ function SitesWindow({
   width = 560,
   tableMinHeight
 }) {
-  const [selectedId, setSelectedId] = useState17(null);
-  const [form, setForm] = useState17({ open: false });
-  const [showFormErrors, setShowFormErrors] = useState17(false);
-  const [alert, setAlert] = useState17(null);
-  const [confirmDelete, setConfirmDelete] = useState17(null);
-  const [pendingAccessResetUnassign, setPendingAccessResetUnassign] = useState17(null);
+  const [selectedId, setSelectedId] = useState18(null);
+  const [form, setForm] = useState18({ open: false });
+  const [showFormErrors, setShowFormErrors] = useState18(false);
+  const [alert, setAlert] = useState18(null);
+  const [confirmDelete, setConfirmDelete] = useState18(null);
+  const [pendingAccessResetUnassign, setPendingAccessResetUnassign] = useState18(null);
   const wasSavingRef = useRef8(false);
   const alertSoundKeyRef = useRef8(null);
   const confirmSoundKeyRef = useRef8(null);
@@ -33630,7 +33801,7 @@ function SitesWindow({
     closeAccessResetUnassign();
     onUnassignHost(hostId);
   }, [pendingAccessResetUnassign, closeAccessResetUnassign, onUnassignHost]);
-  useEffect17(() => {
+  useEffect18(() => {
     if (preferSelectedId == null) {
       appliedPreferIdRef.current = null;
       return;
@@ -33643,17 +33814,17 @@ function SitesWindow({
       appliedPreferIdRef.current = preferSelectedId;
     }
   }, [preferSelectedId, sites]);
-  useEffect17(() => {
+  useEffect18(() => {
     if (selectedId != null && !sites.some((site) => site.id === selectedId)) {
       setSelectedId(null);
     }
   }, [sites, selectedId]);
-  useEffect17(() => {
+  useEffect18(() => {
     if (confirmDelete != null && !sites.some((site) => site.id === confirmDelete.site.id)) {
       closeDeleteConfirm();
     }
   }, [sites, confirmDelete, closeDeleteConfirm]);
-  useEffect17(() => {
+  useEffect18(() => {
     const hadErrors = Boolean(formError) || Boolean(fieldErrors && Object.keys(fieldErrors).length > 0);
     if (wasSavingRef.current && !saving && form.open && !hadErrors) {
       setForm({ open: false });
@@ -33667,7 +33838,7 @@ function SitesWindow({
     }
     showErrorAlert(error);
   }, [error, loading, showErrorAlert]);
-  useEffect17(() => {
+  useEffect18(() => {
     if (!formError && !(form.open && showFormErrors)) {
       return;
     }
@@ -33917,10 +34088,10 @@ function SitesWindow({
 }
 
 // src/admin/components/HostsWindow/HostsWindow.tsx
-import { useCallback as useCallback7, useEffect as useEffect19, useLayoutEffect as useLayoutEffect9, useRef as useRef9, useState as useState19 } from "react";
+import { useCallback as useCallback7, useEffect as useEffect20, useLayoutEffect as useLayoutEffect9, useRef as useRef9, useState as useState20 } from "react";
 
 // src/admin/components/HostsWindow/HostFormDialog.tsx
-import { useEffect as useEffect18, useId as useId6, useState as useState18 } from "react";
+import { useEffect as useEffect19, useId as useId6, useState as useState19 } from "react";
 import { jsx as jsx60, jsxs as jsxs35 } from "react/jsx-runtime";
 function HostFormDialog({
   mode,
@@ -33940,21 +34111,21 @@ function HostFormDialog({
   const siteSelectId = useId6();
   const surfaceId = useId6();
   const enabledId = useId6();
-  const [host, setHost] = useState18(initial?.host ?? "");
-  const [siteId, setSiteId] = useState18(initial?.siteId ?? null);
-  const [surface, setSurface] = useState18(initial?.surface ?? "site");
-  const [enabled, setEnabled] = useState18(initial?.enabled ?? true);
-  const [localErrors, setLocalErrors] = useState18({});
+  const [host, setHost] = useState19(initial?.host ?? "");
+  const [siteId, setSiteId] = useState19(initial?.siteId ?? null);
+  const [surface, setSurface] = useState19(initial?.surface ?? "site");
+  const [enabled, setEnabled] = useState19(initial?.enabled ?? true);
+  const [localErrors, setLocalErrors] = useState19({});
   const selectedSite = sites.find((site) => site.id === siteId);
   const hostProtected = Boolean(initial?.protected);
   const siteSelectLocked = mode === "new" || hostProtected || mode === "edit" && initial?.verification === "pending";
   const isMainSelected = siteId != null && selectedSite?.slug === MAIN_SITE_SLUG;
   const otherAdminExists = adminSurfaceHostId != null && adminSurfaceHostId !== initial?.hostId;
   const surfaceSelectable = mode === "edit" && !hostProtected && !siteSelectLocked && siteId != null && isMainSelected && !otherAdminExists;
-  useEffect18(() => {
+  useEffect19(() => {
     setLocalErrors({});
   }, [fieldErrors]);
-  useEffect18(() => {
+  useEffect19(() => {
     if (!surfaceSelectable && surface !== "site") {
       setSurface("site");
     }
@@ -34156,12 +34327,12 @@ function HostsWindow({
   width = 640,
   tableMinHeight
 }) {
-  const [selectedId, setSelectedId] = useState19(null);
-  const [form, setForm] = useState19({ open: false });
-  const [showFormErrors, setShowFormErrors] = useState19(false);
-  const [alert, setAlert] = useState19(null);
-  const [confirmDelete, setConfirmDelete] = useState19(null);
-  const [pendingAccessReset, setPendingAccessReset] = useState19(null);
+  const [selectedId, setSelectedId] = useState20(null);
+  const [form, setForm] = useState20({ open: false });
+  const [showFormErrors, setShowFormErrors] = useState20(false);
+  const [alert, setAlert] = useState20(null);
+  const [confirmDelete, setConfirmDelete] = useState20(null);
+  const [pendingAccessReset, setPendingAccessReset] = useState20(null);
   const wasSavingRef = useRef9(false);
   const alertSoundKeyRef = useRef9(null);
   const confirmSoundKeyRef = useRef9(null);
@@ -34227,7 +34398,7 @@ function HostsWindow({
     setShowFormErrors(true);
     onSave?.(payload);
   }, [pendingAccessReset, closeAccessResetConfirm, onSave]);
-  useEffect19(() => {
+  useEffect20(() => {
     if (preferSelectedId == null) {
       appliedPreferIdRef.current = null;
       return;
@@ -34240,17 +34411,17 @@ function HostsWindow({
       appliedPreferIdRef.current = preferSelectedId;
     }
   }, [preferSelectedId, hosts]);
-  useEffect19(() => {
+  useEffect20(() => {
     if (selectedId != null && !hosts.some((row) => row.id === selectedId)) {
       setSelectedId(null);
     }
   }, [hosts, selectedId]);
-  useEffect19(() => {
+  useEffect20(() => {
     if (confirmDelete != null && !hosts.some((row) => row.id === confirmDelete.host.id)) {
       closeDeleteConfirm();
     }
   }, [hosts, confirmDelete, closeDeleteConfirm]);
-  useEffect19(() => {
+  useEffect20(() => {
     const hadErrors = Boolean(formError) || Boolean(fieldErrors && Object.keys(fieldErrors).length > 0);
     if (wasSavingRef.current && !saving && form.open && !hadErrors) {
       setForm({ open: false });
@@ -34264,7 +34435,7 @@ function HostsWindow({
     }
     showErrorAlert(error);
   }, [error, loading, showErrorAlert]);
-  useEffect19(() => {
+  useEffect20(() => {
     if (!formError && !(form.open && showFormErrors)) {
       return;
     }
@@ -34535,7 +34706,7 @@ ${DELETE_ADMIN_HOST_ACCESS_RESET_WARNING}` : `Delete host \u201C${confirmDelete.
 }
 
 // src/admin/components/SettingsWindow/SettingsWindow.tsx
-import { useEffect as useEffect20, useLayoutEffect as useLayoutEffect10, useRef as useRef10, useState as useState20 } from "react";
+import { useEffect as useEffect21, useLayoutEffect as useLayoutEffect10, useRef as useRef10, useState as useState21 } from "react";
 import { jsx as jsx62, jsxs as jsxs37 } from "react/jsx-runtime";
 var ACCESS_SWITCH_WARNING = "Changing admin access mode will discard unfinished work in this session.\nYou will need to sign in again on the new admin login page.";
 function SettingsWindow({
@@ -34565,12 +34736,12 @@ function SettingsWindow({
   style,
   width = 420
 }) {
-  const [draft, setDraft] = useState20(adminAccess);
-  const [toolbarDraft, setToolbarDraft] = useState20(symfonyDebugToolbar);
-  const [pendingAccess, setPendingAccess] = useState20(
+  const [draft, setDraft] = useState21(adminAccess);
+  const [toolbarDraft, setToolbarDraft] = useState21(symfonyDebugToolbar);
+  const [pendingAccess, setPendingAccess] = useState21(
     null
   );
-  const [alert, setAlert] = useState20(null);
+  const [alert, setAlert] = useState21(null);
   const soundedFor = useRef10(null);
   const warnedFor = useRef10(null);
   const handleCancel = onCancel ?? onClose;
@@ -34579,18 +34750,18 @@ function SettingsWindow({
   const showSwitchWarning = pendingAccess != null && !showAlert;
   const toolbarChecked = symfonyDebugToolbarEditable ? toolbarDraft : false;
   const toolbarDisabled = !symfonyDebugToolbarEditable || !canEdit || busy;
-  useEffect20(() => {
+  useEffect21(() => {
     setDraft(adminAccess);
   }, [adminAccess]);
-  useEffect20(() => {
+  useEffect21(() => {
     setToolbarDraft(symfonyDebugToolbar);
   }, [symfonyDebugToolbar]);
-  useEffect20(() => {
+  useEffect21(() => {
     if (draft === "domain" && !domainAvailable) {
       setDraft("path");
     }
   }, [domainAvailable, draft]);
-  useEffect20(() => {
+  useEffect21(() => {
     if (!error) {
       return;
     }
@@ -34746,7 +34917,7 @@ function SettingsWindow({
 }
 
 // src/admin/components/SiteSettingsWindow/SiteSettingsWindow.tsx
-import { useEffect as useEffect21, useId as useId7, useState as useState21 } from "react";
+import { useEffect as useEffect22, useId as useId7, useState as useState22 } from "react";
 import { Fragment as Fragment18, jsx as jsx63, jsxs as jsxs38 } from "react/jsx-runtime";
 function SiteSettingsWindow({
   siteName,
@@ -34786,18 +34957,18 @@ function SiteSettingsWindow({
   const nameId = useId7();
   const descriptionId = useId7();
   const faviconId = useId7();
-  const [name, setName] = useState21(nameProp);
-  const [description, setDescription] = useState21(descriptionProp ?? "");
-  const [faviconIdInput, setFaviconIdInput] = useState21(
+  const [name, setName] = useState22(nameProp);
+  const [description, setDescription] = useState22(descriptionProp ?? "");
+  const [faviconIdInput, setFaviconIdInput] = useState22(
     faviconMediaId != null ? String(faviconMediaId) : ""
   );
-  const [alertMessage, setAlertMessage] = useState21(null);
-  useEffect21(() => {
+  const [alertMessage, setAlertMessage] = useState22(null);
+  useEffect22(() => {
     setName(nameProp);
     setDescription(descriptionProp ?? "");
     setFaviconIdInput(faviconMediaId != null ? String(faviconMediaId) : "");
   }, [nameProp, descriptionProp, faviconMediaId]);
-  useEffect21(() => {
+  useEffect22(() => {
     if (!error) {
       return;
     }
@@ -34973,10 +35144,10 @@ function SiteSettingsWindow({
 // src/admin/components/PermissionsWindow/PermissionsWindow.tsx
 import {
   useCallback as useCallback8,
-  useEffect as useEffect23,
+  useEffect as useEffect24,
   useLayoutEffect as useLayoutEffect11,
   useRef as useRef11,
-  useState as useState23
+  useState as useState24
 } from "react";
 
 // src/admin/lib/truncateWithEllipsis.ts
@@ -34989,7 +35160,7 @@ function truncateWithEllipsis(value, maxLength = 30) {
 }
 
 // src/admin/components/PermissionsWindow/PermissionFormDialog.tsx
-import { useEffect as useEffect22, useId as useId8, useState as useState22 } from "react";
+import { useEffect as useEffect23, useId as useId8, useState as useState23 } from "react";
 import { jsx as jsx64, jsxs as jsxs39 } from "react/jsx-runtime";
 function PermissionFormDialog({
   mode,
@@ -35004,11 +35175,11 @@ function PermissionFormDialog({
   const nameId = useId8();
   const labelId = useId8();
   const descriptionId = useId8();
-  const [name, setName] = useState22(initial?.name ?? "");
-  const [label, setLabel] = useState22(initial?.label ?? "");
-  const [description, setDescription] = useState22(initial?.description ?? "");
-  const [localErrors, setLocalErrors] = useState22({});
-  useEffect22(() => {
+  const [name, setName] = useState23(initial?.name ?? "");
+  const [label, setLabel] = useState23(initial?.label ?? "");
+  const [description, setDescription] = useState23(initial?.description ?? "");
+  const [localErrors, setLocalErrors] = useState23({});
+  useEffect23(() => {
     setLocalErrors({});
   }, [fieldErrors]);
   const mergedErrors = {
@@ -35149,11 +35320,11 @@ function PermissionsWindow({
   width = 560,
   tableMinHeight
 }) {
-  const [selectedId, setSelectedId] = useState23(null);
-  const [form, setForm] = useState23({ open: false });
-  const [showFormErrors, setShowFormErrors] = useState23(false);
-  const [alert, setAlert] = useState23(null);
-  const [confirmDelete, setConfirmDelete] = useState23(null);
+  const [selectedId, setSelectedId] = useState24(null);
+  const [form, setForm] = useState24({ open: false });
+  const [showFormErrors, setShowFormErrors] = useState24(false);
+  const [alert, setAlert] = useState24(null);
+  const [confirmDelete, setConfirmDelete] = useState24(null);
   const wasSavingRef = useRef11(false);
   const alertSoundKeyRef = useRef11(null);
   const confirmSoundKeyRef = useRef11(null);
@@ -35182,7 +35353,7 @@ function PermissionsWindow({
     setForm({ open: false });
     setShowFormErrors(false);
   };
-  useEffect23(() => {
+  useEffect24(() => {
     if (preferSelectedId == null) {
       appliedPreferIdRef.current = null;
       return;
@@ -35195,17 +35366,17 @@ function PermissionsWindow({
       appliedPreferIdRef.current = preferSelectedId;
     }
   }, [preferSelectedId, permissions]);
-  useEffect23(() => {
+  useEffect24(() => {
     if (selectedId != null && !permissions.some((row) => row.id === selectedId)) {
       setSelectedId(null);
     }
   }, [permissions, selectedId]);
-  useEffect23(() => {
+  useEffect24(() => {
     if (confirmDelete != null && !permissions.some((row) => row.id === confirmDelete.permission.id)) {
       closeDeleteConfirm();
     }
   }, [permissions, confirmDelete, closeDeleteConfirm]);
-  useEffect23(() => {
+  useEffect24(() => {
     const hadErrors = Boolean(formError) || Boolean(fieldErrors && Object.keys(fieldErrors).length > 0);
     if (wasSavingRef.current && !saving && form.open && !hadErrors) {
       setForm({ open: false });
@@ -35219,7 +35390,7 @@ function PermissionsWindow({
     }
     showErrorAlert(error);
   }, [error, loading, showErrorAlert]);
-  useEffect23(() => {
+  useEffect24(() => {
     if (!formError && !(form.open && showFormErrors)) {
       return;
     }
@@ -35442,13 +35613,13 @@ function PermissionsWindow({
 // src/admin/components/RolesWindow/RolesWindow.tsx
 import {
   useCallback as useCallback9,
-  useEffect as useEffect25,
+  useEffect as useEffect26,
   useRef as useRef12,
-  useState as useState25
+  useState as useState26
 } from "react";
 
 // src/admin/components/RolesWindow/RoleFormDialog.tsx
-import { useEffect as useEffect24, useId as useId9, useMemo as useMemo11, useState as useState24 } from "react";
+import { useEffect as useEffect25, useId as useId9, useMemo as useMemo11, useState as useState25 } from "react";
 import { Fragment as Fragment20, jsx as jsx66, jsxs as jsxs41 } from "react/jsx-runtime";
 var NAME_PATTERN = /^ROLE_[A-Z0-9]+(?:_[A-Z0-9]+)*$/;
 function RoleFormDialog({
@@ -35467,27 +35638,27 @@ function RoleFormDialog({
   const labelId = useId9();
   const descriptionId = useId9();
   const assignSelectId = useId9();
-  const [tab, setTab] = useState24("general");
-  const [name, setName] = useState24(initial?.name ?? "");
-  const [label, setLabel] = useState24(initial?.label ?? "");
-  const [description, setDescription] = useState24(initial?.description ?? "");
-  const [permissionIds, setPermissionIds] = useState24(
+  const [tab, setTab] = useState25("general");
+  const [name, setName] = useState25(initial?.name ?? "");
+  const [label, setLabel] = useState25(initial?.label ?? "");
+  const [description, setDescription] = useState25(initial?.description ?? "");
+  const [permissionIds, setPermissionIds] = useState25(
     initial?.permissionIds ?? []
   );
-  const [selectedPermissionId, setSelectedPermissionId] = useState24(
+  const [selectedPermissionId, setSelectedPermissionId] = useState25(
     null
   );
-  const [assignPermissionId, setAssignPermissionId] = useState24(null);
-  const [localErrors, setLocalErrors] = useState24({});
-  useEffect24(() => {
+  const [assignPermissionId, setAssignPermissionId] = useState25(null);
+  const [localErrors, setLocalErrors] = useState25({});
+  useEffect25(() => {
     setLocalErrors({});
   }, [fieldErrors]);
-  useEffect24(() => {
+  useEffect25(() => {
     if (selectedPermissionId != null && !permissionIds.includes(selectedPermissionId)) {
       setSelectedPermissionId(null);
     }
   }, [permissionIds, selectedPermissionId]);
-  useEffect24(() => {
+  useEffect25(() => {
     if (assignPermissionId != null && permissionIds.includes(assignPermissionId)) {
       setAssignPermissionId(null);
     }
@@ -35783,11 +35954,11 @@ function RolesWindow({
   width = 640,
   tableMinHeight
 }) {
-  const [selectedId, setSelectedId] = useState25(null);
-  const [form, setForm] = useState25({ open: false });
-  const [showFormErrors, setShowFormErrors] = useState25(false);
-  const [alert, setAlert] = useState25(null);
-  const [confirmDelete, setConfirmDelete] = useState25(null);
+  const [selectedId, setSelectedId] = useState26(null);
+  const [form, setForm] = useState26({ open: false });
+  const [showFormErrors, setShowFormErrors] = useState26(false);
+  const [alert, setAlert] = useState26(null);
+  const [confirmDelete, setConfirmDelete] = useState26(null);
   const wasSavingRef = useRef12(false);
   const alertSoundKeyRef = useRef12(null);
   const confirmSoundKeyRef = useRef12(null);
@@ -35816,7 +35987,7 @@ function RolesWindow({
     setForm({ open: false });
     setShowFormErrors(false);
   };
-  useEffect25(() => {
+  useEffect26(() => {
     if (preferSelectedId == null) {
       appliedPreferIdRef.current = null;
       return;
@@ -35829,19 +36000,19 @@ function RolesWindow({
       appliedPreferIdRef.current = preferSelectedId;
     }
   }, [preferSelectedId, roles]);
-  useEffect25(() => {
+  useEffect26(() => {
     if (error) {
       showErrorAlert(error);
     }
   }, [error, showErrorAlert]);
-  useEffect25(() => {
+  useEffect26(() => {
     const message = formatSaveErrors4(formError, fieldErrors);
     if (message) {
       setShowFormErrors(true);
       showErrorAlert(message);
     }
   }, [formError, fieldErrors, showErrorAlert]);
-  useEffect25(() => {
+  useEffect26(() => {
     if (wasSavingRef.current && !saving && form.open && !formError) {
       const hasFieldError = Boolean(fieldErrors?.name) || Boolean(fieldErrors?.label) || Boolean(fieldErrors?.description);
       if (!hasFieldError) {
@@ -36058,13 +36229,13 @@ function RolesWindow({
 // src/admin/components/UsersWindow/UsersWindow.tsx
 import {
   useCallback as useCallback10,
-  useEffect as useEffect28,
+  useEffect as useEffect29,
   useRef as useRef13,
-  useState as useState28
+  useState as useState29
 } from "react";
 
 // src/admin/components/UsersWindow/UserFormDialog.tsx
-import { useEffect as useEffect26, useId as useId10, useMemo as useMemo12, useState as useState26 } from "react";
+import { useEffect as useEffect27, useId as useId10, useMemo as useMemo12, useState as useState27 } from "react";
 import { Fragment as Fragment22, jsx as jsx68, jsxs as jsxs43 } from "react/jsx-runtime";
 var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function UserFormDialog({
@@ -36086,19 +36257,19 @@ function UserFormDialog({
   const assignRoleSelectId = useId10();
   const assignSiteSelectId = useId10();
   const assignSiteRoleSelectId = useId10();
-  const [tab, setTab] = useState26("general");
-  const [email, setEmail] = useState26(initial?.email ?? "");
-  const [password, setPassword] = useState26(initial?.password ?? "");
-  const [roleIds, setRoleIds] = useState26(initial?.roleIds ?? []);
-  const [siteAssignments, setSiteAssignments] = useState26(
+  const [tab, setTab] = useState27("general");
+  const [email, setEmail] = useState27(initial?.email ?? "");
+  const [password, setPassword] = useState27(initial?.password ?? "");
+  const [roleIds, setRoleIds] = useState27(initial?.roleIds ?? []);
+  const [siteAssignments, setSiteAssignments] = useState27(
     initial?.siteAssignments ?? []
   );
-  const [selectedRoleId, setSelectedRoleId] = useState26(null);
-  const [assignRoleId, setAssignRoleId] = useState26(null);
-  const [selectedSiteId, setSelectedSiteId] = useState26(null);
-  const [assignSiteId, setAssignSiteId] = useState26(null);
-  const [assignSiteRoleId, setAssignSiteRoleId] = useState26(null);
-  const [localErrors, setLocalErrors] = useState26({});
+  const [selectedRoleId, setSelectedRoleId] = useState27(null);
+  const [assignRoleId, setAssignRoleId] = useState27(null);
+  const [selectedSiteId, setSelectedSiteId] = useState27(null);
+  const [assignSiteId, setAssignSiteId] = useState27(null);
+  const [assignSiteRoleId, setAssignSiteRoleId] = useState27(null);
+  const [localErrors, setLocalErrors] = useState27({});
   const globalRoleOptions = useMemo12(
     () => roles.filter((row) => row.name !== "ROLE_SITE_ADMIN"),
     [roles]
@@ -36107,25 +36278,25 @@ function UserFormDialog({
     () => roles.filter((row) => row.name !== "ROLE_ADMIN"),
     [roles]
   );
-  useEffect26(() => {
+  useEffect27(() => {
     setLocalErrors({});
   }, [fieldErrors]);
-  useEffect26(() => {
+  useEffect27(() => {
     if (selectedRoleId != null && !roleIds.includes(selectedRoleId)) {
       setSelectedRoleId(null);
     }
   }, [roleIds, selectedRoleId]);
-  useEffect26(() => {
+  useEffect27(() => {
     if (assignRoleId != null && roleIds.includes(assignRoleId)) {
       setAssignRoleId(null);
     }
   }, [roleIds, assignRoleId]);
-  useEffect26(() => {
+  useEffect27(() => {
     if (selectedSiteId != null && !siteAssignments.some((row) => row.siteId === selectedSiteId)) {
       setSelectedSiteId(null);
     }
   }, [siteAssignments, selectedSiteId]);
-  useEffect26(() => {
+  useEffect27(() => {
     if (assignSiteId != null && siteAssignments.some((row) => row.siteId === assignSiteId)) {
       setAssignSiteId(null);
     }
@@ -36525,7 +36696,7 @@ function UserFormDialog({
 }
 
 // src/admin/components/UsersWindow/SetPasswordDialog.tsx
-import { useEffect as useEffect27, useId as useId11, useState as useState27 } from "react";
+import { useEffect as useEffect28, useId as useId11, useState as useState28 } from "react";
 import { jsx as jsx69, jsxs as jsxs44 } from "react/jsx-runtime";
 function SetPasswordDialog({
   userId,
@@ -36541,12 +36712,12 @@ function SetPasswordDialog({
   const currentId = useId11();
   const passwordId = useId11();
   const confirmId = useId11();
-  const [currentPassword, setCurrentPassword] = useState27("");
-  const [password, setPassword] = useState27("");
-  const [confirmPassword, setConfirmPassword] = useState27("");
-  const [localErrors, setLocalErrors] = useState27({});
+  const [currentPassword, setCurrentPassword] = useState28("");
+  const [password, setPassword] = useState28("");
+  const [confirmPassword, setConfirmPassword] = useState28("");
+  const [localErrors, setLocalErrors] = useState28({});
   const requireCurrent = mode === "self";
-  useEffect27(() => {
+  useEffect28(() => {
     setLocalErrors({});
   }, [fieldErrors]);
   const mergedErrors = {
@@ -36766,15 +36937,15 @@ function UsersWindow({
     viewUser: canEdit,
     listUsers: canEdit
   };
-  const [selectedId, setSelectedId] = useState28(null);
-  const [form, setForm] = useState28({ open: false });
-  const [passwordDialog, setPasswordDialog] = useState28({
+  const [selectedId, setSelectedId] = useState29(null);
+  const [form, setForm] = useState29({ open: false });
+  const [passwordDialog, setPasswordDialog] = useState29({
     open: false
   });
-  const [showFormErrors, setShowFormErrors] = useState28(false);
-  const [showPasswordErrors, setShowPasswordErrors] = useState28(false);
-  const [alert, setAlert] = useState28(null);
-  const [confirmDelete, setConfirmDelete] = useState28(null);
+  const [showFormErrors, setShowFormErrors] = useState29(false);
+  const [showPasswordErrors, setShowPasswordErrors] = useState29(false);
+  const [alert, setAlert] = useState29(null);
+  const [confirmDelete, setConfirmDelete] = useState29(null);
   const wasSavingRef = useRef13(false);
   const wasSettingPasswordRef = useRef13(false);
   const alertSoundKeyRef = useRef13(null);
@@ -36808,7 +36979,7 @@ function UsersWindow({
     setPasswordDialog({ open: false });
     setShowPasswordErrors(false);
   };
-  useEffect28(() => {
+  useEffect29(() => {
     if (preferSelectedId == null) {
       appliedPreferIdRef.current = null;
       return;
@@ -36821,26 +36992,26 @@ function UsersWindow({
       appliedPreferIdRef.current = preferSelectedId;
     }
   }, [preferSelectedId, users]);
-  useEffect28(() => {
+  useEffect29(() => {
     if (error) {
       showErrorAlert(error);
     }
   }, [error, showErrorAlert]);
-  useEffect28(() => {
+  useEffect29(() => {
     const message = formatSaveErrors5(formError, fieldErrors);
     if (message) {
       setShowFormErrors(true);
       showErrorAlert(message);
     }
   }, [formError, fieldErrors, showErrorAlert]);
-  useEffect28(() => {
+  useEffect29(() => {
     const message = formatPasswordErrors(passwordFormError, passwordFieldErrors);
     if (message) {
       setShowPasswordErrors(true);
       showErrorAlert(message);
     }
   }, [passwordFormError, passwordFieldErrors, showErrorAlert]);
-  useEffect28(() => {
+  useEffect29(() => {
     if (wasSavingRef.current && !saving && form.open && !formError) {
       const hasFieldError = Boolean(fieldErrors?.email) || Boolean(fieldErrors?.password) || Boolean(fieldErrors?.roleIds) || Boolean(fieldErrors?.siteAssignments);
       if (!hasFieldError) {
@@ -36849,7 +37020,7 @@ function UsersWindow({
     }
     wasSavingRef.current = saving;
   }, [saving, form.open, formError, fieldErrors]);
-  useEffect28(() => {
+  useEffect29(() => {
     if (wasSettingPasswordRef.current && !settingPassword && passwordDialog.open && !passwordFormError) {
       const hasFieldError = Boolean(passwordFieldErrors?.currentPassword) || Boolean(passwordFieldErrors?.password) || Boolean(passwordFieldErrors?.confirmPassword);
       if (!hasFieldError) {
@@ -37143,7 +37314,7 @@ function UsersWindow({
 }
 
 // src/admin/pages/LoginPage.tsx
-import { useEffect as useEffect29, useLayoutEffect as useLayoutEffect12, useRef as useRef14, useState as useState29 } from "react";
+import { useEffect as useEffect30, useLayoutEffect as useLayoutEffect12, useRef as useRef14, useState as useState30 } from "react";
 import { jsx as jsx71, jsxs as jsxs46 } from "react/jsx-runtime";
 function normalizeError(error) {
   if (typeof error === "string") {
@@ -37172,16 +37343,16 @@ function LoginPage({
   const modalRootRef = useRef14(null);
   const soundedFor = useRef14(null);
   const message = normalizeError(error);
-  const [dismissed, setDismissed] = useState29(false);
-  const [boundsEl, setBoundsEl] = useState29(null);
+  const [dismissed, setDismissed] = useState30(false);
+  const [boundsEl, setBoundsEl] = useState30(null);
   const showAlert = Boolean(message && !dismissed);
   useLayoutEffect12(() => {
     setBoundsEl(dashboardRef.current);
   }, []);
-  useEffect29(() => {
+  useEffect30(() => {
     setDismissed(false);
   }, [message]);
-  useEffect29(() => {
+  useEffect30(() => {
     if (!message || dismissed) {
       if (!message) {
         soundedFor.current = null;
@@ -37237,11 +37408,11 @@ function LoginPage({
 // src/admin/pages/AdminDesktop.tsx
 import {
   useCallback as useCallback11,
-  useEffect as useEffect33,
+  useEffect as useEffect34,
   useLayoutEffect as useLayoutEffect13,
   useMemo as useMemo13,
   useRef as useRef17,
-  useState as useState31
+  useState as useState32
 } from "react";
 
 // src/admin/lib/safeAppPath.ts
@@ -37309,7 +37480,7 @@ function parseDocumentEditorWindowId(id) {
 
 // src/admin/shell/DesktopWindow.tsx
 import {
-  useEffect as useEffect30,
+  useEffect as useEffect31,
   useRef as useRef15
 } from "react";
 
@@ -37413,19 +37584,19 @@ function DesktopWindow({
   const onBoundsChangeRef = useRef15(onBoundsChange);
   const dragDisabledRef = useRef15(dragDisabled);
   const maximizedRef = useRef15(maximized);
-  useEffect30(() => {
+  useEffect31(() => {
     onPositionChangeRef.current = onPositionChange;
   }, [onPositionChange]);
-  useEffect30(() => {
+  useEffect31(() => {
     onBoundsChangeRef.current = onBoundsChange;
   }, [onBoundsChange]);
-  useEffect30(() => {
+  useEffect31(() => {
     dragDisabledRef.current = dragDisabled;
   }, [dragDisabled]);
-  useEffect30(() => {
+  useEffect31(() => {
     maximizedRef.current = maximized;
   }, [maximized]);
-  useEffect30(() => {
+  useEffect31(() => {
     const onMove = (event) => {
       const node = rootRef.current;
       if (!node) {
@@ -37645,7 +37816,7 @@ function DesktopWindow({
 }
 
 // src/admin/shell/TaskbarClock.tsx
-import { useEffect as useEffect31, useState as useState30 } from "react";
+import { useEffect as useEffect32, useState as useState31 } from "react";
 import { jsx as jsx73 } from "react/jsx-runtime";
 function formatClock(date) {
   const hours = String(date.getHours()).padStart(2, "0");
@@ -37660,10 +37831,10 @@ function isChromaticCapture() {
 }
 var CHROMATIC_FIXED_CLOCK = "21:30";
 function TaskbarClock() {
-  const [label, setLabel] = useState30(
+  const [label, setLabel] = useState31(
     () => isChromaticCapture() ? CHROMATIC_FIXED_CLOCK : formatClock(/* @__PURE__ */ new Date())
   );
-  useEffect31(() => {
+  useEffect32(() => {
     if (isChromaticCapture()) {
       setLabel(CHROMATIC_FIXED_CLOCK);
       return;
@@ -37740,7 +37911,7 @@ function Taskbar({
 }
 
 // src/admin/shell/StartMenu.tsx
-import { useEffect as useEffect32, useRef as useRef16 } from "react";
+import { useEffect as useEffect33, useRef as useRef16 } from "react";
 import { jsx as jsx75, jsxs as jsxs49 } from "react/jsx-runtime";
 function StartMenu({
   open,
@@ -37750,7 +37921,7 @@ function StartMenu({
   logoutHref
 }) {
   const rootRef = useRef16(null);
-  useEffect32(() => {
+  useEffect33(() => {
     if (!open) {
       return;
     }
@@ -38226,11 +38397,11 @@ function AdminDesktop({
   const nextZRef = useRef17(hydratedRef.current.nextZ);
   const cascadeRef = useRef17(hydratedRef.current.cascade);
   const dashboardRef = useRef17(null);
-  const [shell, setShell] = useState31(() => ({
+  const [shell, setShell] = useState32(() => ({
     windows: hydratedRef.current.windows,
     activeId: hydratedRef.current.activeId
   }));
-  const [deepLink] = useState31(() => {
+  const [deepLink] = useState32(() => {
     const search = locationSearch !== void 0 ? locationSearch : typeof window !== "undefined" ? window.location.search : "";
     return parseAdminDeepLink(search);
   });
@@ -38240,98 +38411,99 @@ function AdminDesktop({
   const permissionsPreferSelectedId = deepLink?.window === "permissions" ? deepLink.id : null;
   const rolesPreferSelectedId = deepLink?.window === "roles" ? deepLink.id : null;
   const usersPreferSelectedId = deepLink?.window === "users" ? deepLink.id : null;
-  const [startMenuOpen, setStartMenuOpen] = useState31(false);
-  const [desktopSites, setDesktopSites] = useState31(sites);
-  const [sitesRows, setSitesRows] = useState31([]);
-  const [sitesLoading, setSitesLoading] = useState31(false);
-  const [sitesCreating, setSitesCreating] = useState31(false);
-  const [sitesDeleting, setSitesDeleting] = useState31(false);
-  const [sitesError, setSitesError] = useState31(null);
-  const [sitesFormError, setSitesFormError] = useState31(null);
-  const [sitesFieldErrors, setSitesFieldErrors] = useState31({});
-  const [permissionsRows, setPermissionsRows] = useState31([]);
-  const [permissionsLoading, setPermissionsLoading] = useState31(false);
-  const [permissionsCreating, setPermissionsCreating] = useState31(false);
-  const [permissionsDeleting, setPermissionsDeleting] = useState31(false);
-  const [permissionsError, setPermissionsError] = useState31(null);
-  const [permissionsFormError, setPermissionsFormError] = useState31(
+  const [startMenuOpen, setStartMenuOpen] = useState32(false);
+  const [desktopSites, setDesktopSites] = useState32(sites);
+  const [sitesRows, setSitesRows] = useState32([]);
+  const [sitesLoading, setSitesLoading] = useState32(false);
+  const [sitesCreating, setSitesCreating] = useState32(false);
+  const [sitesDeleting, setSitesDeleting] = useState32(false);
+  const [sitesError, setSitesError] = useState32(null);
+  const [sitesFormError, setSitesFormError] = useState32(null);
+  const [sitesFieldErrors, setSitesFieldErrors] = useState32({});
+  const [permissionsRows, setPermissionsRows] = useState32([]);
+  const [permissionsLoading, setPermissionsLoading] = useState32(false);
+  const [permissionsCreating, setPermissionsCreating] = useState32(false);
+  const [permissionsDeleting, setPermissionsDeleting] = useState32(false);
+  const [permissionsError, setPermissionsError] = useState32(null);
+  const [permissionsFormError, setPermissionsFormError] = useState32(
     null
   );
-  const [permissionsFieldErrors, setPermissionsFieldErrors] = useState31({});
-  const [permissionsStatusMessage, setPermissionsStatusMessage] = useState31(null);
-  const [rolesRows, setRolesRows] = useState31([]);
-  const [rolesPermissionOptions, setRolesPermissionOptions] = useState31([]);
-  const [rolesLoading, setRolesLoading] = useState31(false);
-  const [rolesCreating, setRolesCreating] = useState31(false);
-  const [rolesDeleting, setRolesDeleting] = useState31(false);
-  const [rolesError, setRolesError] = useState31(null);
-  const [rolesFormError, setRolesFormError] = useState31(null);
-  const [rolesFieldErrors, setRolesFieldErrors] = useState31({});
-  const [rolesStatusMessage, setRolesStatusMessage] = useState31(
+  const [permissionsFieldErrors, setPermissionsFieldErrors] = useState32({});
+  const [permissionsStatusMessage, setPermissionsStatusMessage] = useState32(null);
+  const [rolesRows, setRolesRows] = useState32([]);
+  const [rolesPermissionOptions, setRolesPermissionOptions] = useState32([]);
+  const [rolesLoading, setRolesLoading] = useState32(false);
+  const [rolesCreating, setRolesCreating] = useState32(false);
+  const [rolesDeleting, setRolesDeleting] = useState32(false);
+  const [rolesError, setRolesError] = useState32(null);
+  const [rolesFormError, setRolesFormError] = useState32(null);
+  const [rolesFieldErrors, setRolesFieldErrors] = useState32({});
+  const [rolesStatusMessage, setRolesStatusMessage] = useState32(
     null
   );
-  const [usersRows, setUsersRows] = useState31([]);
-  const [usersRoleOptions, setUsersRoleOptions] = useState31([]);
-  const [usersSiteOptions, setUsersSiteOptions] = useState31([]);
-  const [usersLoading, setUsersLoading] = useState31(false);
-  const [usersCreating, setUsersCreating] = useState31(false);
-  const [usersDeleting, setUsersDeleting] = useState31(false);
-  const [usersError, setUsersError] = useState31(null);
-  const [usersFormError, setUsersFormError] = useState31(null);
-  const [usersFieldErrors, setUsersFieldErrors] = useState31({});
-  const [usersStatusMessage, setUsersStatusMessage] = useState31(
+  const [usersRows, setUsersRows] = useState32([]);
+  const [usersRoleOptions, setUsersRoleOptions] = useState32([]);
+  const [usersSiteOptions, setUsersSiteOptions] = useState32([]);
+  const [usersLoading, setUsersLoading] = useState32(false);
+  const [usersCreating, setUsersCreating] = useState32(false);
+  const [usersDeleting, setUsersDeleting] = useState32(false);
+  const [usersError, setUsersError] = useState32(null);
+  const [usersFormError, setUsersFormError] = useState32(null);
+  const [usersFieldErrors, setUsersFieldErrors] = useState32({});
+  const [usersStatusMessage, setUsersStatusMessage] = useState32(
     null
   );
-  const [usersSettingPassword, setUsersSettingPassword] = useState31(false);
-  const [usersPasswordFormError, setUsersPasswordFormError] = useState31(null);
-  const [usersPasswordFieldErrors, setUsersPasswordFieldErrors] = useState31({});
-  const [currentUserId, setCurrentUserId] = useState31(null);
-  const [currentUserEmail, setCurrentUserEmail] = useState31(null);
-  const [userCapabilities, setUserCapabilities] = useState31(null);
-  const [myAccountOpen, setMyAccountOpen] = useState31(false);
-  const [myAccountSaving, setMyAccountSaving] = useState31(false);
-  const [myAccountFormError, setMyAccountFormError] = useState31(
+  const [usersSettingPassword, setUsersSettingPassword] = useState32(false);
+  const [usersPasswordFormError, setUsersPasswordFormError] = useState32(null);
+  const [usersPasswordFieldErrors, setUsersPasswordFieldErrors] = useState32({});
+  const [currentUserId, setCurrentUserId] = useState32(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState32(null);
+  const [userCapabilities, setUserCapabilities] = useState32(null);
+  const [myAccountOpen, setMyAccountOpen] = useState32(false);
+  const [myAccountSaving, setMyAccountSaving] = useState32(false);
+  const [myAccountFormError, setMyAccountFormError] = useState32(
     null
   );
-  const [myAccountFieldErrors, setMyAccountFieldErrors] = useState31({});
-  const [myAccountAlert, setMyAccountAlert] = useState31(null);
-  const [hostsRows, setHostsRows] = useState31([]);
-  const [hostsLoading, setHostsLoading] = useState31(false);
-  const [hostsCreating, setHostsCreating] = useState31(false);
-  const [hostsDeleting, setHostsDeleting] = useState31(false);
-  const [hostsUnassigning, setHostsUnassigning] = useState31(false);
-  const [hostsAssigning, setHostsAssigning] = useState31(false);
-  const [hostsVerifying, setHostsVerifying] = useState31(false);
-  const [hostsError, setHostsError] = useState31(null);
-  const [hostsFormError, setHostsFormError] = useState31(null);
-  const [hostsFieldErrors, setHostsFieldErrors] = useState31({});
-  const [sitesStatusMessage, setSitesStatusMessage] = useState31(null);
-  const [hostsStatusMessage, setHostsStatusMessage] = useState31(null);
-  const [settings, setSettings] = useState31(null);
-  const [settingsLoading, setSettingsLoading] = useState31(false);
-  const [settingsSaving, setSettingsSaving] = useState31(false);
-  const [settingsError, setSettingsError] = useState31(null);
-  const [settingsStatusMessage, setSettingsStatusMessage] = useState31(
+  const [myAccountFieldErrors, setMyAccountFieldErrors] = useState32({});
+  const [myAccountAlert, setMyAccountAlert] = useState32(null);
+  const [hostsRows, setHostsRows] = useState32([]);
+  const [hostsLoading, setHostsLoading] = useState32(false);
+  const [hostsCreating, setHostsCreating] = useState32(false);
+  const [hostsDeleting, setHostsDeleting] = useState32(false);
+  const [hostsUnassigning, setHostsUnassigning] = useState32(false);
+  const [hostsAssigning, setHostsAssigning] = useState32(false);
+  const [hostsVerifying, setHostsVerifying] = useState32(false);
+  const [hostsError, setHostsError] = useState32(null);
+  const [hostsFormError, setHostsFormError] = useState32(null);
+  const [hostsFieldErrors, setHostsFieldErrors] = useState32({});
+  const [sitesStatusMessage, setSitesStatusMessage] = useState32(null);
+  const [hostsStatusMessage, setHostsStatusMessage] = useState32(null);
+  const [settings, setSettings] = useState32(null);
+  const [settingsLoading, setSettingsLoading] = useState32(false);
+  const [settingsSaving, setSettingsSaving] = useState32(false);
+  const [settingsError, setSettingsError] = useState32(null);
+  const [settingsStatusMessage, setSettingsStatusMessage] = useState32(
     null
   );
-  const [siteSettingsById, setSiteSettingsById] = useState31({});
-  const [siteSettingsLoadingId, setSiteSettingsLoadingId] = useState31(
+  const [siteSettingsById, setSiteSettingsById] = useState32({});
+  const [siteSettingsLoadingId, setSiteSettingsLoadingId] = useState32(
     null
   );
-  const [siteSettingsSavingId, setSiteSettingsSavingId] = useState31(
+  const [siteSettingsSavingId, setSiteSettingsSavingId] = useState32(
     null
   );
-  const [siteSettingsError, setSiteSettingsError] = useState31(null);
-  const [siteSettingsStatusMessage, setSiteSettingsStatusMessage] = useState31(null);
-  const [documentsByKey, setDocumentsByKey] = useState31({});
-  const [documentLoadingKey, setDocumentLoadingKey] = useState31(
+  const [siteSettingsError, setSiteSettingsError] = useState32(null);
+  const [siteSettingsStatusMessage, setSiteSettingsStatusMessage] = useState32(null);
+  const [documentsByKey, setDocumentsByKey] = useState32({});
+  const [documentLoadingKey, setDocumentLoadingKey] = useState32(
     null
   );
-  const [documentSavingKey, setDocumentSavingKey] = useState31(
+  const [documentSavingKey, setDocumentSavingKey] = useState32(
     null
   );
-  const [documentError, setDocumentError] = useState31(null);
-  const [documentStatusMessage, setDocumentStatusMessage] = useState31(null);
+  const [documentError, setDocumentError] = useState32(null);
+  const [documentStatusMessage, setDocumentStatusMessage] = useState32(null);
+  const [explorerForestRefreshBySite, setExplorerForestRefreshBySite] = useState32({});
   const pendingLoginRedirectRef = useRef17(false);
   const sitesStatusTimerRef = useRef17(null);
   const hostsStatusTimerRef = useRef17(null);
@@ -38471,7 +38643,7 @@ function AdminDesktop({
     },
     [clearSettingsStatusMessage]
   );
-  useEffect33(() => {
+  useEffect34(() => {
     return () => {
       if (sitesStatusTimerRef.current != null) {
         clearTimeout(sitesStatusTimerRef.current);
@@ -38566,10 +38738,10 @@ function AdminDesktop({
     })),
     [desktopSites]
   );
-  useEffect33(() => {
+  useEffect34(() => {
     setDesktopSites(sites);
   }, [sites]);
-  useEffect33(() => {
+  useEffect34(() => {
     let cancelled = false;
     (async () => {
       const result = await api.getMe();
@@ -38590,7 +38762,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [api]);
-  useEffect33(() => {
+  useEffect34(() => {
     if (!storageKey) {
       return;
     }
@@ -38607,7 +38779,7 @@ function AdminDesktop({
     }, PERSIST_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [shell, storageKey]);
-  useEffect33(() => {
+  useEffect34(() => {
     if (!sitesWindowOpen) {
       return;
     }
@@ -38633,7 +38805,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [sitesWindowOpen, api, handleApiFailure, clearSitesStatusMessage]);
-  useEffect33(() => {
+  useEffect34(() => {
     if (!permissionsWindowOpen) {
       return;
     }
@@ -38658,7 +38830,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [permissionsWindowOpen, api, handleApiFailure, clearPermissionsStatusMessage]);
-  useEffect33(() => {
+  useEffect34(() => {
     if (!rolesWindowOpen) {
       return;
     }
@@ -38695,7 +38867,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [rolesWindowOpen, api, handleApiFailure, clearRolesStatusMessage]);
-  useEffect33(() => {
+  useEffect34(() => {
     if (!usersWindowOpen) {
       return;
     }
@@ -38741,7 +38913,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [usersWindowOpen, api, handleApiFailure, clearUsersStatusMessage]);
-  useEffect33(() => {
+  useEffect34(() => {
     if (!hostsWindowOpen && !sitesWindowOpen) {
       return;
     }
@@ -38781,7 +38953,7 @@ function AdminDesktop({
     noteUnauthorized,
     clearHostsStatusMessage
   ]);
-  useEffect33(() => {
+  useEffect34(() => {
     if (!settingsWindowOpen && !hostsWindowOpen && !sitesWindowOpen) {
       return;
     }
@@ -39273,7 +39445,8 @@ function AdminDesktop({
     setDocumentError(null);
     const result = await api.updateContentNode(siteId, nodeId, {
       title: payload.title,
-      body: payload.body
+      body: payload.body,
+      publication: payload.publication
     });
     setDocumentSavingKey(null);
     if (!result.ok) {
@@ -39281,7 +39454,13 @@ function AdminDesktop({
       return;
     }
     setDocumentsByKey((prev) => ({ ...prev, [key]: result.data }));
-    setDocumentStatusMessage("Document saved.");
+    setDocumentStatusMessage(
+      payload.publication === "published" ? "Published." : payload.publication === "draft" ? "Saved as draft." : "Document saved."
+    );
+    setExplorerForestRefreshBySite((prev) => ({
+      ...prev,
+      [siteId]: (prev[siteId] ?? 0) + 1
+    }));
     setShell((prev) => ({
       ...prev,
       windows: prev.windows.map(
@@ -40103,6 +40282,7 @@ function AdminDesktop({
               title: win.title,
               documentTitle: data?.title ?? win.title,
               bodyJson: data?.body ?? null,
+              publication: data?.publication ?? "draft",
               loading: documentLoadingKey === key,
               saving: documentSavingKey === key,
               canEdit: canEditDocuments,
@@ -40253,6 +40433,7 @@ function AdminDesktop({
             siteId: typeof site.id === "number" ? site.id : Number(site.id),
             siteName: site.name,
             tree: explorerTreeForSite(site),
+            forestRefreshKey: explorerForestRefreshBySite[typeof site.id === "number" ? site.id : Number(site.id)] ?? 0,
             onOpenSiteSettings: () => openSiteSettings(site),
             onOpenDocument: (item) => {
               const ref = parseExplorerEntityId(item.id);

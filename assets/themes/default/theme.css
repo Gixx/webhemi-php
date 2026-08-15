@@ -50,3 +50,76 @@
 [data-wh-theme="default"] .wh-hello a {
   color: #2a5f9e;
 }
+
+[data-wh-theme="default"] .wh-folder,
+[data-wh-theme="default"] .wh-document {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+}
+
+[data-wh-theme="default"] .wh-folder__title,
+[data-wh-theme="default"] .wh-document__title {
+  margin: 0 0 1.25rem;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+[data-wh-theme="default"] .wh-folder__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-wh-theme="default"] .wh-folder__item {
+  margin: 0.35rem 0;
+}
+
+[data-wh-theme="default"] .wh-folder__item a {
+  color: #2a5f9e;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+[data-wh-theme="default"] .wh-folder__empty {
+  color: #445466;
+}
+
+[data-wh-theme="default"] .wh-document__body {
+  line-height: 1.55;
+}
+
+[data-wh-theme="default"] .wh-document__body p {
+  margin: 0.65em 0;
+}
+
+[data-wh-theme="default"] .wh-document__body a {
+  color: #2a5f9e;
+}
+
+[data-wh-theme="default"] .wh-accordion {
+  margin: 1rem 0;
+  border: 1px solid rgba(26, 36, 51, 0.12);
+  border-radius: 0.35rem;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+[data-wh-theme="default"] .wh-accordion__item {
+  border-top: 1px solid rgba(26, 36, 51, 0.1);
+}
+
+[data-wh-theme="default"] .wh-accordion__item:first-child {
+  border-top: 0;
+}
+
+[data-wh-theme="default"] .wh-accordion__title {
+  padding: 0.65rem 0.85rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+[data-wh-theme="default"] .wh-accordion__body {
+  padding: 0 0.85rem 0.85rem;
+  color: #445466;
+}

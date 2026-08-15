@@ -98,8 +98,11 @@ final class ExplorerForestMapperTest extends TestCase
         self::assertSame('site', $forest[0]['role']);
         self::assertSame('node-10', $forest[0]['children'][0]['id']);
         self::assertSame('folder', $forest[0]['children'][0]['role']);
+        self::assertSame('folder', $forest[0]['children'][0]['kind']);
+        self::assertSame('published', $forest[0]['children'][0]['publication']);
         self::assertSame('node-11', $forest[0]['children'][0]['children'][0]['id']);
         self::assertSame('file-draft', $forest[0]['children'][0]['children'][0]['kind']);
+        self::assertSame('draft', $forest[0]['children'][0]['children'][0]['publication']);
 
         self::assertSame('site-3-media', $forest[1]['id']);
         self::assertSame('media-library', $forest[1]['role']);

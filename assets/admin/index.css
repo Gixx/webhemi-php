@@ -2202,6 +2202,16 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .explorer-glyph.folder-gallery {
   background-image: url("./icons/explorer/folder_gallery.svg");
 }
+[data-wh-theme=admin] .icon.folder-draft,
+[data-wh-theme=admin] .panel.info > .info-icon.folder-draft,
+[data-wh-theme=admin] .explorer-glyph.folder-draft {
+  background-image: url("./icons/explorer/folder_draft.svg");
+}
+[data-wh-theme=admin] .icon.folder-scheduled,
+[data-wh-theme=admin] .panel.info > .info-icon.folder-scheduled,
+[data-wh-theme=admin] .explorer-glyph.folder-scheduled {
+  background-image: url("./icons/explorer/folder_scheduled.svg");
+}
 [data-wh-theme=admin] .icon.file-document,
 [data-wh-theme=admin] .panel.info > .info-icon.file-document,
 [data-wh-theme=admin] .explorer-glyph.file-document {
@@ -3947,6 +3957,12 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .explorer-properties-list dd {
   margin: 0;
   word-break: break-word;
+}
+[data-wh-theme=admin] .explorer-properties-publication {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 [data-wh-theme=admin] {
   /* Sites / Hosts windows + New/Edit form dialog overlay */

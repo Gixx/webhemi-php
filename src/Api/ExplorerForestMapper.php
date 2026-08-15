@@ -203,9 +203,20 @@ final class ExplorerForestMapper
     {
         $kind = $node->getKind();
         [$icon, $role, $typeLabel] = match ($kind) {
-            ContentNodeKind::Folder => ['folder', 'folder', 'Folder'],
+            ContentNodeKind::Folder => [
+                match ($node->getPublication()) {
+                    PublicationStatus::Draft => 'folder-draft',
+                    PublicationStatus::Scheduled => 'folder-scheduled',
+                    PublicationStatus::Published => 'folder',
+                },
+                'folder',
+                'Folder',
+            ],
             ContentNodeKind::Document => [
-                PublicationStatus::Draft === $node->getPublication() ? 'file-draft' : 'file-document',
+                match ($node->getPublication()) {
+                    PublicationStatus::Draft => 'file-draft',
+                    PublicationStatus::Scheduled, PublicationStatus::Published => 'file-document',
+                },
                 'document',
                 'HTML Document',
             ],
@@ -220,6 +231,7 @@ final class ExplorerForestMapper
             'role' => $role,
             'typeLabel' => $typeLabel,
             'hidden' => $node->isHidden(),
+            'publication' => $node->getPublication()->value,
             'modifiedAt' => $this->formatModified($node->getUpdatedAt()),
         ];
 
