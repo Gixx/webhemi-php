@@ -1,0 +1,20 @@
+{% extends 'themes/default/base.html.twig' %}
+
+{% block title %}{{ title }} — {{ siteName }}{% endblock %}
+
+{% block body %}
+<main class="wh-folder">
+  <h1 class="wh-folder__title">{{ title }}</h1>
+  {% if entries is empty %}
+    <p class="wh-folder__empty">This folder is empty.</p>
+  {% else %}
+    <ul class="wh-folder__list">
+      {% for entry in entries %}
+        <li class="wh-folder__item wh-folder__item--{{ entry.kind }}">
+          <a href="{{ entry.href }}">{{ entry.title }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</main>
+{% endblock %}

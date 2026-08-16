@@ -38,6 +38,10 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
 
+    App\Api\UserAvatarBlobStore:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
     App\EventSubscriber\SymfonyDebugToolbarSubscriber:
         arguments:
             $environment: '%kernel.environment%'

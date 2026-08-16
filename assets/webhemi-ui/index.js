@@ -6,18 +6,18 @@ var __export = (target, all) => {
 };
 
 // node_modules/clsx/dist/clsx.mjs
-function r(e2) {
-  var t2, f, n2 = "";
-  if ("string" == typeof e2 || "number" == typeof e2) n2 += e2;
-  else if ("object" == typeof e2) if (Array.isArray(e2)) {
-    var o2 = e2.length;
-    for (t2 = 0; t2 < o2; t2++) e2[t2] && (f = r(e2[t2])) && (n2 && (n2 += " "), n2 += f);
-  } else for (f in e2) e2[f] && (n2 && (n2 += " "), n2 += f);
-  return n2;
+function r(e3) {
+  var t3, f2, n3 = "";
+  if ("string" == typeof e3 || "number" == typeof e3) n3 += e3;
+  else if ("object" == typeof e3) if (Array.isArray(e3)) {
+    var o3 = e3.length;
+    for (t3 = 0; t3 < o3; t3++) e3[t3] && (f2 = r(e3[t3])) && (n3 && (n3 += " "), n3 += f2);
+  } else for (f2 in e3) e3[f2] && (n3 && (n3 += " "), n3 += f2);
+  return n3;
 }
 function clsx() {
-  for (var e2, t2, f = 0, n2 = "", o2 = arguments.length; f < o2; f++) (e2 = arguments[f]) && (t2 = r(e2)) && (n2 && (n2 += " "), n2 += t2);
-  return n2;
+  for (var e3, t3, f2 = 0, n3 = "", o3 = arguments.length; f2 < o3; f2++) (e3 = arguments[f2]) && (t3 = r(e3)) && (n3 && (n3 += " "), n3 += t3);
+  return n3;
 }
 
 // src/lib/cn.ts
@@ -287,8 +287,85 @@ function TextBox({
 }
 TextBox.displayName = "TextBox";
 
-// src/admin/chrome/TextArea/TextArea.tsx
+// src/admin/chrome/FileInput/FileInput.tsx
+import { useId, useRef } from "react";
+
+// src/admin/chrome/FieldRow/FieldRow.tsx
 import { jsx as jsx11 } from "react/jsx-runtime";
+function FieldRow({ className, children, ...rest }) {
+  return /* @__PURE__ */ jsx11("div", { className: cn("field-row", className), ...rest, children });
+}
+
+// src/admin/chrome/FileInput/FileInput.tsx
+import { jsx as jsx12, jsxs as jsxs7 } from "react/jsx-runtime";
+function FileInput({
+  value,
+  emptyLabel = "No file selected.",
+  accept = "image/*",
+  disabled = false,
+  browseLabel = "Browse\u2026",
+  browseAccessKey = "b",
+  label,
+  labelAccessKey,
+  className,
+  pathClassName,
+  onFileChange,
+  inputProps
+}) {
+  const autoId = useId();
+  const inputId = inputProps?.id ?? autoId;
+  const inputRef = useRef(null);
+  const display = value?.trim() ? value : emptyLabel;
+  const handleChange = (event) => {
+    const file = event.target.files?.[0] ?? null;
+    onFileChange?.(file);
+    event.target.value = "";
+  };
+  const caption = label != null && labelAccessKey && (typeof label === "string" || typeof label === "number") ? underlineAccessKey(String(label), labelAccessKey) : label;
+  return /* @__PURE__ */ jsxs7("div", { className: cn("file-input", className), children: [
+    caption != null ? /* @__PURE__ */ jsx12("label", { htmlFor: inputId, className: "file-input-label", children: caption }) : null,
+    /* @__PURE__ */ jsxs7(FieldRow, { className: "file-input-row", children: [
+      /* @__PURE__ */ jsx12(
+        "input",
+        {
+          type: "text",
+          readOnly: true,
+          tabIndex: -1,
+          disabled,
+          value: display,
+          "aria-label": typeof label === "string" ? label : "Selected file",
+          className: cn("file-input-path", pathClassName)
+        }
+      ),
+      /* @__PURE__ */ jsx12(
+        Button,
+        {
+          type: "button",
+          disabled,
+          accessKey: browseAccessKey,
+          onClick: () => inputRef.current?.click(),
+          children: browseLabel
+        }
+      ),
+      /* @__PURE__ */ jsx12(
+        "input",
+        {
+          ...inputProps,
+          ref: inputRef,
+          id: inputId,
+          type: "file",
+          accept,
+          disabled,
+          className: "file-input-native",
+          onChange: handleChange
+        }
+      )
+    ] })
+  ] });
+}
+
+// src/admin/chrome/TextArea/TextArea.tsx
+import { jsx as jsx13 } from "react/jsx-runtime";
 function TextArea({
   className,
   resizable = "none",
@@ -300,7 +377,7 @@ function TextArea({
   id,
   ...rest
 }) {
-  const control = /* @__PURE__ */ jsx11(
+  const control = /* @__PURE__ */ jsx13(
     "textarea",
     {
       id,
@@ -328,7 +405,7 @@ function TextArea({
 TextArea.displayName = "TextArea";
 
 // src/admin/chrome/Checkbox/Checkbox.tsx
-import { jsx as jsx12 } from "react/jsx-runtime";
+import { jsx as jsx14 } from "react/jsx-runtime";
 function Checkbox({
   id,
   label,
@@ -341,7 +418,7 @@ function Checkbox({
     throw new Error("Checkbox requires an id so the label can use htmlFor");
   }
   const caption = accessKey && (typeof label === "string" || typeof label === "number") ? underlineAccessKey(String(label), accessKey) : label;
-  const control = /* @__PURE__ */ jsx12(
+  const control = /* @__PURE__ */ jsx14(
     "input",
     {
       id,
@@ -362,7 +439,7 @@ function Checkbox({
 Checkbox.displayName = "Checkbox";
 
 // src/admin/chrome/Radio/Radio.tsx
-import { jsx as jsx13 } from "react/jsx-runtime";
+import { jsx as jsx15 } from "react/jsx-runtime";
 function Radio({
   id,
   label,
@@ -375,7 +452,7 @@ function Radio({
     throw new Error("Radio requires an id so the label can use htmlFor");
   }
   const caption = accessKey && (typeof label === "string" || typeof label === "number") ? underlineAccessKey(String(label), accessKey) : label;
-  const control = /* @__PURE__ */ jsx13(
+  const control = /* @__PURE__ */ jsx15(
     "input",
     {
       id,
@@ -396,7 +473,7 @@ function Radio({
 Radio.displayName = "Radio";
 
 // src/admin/chrome/Select/Select.tsx
-import { jsx as jsx14 } from "react/jsx-runtime";
+import { jsx as jsx16 } from "react/jsx-runtime";
 function Select({
   className,
   children,
@@ -407,7 +484,7 @@ function Select({
   id,
   ...rest
 }) {
-  const control = /* @__PURE__ */ jsx14(
+  const control = /* @__PURE__ */ jsx16(
     "select",
     {
       id,
@@ -435,7 +512,7 @@ function Select({
 Select.displayName = "Select";
 
 // src/admin/chrome/Slider/Slider.tsx
-import { jsx as jsx15 } from "react/jsx-runtime";
+import { jsx as jsx17 } from "react/jsx-runtime";
 function Slider({
   boxIndicator,
   className,
@@ -446,7 +523,7 @@ function Slider({
   id,
   ...rest
 }) {
-  const control = /* @__PURE__ */ jsx15(
+  const control = /* @__PURE__ */ jsx17(
     "input",
     {
       id,
@@ -473,61 +550,55 @@ function Slider({
 }
 Slider.displayName = "Slider";
 
-// src/admin/chrome/FieldRow/FieldRow.tsx
-import { jsx as jsx16 } from "react/jsx-runtime";
-function FieldRow({ className, children, ...rest }) {
-  return /* @__PURE__ */ jsx16("div", { className: cn("field-row", className), ...rest, children });
-}
-
 // src/admin/chrome/GroupBox/GroupBox.tsx
-import { jsx as jsx17, jsxs as jsxs7 } from "react/jsx-runtime";
+import { jsx as jsx18, jsxs as jsxs8 } from "react/jsx-runtime";
 function GroupBox({ legend, className, children, ...rest }) {
-  return /* @__PURE__ */ jsxs7("fieldset", { className: cn(className), ...rest, children: [
-    legend != null ? /* @__PURE__ */ jsx17("legend", { children: legend }) : null,
+  return /* @__PURE__ */ jsxs8("fieldset", { className: cn(className), ...rest, children: [
+    legend != null ? /* @__PURE__ */ jsx18("legend", { children: legend }) : null,
     children
   ] });
 }
 
 // src/admin/chrome/Window/Window.tsx
-import { jsx as jsx18 } from "react/jsx-runtime";
+import { jsx as jsx19 } from "react/jsx-runtime";
 function Window({ className, children, ...rest }) {
-  return /* @__PURE__ */ jsx18("div", { className: cn("window", className), ...rest, children });
+  return /* @__PURE__ */ jsx19("div", { className: cn("window", className), ...rest, children });
 }
 function TitleBar({ inactive = false, className, children, ...rest }) {
-  return /* @__PURE__ */ jsx18("div", { className: cn("title-bar", inactive && "inactive", className), ...rest, children });
+  return /* @__PURE__ */ jsx19("div", { className: cn("title-bar", inactive && "inactive", className), ...rest, children });
 }
 function TitleBarText({ className, children, ...rest }) {
-  return /* @__PURE__ */ jsx18("div", { className: cn("title-bar-text", className), ...rest, children });
+  return /* @__PURE__ */ jsx19("div", { className: cn("title-bar-text", className), ...rest, children });
 }
 function TitleBarControls({ className, children, ...rest }) {
-  return /* @__PURE__ */ jsx18("div", { className: cn("title-bar-controls", className), ...rest, children });
+  return /* @__PURE__ */ jsx19("div", { className: cn("title-bar-controls", className), ...rest, children });
 }
 function TitleBarControl({ action, className, type = "button", ...rest }) {
-  return /* @__PURE__ */ jsx18("button", { type, "aria-label": action, className: cn(className), ...rest });
+  return /* @__PURE__ */ jsx19("button", { type, "aria-label": action, className: cn(className), ...rest });
 }
 function WindowBody({ className, children, ...rest }) {
-  return /* @__PURE__ */ jsx18("div", { className: cn("window-body", className), ...rest, children });
+  return /* @__PURE__ */ jsx19("div", { className: cn("window-body", className), ...rest, children });
 }
 function StatusBar({ className, children, ...rest }) {
-  return /* @__PURE__ */ jsx18("div", { className: cn("status-bar", className), ...rest, children });
+  return /* @__PURE__ */ jsx19("div", { className: cn("status-bar", className), ...rest, children });
 }
 function StatusBarField({ className, children, ...rest }) {
-  return /* @__PURE__ */ jsx18("p", { className: cn("status-bar-field", className), ...rest, children });
+  return /* @__PURE__ */ jsx19("p", { className: cn("status-bar-field", className), ...rest, children });
 }
 
 // src/admin/chrome/Tabs/Tabs.tsx
-import { jsx as jsx19 } from "react/jsx-runtime";
+import { jsx as jsx20 } from "react/jsx-runtime";
 function TabList({ multirows = false, className, children, ...rest }) {
-  return /* @__PURE__ */ jsx19("menu", { role: "tablist", className: cn(multirows && "multirows", className), ...rest, children });
+  return /* @__PURE__ */ jsx20("menu", { role: "tablist", className: cn(multirows && "multirows", className), ...rest, children });
 }
 function TabRow({ className, children, ...rest }) {
-  return /* @__PURE__ */ jsx19("div", { className: cn("tab-row", className), role: "presentation", ...rest, children });
+  return /* @__PURE__ */ jsx20("div", { className: cn("tab-row", className), role: "presentation", ...rest, children });
 }
 function Tab({ selected = false, href = "#", className, children, ...rest }) {
-  return /* @__PURE__ */ jsx19("li", { role: "tab", "aria-selected": selected, className: cn(className), ...rest, children: /* @__PURE__ */ jsx19("a", { href, children }) });
+  return /* @__PURE__ */ jsx20("li", { role: "tab", "aria-selected": selected, className: cn(className), ...rest, children: /* @__PURE__ */ jsx20("a", { href, children }) });
 }
 function TabPanel({ className, children, ...rest }) {
-  return /* @__PURE__ */ jsx19("div", { role: "tabpanel", className: cn("window", className), ...rest, children });
+  return /* @__PURE__ */ jsx20("div", { role: "tabpanel", className: cn("window", className), ...rest, children });
 }
 
 // src/admin/chrome/_lib/promoteTabRow.ts
@@ -544,9 +615,9 @@ function promoteTabRow(rows, rowIndex, columnIndex) {
 }
 
 // src/admin/chrome/TreeView/TreeView.tsx
-import { jsx as jsx20 } from "react/jsx-runtime";
+import { jsx as jsx21 } from "react/jsx-runtime";
 function TreeView({ className, children, ...rest }) {
-  return /* @__PURE__ */ jsx20("ul", { className: cn("tree-view", className), ...rest, children });
+  return /* @__PURE__ */ jsx21("ul", { className: cn("tree-view", className), ...rest, children });
 }
 function TreeToggle({
   className,
@@ -554,7 +625,7 @@ function TreeToggle({
   "aria-label": ariaLabel,
   ...rest
 }) {
-  return /* @__PURE__ */ jsx20(
+  return /* @__PURE__ */ jsx21(
     "button",
     {
       type: "button",
@@ -567,7 +638,7 @@ function TreeToggle({
 }
 
 // src/admin/chrome/Scrollable/Scrollable.tsx
-import { useRef } from "react";
+import { useRef as useRef2 } from "react";
 
 // src/admin/chrome/_lib/useCustomScrollbar.ts
 import { useEffect } from "react";
@@ -693,10 +764,10 @@ function attachCustomScrollbar(host, viewport) {
     event.stopPropagation();
     startRepeat(axis, delta);
   };
-  const onYDec = (e2) => onArrowDown(y2.dec, "y", -ARROW_STEP, e2);
-  const onYInc = (e2) => onArrowDown(y2.inc, "y", ARROW_STEP, e2);
-  const onXDec = (e2) => onArrowDown(x2.dec, "x", -ARROW_STEP, e2);
-  const onXInc = (e2) => onArrowDown(x2.inc, "x", ARROW_STEP, e2);
+  const onYDec = (e3) => onArrowDown(y2.dec, "y", -ARROW_STEP, e3);
+  const onYInc = (e3) => onArrowDown(y2.inc, "y", ARROW_STEP, e3);
+  const onXDec = (e3) => onArrowDown(x2.dec, "x", -ARROW_STEP, e3);
+  const onXInc = (e3) => onArrowDown(x2.inc, "x", ARROW_STEP, e3);
   y2.dec.addEventListener("pointerdown", onYDec);
   y2.inc.addEventListener("pointerdown", onYInc);
   x2.dec.addEventListener("pointerdown", onXDec);
@@ -724,8 +795,8 @@ function attachCustomScrollbar(host, viewport) {
       }
     }
   };
-  const onYTrack = (e2) => onTrackPointerDown("y", y2.thumb, e2);
-  const onXTrack = (e2) => onTrackPointerDown("x", x2.thumb, e2);
+  const onYTrack = (e3) => onTrackPointerDown("y", y2.thumb, e3);
+  const onXTrack = (e3) => onTrackPointerDown("x", x2.thumb, e3);
   y2.track.addEventListener("pointerdown", onYTrack);
   x2.track.addEventListener("pointerdown", onXTrack);
   const onThumbDown = (axis, event) => {
@@ -742,8 +813,8 @@ function attachCustomScrollbar(host, viewport) {
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
   };
-  const onYThumb = (e2) => onThumbDown("y", e2);
-  const onXThumb = (e2) => onThumbDown("x", e2);
+  const onYThumb = (e3) => onThumbDown("y", e3);
+  const onXThumb = (e3) => onThumbDown("x", e3);
   y2.thumb.addEventListener("pointerdown", onYThumb);
   x2.thumb.addEventListener("pointerdown", onXThumb);
   const onPointerMove = (event) => {
@@ -835,21 +906,21 @@ function useCustomScrollbar(hostRef, viewportRef) {
 }
 
 // src/admin/chrome/Scrollable/Scrollable.tsx
-import { jsx as jsx21 } from "react/jsx-runtime";
+import { jsx as jsx22 } from "react/jsx-runtime";
 function Scrollable({
   className,
   children,
   viewportClassName,
   ...rest
 }) {
-  const hostRef = useRef(null);
-  const viewportRef = useRef(null);
+  const hostRef = useRef2(null);
+  const viewportRef = useRef2(null);
   useCustomScrollbar(hostRef, viewportRef);
-  return /* @__PURE__ */ jsx21("div", { ref: hostRef, className: cn("scrollable", className), ...rest, children: /* @__PURE__ */ jsx21("div", { ref: viewportRef, className: cn("scrollable-viewport", viewportClassName), children }) });
+  return /* @__PURE__ */ jsx22("div", { ref: hostRef, className: cn("scrollable", className), ...rest, children: /* @__PURE__ */ jsx22("div", { ref: viewportRef, className: cn("scrollable-viewport", viewportClassName), children }) });
 }
 
 // src/admin/chrome/SunkenPanel/SunkenPanel.tsx
-import { jsx as jsx22 } from "react/jsx-runtime";
+import { jsx as jsx23 } from "react/jsx-runtime";
 function SunkenPanel({
   scrollable = false,
   tone = "system",
@@ -863,13 +934,13 @@ function SunkenPanel({
     className
   );
   if (scrollable) {
-    return /* @__PURE__ */ jsx22(Scrollable, { className: panelClassName, ...rest, children });
+    return /* @__PURE__ */ jsx23(Scrollable, { className: panelClassName, ...rest, children });
   }
-  return /* @__PURE__ */ jsx22("div", { className: panelClassName, ...rest, children: /* @__PURE__ */ jsx22("div", { className: "scrollable-viewport", children }) });
+  return /* @__PURE__ */ jsx23("div", { className: panelClassName, ...rest, children: /* @__PURE__ */ jsx23("div", { className: "scrollable-viewport", children }) });
 }
 
 // src/admin/chrome/FieldBorder/FieldBorder.tsx
-import { jsx as jsx23 } from "react/jsx-runtime";
+import { jsx as jsx24 } from "react/jsx-runtime";
 function FieldBorder({
   disabled = false,
   scrollable = false,
@@ -879,13 +950,13 @@ function FieldBorder({
 }) {
   const borderClass = disabled ? "field-border-disabled" : "field-border";
   if (scrollable) {
-    return /* @__PURE__ */ jsx23(Scrollable, { className: cn(borderClass, className), ...rest, children });
+    return /* @__PURE__ */ jsx24(Scrollable, { className: cn(borderClass, className), ...rest, children });
   }
-  return /* @__PURE__ */ jsx23("div", { className: cn(borderClass, className), ...rest, children });
+  return /* @__PURE__ */ jsx24("div", { className: cn(borderClass, className), ...rest, children });
 }
 
 // src/admin/chrome/Table/Table.tsx
-import { useRef as useRef2 } from "react";
+import { useRef as useRef3 } from "react";
 
 // src/admin/chrome/_lib/useTableView.ts
 import { useEffect as useEffect2 } from "react";
@@ -927,25 +998,25 @@ function useTableView(tableRef, enabled = true) {
 }
 
 // src/admin/chrome/Table/Table.tsx
-import { jsx as jsx24 } from "react/jsx-runtime";
+import { jsx as jsx25 } from "react/jsx-runtime";
 function Table({ interactive = false, className, children, ...rest }) {
-  const ref = useRef2(null);
+  const ref = useRef3(null);
   useTableView(ref, interactive);
-  return /* @__PURE__ */ jsx24("table", { ref, className: cn(interactive && "interactive", className), ...rest, children });
+  return /* @__PURE__ */ jsx25("table", { ref, className: cn(interactive && "interactive", className), ...rest, children });
 }
 function TableRow({ highlighted = false, className, children, ...rest }) {
-  return /* @__PURE__ */ jsx24("tr", { className: cn(highlighted && "highlighted", className), ...rest, children });
+  return /* @__PURE__ */ jsx25("tr", { className: cn(highlighted && "highlighted", className), ...rest, children });
 }
 
 // src/admin/chrome/Progress/Progress.tsx
-import { jsx as jsx25 } from "react/jsx-runtime";
+import { jsx as jsx26 } from "react/jsx-runtime";
 function Progress({ value = 0, segmented = false, className, ...rest }) {
   const clamped = Math.max(0, Math.min(100, value));
-  return /* @__PURE__ */ jsx25("div", { className: cn("progress-indicator", segmented && "segmented", className), ...rest, children: /* @__PURE__ */ jsx25("span", { className: "progress-indicator-bar", style: { width: `${clamped}%` } }) });
+  return /* @__PURE__ */ jsx26("div", { className: cn("progress-indicator", segmented && "segmented", className), ...rest, children: /* @__PURE__ */ jsx26("span", { className: "progress-indicator-bar", style: { width: `${clamped}%` } }) });
 }
 
 // src/admin/chrome/SystemIcon/SystemIcon.tsx
-import { jsx as jsx26 } from "react/jsx-runtime";
+import { jsx as jsx27 } from "react/jsx-runtime";
 function SystemIcon({
   kind,
   label,
@@ -979,7 +1050,7 @@ function SystemIcon({
     onActivate?.(event);
     onOpen?.();
   };
-  return /* @__PURE__ */ jsx26(
+  return /* @__PURE__ */ jsx27(
     "div",
     {
       className: cn("icon", kind, `label-tone-${labelTone}`, className),
@@ -987,13 +1058,13 @@ function SystemIcon({
       onDoubleClick: handleDoubleClick,
       style: iconUrl ? { ...style, backgroundImage: `url("${iconUrl}")` } : style,
       ...rest,
-      children: /* @__PURE__ */ jsx26("a", { href, ...linkProps, onClick: handleClick2, children: /* @__PURE__ */ jsx26("span", { children: label }) })
+      children: /* @__PURE__ */ jsx27("a", { href, ...linkProps, onClick: handleClick2, children: /* @__PURE__ */ jsx27("span", { children: label }) })
     }
   );
 }
 
 // src/admin/chrome/MenuPopup/MenuPopup.tsx
-import { useId, useRef as useRef3 } from "react";
+import { useId as useId2, useRef as useRef4 } from "react";
 
 // src/admin/chrome/MenuPopup/types.ts
 function isAdminMenuCheckable(item) {
@@ -1016,12 +1087,12 @@ function resolveMenuGutterMode(items) {
 }
 
 // src/admin/chrome/MenuPopup/MenuPopup.tsx
-import { Fragment as Fragment3, jsx as jsx27, jsxs as jsxs8 } from "react/jsx-runtime";
+import { Fragment as Fragment3, jsx as jsx28, jsxs as jsxs9 } from "react/jsx-runtime";
 function MenuLabel({ text, accessKey }) {
   if (!accessKey) {
-    return /* @__PURE__ */ jsx27(Fragment3, { children: text });
+    return /* @__PURE__ */ jsx28(Fragment3, { children: text });
   }
-  return /* @__PURE__ */ jsx27(Fragment3, { children: underlineAccessKey(text, accessKey) });
+  return /* @__PURE__ */ jsx28(Fragment3, { children: underlineAccessKey(text, accessKey) });
 }
 function LeadingGutter({
   mode,
@@ -1032,10 +1103,10 @@ function LeadingGutter({
   }
   if (mode === "check") {
     const checked = isAdminMenuCheckable(item) && Boolean(item.checked);
-    return /* @__PURE__ */ jsx27("span", { className: "menu-popup-gutter menu-popup-check", "aria-hidden": true, children: checked ? "\u2713" : "" });
+    return /* @__PURE__ */ jsx28("span", { className: "menu-popup-gutter menu-popup-check", "aria-hidden": true, children: checked ? "\u2713" : "" });
   }
   const icon = !isAdminMenuCheckable(item) ? item.icon : void 0;
-  return /* @__PURE__ */ jsx27("span", { className: "menu-popup-gutter menu-popup-icon", "aria-hidden": true, children: icon ?? null });
+  return /* @__PURE__ */ jsx28("span", { className: "menu-popup-gutter menu-popup-icon", "aria-hidden": true, children: icon ?? null });
 }
 function MenuPopup({
   items,
@@ -1045,9 +1116,9 @@ function MenuPopup({
   style,
   onItemActivate
 }) {
-  const generatedId = useId();
+  const generatedId = useId2();
   const baseId = id ?? generatedId;
-  const rootRef = useRef3(null);
+  const rootRef = useRef4(null);
   const gutterMode = resolveMenuGutterMode(items);
   const activate = (item) => {
     if (item.disabled) {
@@ -1083,7 +1154,7 @@ function MenuPopup({
       buttons[buttons.length - 1]?.focus();
     }
   };
-  return /* @__PURE__ */ jsx27(
+  return /* @__PURE__ */ jsx28(
     "div",
     {
       ref: rootRef,
@@ -1100,11 +1171,11 @@ function MenuPopup({
       onKeyDown: onKeyDown2,
       children: items.map((item) => {
         if (item.kind === "separator") {
-          return /* @__PURE__ */ jsx27("div", { className: "menu-popup-separator", role: "separator" }, item.id);
+          return /* @__PURE__ */ jsx28("div", { className: "menu-popup-separator", role: "separator" }, item.id);
         }
         const role = isAdminMenuCheckable(item) ? item.role : item.role ?? "menuitem";
         const hasSubmenu = Boolean(item.children && item.children.length > 0);
-        return /* @__PURE__ */ jsxs8(
+        return /* @__PURE__ */ jsxs9(
           "button",
           {
             type: "button",
@@ -1120,9 +1191,9 @@ function MenuPopup({
             "aria-haspopup": hasSubmenu ? "menu" : void 0,
             onClick: () => activate(item),
             children: [
-              /* @__PURE__ */ jsx27(LeadingGutter, { mode: gutterMode, item }),
-              /* @__PURE__ */ jsx27("span", { className: "menu-popup-label", children: /* @__PURE__ */ jsx27(MenuLabel, { text: item.label, accessKey: item.accessKey }) }),
-              hasSubmenu ? /* @__PURE__ */ jsx27("span", { className: "menu-popup-submenu-marker", "aria-hidden": true, children: "\u25B6" }) : null
+              /* @__PURE__ */ jsx28(LeadingGutter, { mode: gutterMode, item }),
+              /* @__PURE__ */ jsx28("span", { className: "menu-popup-label", children: /* @__PURE__ */ jsx28(MenuLabel, { text: item.label, accessKey: item.accessKey }) }),
+              hasSubmenu ? /* @__PURE__ */ jsx28("span", { className: "menu-popup-submenu-marker", "aria-hidden": true, children: "\u25B6" }) : null
             ]
           },
           item.id
@@ -1133,7 +1204,7 @@ function MenuPopup({
 }
 
 // src/admin/chrome/ContextMenu/ContextMenu.tsx
-import { jsx as jsx28 } from "react/jsx-runtime";
+import { jsx as jsx29 } from "react/jsx-runtime";
 function ContextMenu({
   open = true,
   left = 0,
@@ -1153,7 +1224,7 @@ function ContextMenu({
     zIndex: 40,
     ...style
   };
-  return /* @__PURE__ */ jsx28(
+  return /* @__PURE__ */ jsx29(
     MenuPopup,
     {
       ...popupProps,
@@ -1164,7 +1235,7 @@ function ContextMenu({
 }
 
 // src/admin/bricks/_lib/PaneWindowShell.tsx
-import { jsx as jsx29, jsxs as jsxs9 } from "react/jsx-runtime";
+import { jsx as jsx30, jsxs as jsxs10 } from "react/jsx-runtime";
 function PaneWindowShell({
   title,
   titleIcon,
@@ -1181,10 +1252,10 @@ function PaneWindowShell({
   ...rest
 }) {
   const mergedStyle = width !== void 0 ? { ...style, width } : style;
-  const controls = titleBarControls === null ? null : titleBarControls ?? /* @__PURE__ */ jsx29(TitleBarControls, { children: /* @__PURE__ */ jsx29(TitleBarControl, { action: "Close" }) });
-  return /* @__PURE__ */ jsxs9(Window, { className: cn(resizable && "resizable", className), style: mergedStyle, ...rest, children: [
-    /* @__PURE__ */ jsxs9(TitleBar, { inactive, children: [
-      /* @__PURE__ */ jsx29(
+  const controls = titleBarControls === null ? null : titleBarControls ?? /* @__PURE__ */ jsx30(TitleBarControls, { children: /* @__PURE__ */ jsx30(TitleBarControl, { action: "Close" }) });
+  return /* @__PURE__ */ jsxs10(Window, { className: cn(resizable && "resizable", className), style: mergedStyle, ...rest, children: [
+    /* @__PURE__ */ jsxs10(TitleBar, { inactive, children: [
+      /* @__PURE__ */ jsx30(
         TitleBarText,
         {
           className: titleIcon,
@@ -1194,13 +1265,13 @@ function PaneWindowShell({
       ),
       controls
     ] }),
-    /* @__PURE__ */ jsx29(WindowBody, { className: bodyClassName, children }),
+    /* @__PURE__ */ jsx30(WindowBody, { className: bodyClassName, children }),
     statusBar
   ] });
 }
 
 // src/admin/bricks/DialogWindow/DialogWindow.tsx
-import { Fragment as Fragment4, jsx as jsx30, jsxs as jsxs10 } from "react/jsx-runtime";
+import { Fragment as Fragment4, jsx as jsx31, jsxs as jsxs11 } from "react/jsx-runtime";
 function DialogWindow({
   banner,
   type = "none",
@@ -1210,13 +1281,13 @@ function DialogWindow({
   ...shell
 }) {
   const typed = type !== "none";
-  return /* @__PURE__ */ jsx30(PaneWindowShell, { className: cn("w-window-sm", className), ...shell, children: /* @__PURE__ */ jsxs10("div", { className: "window-pane dialog-panel-layout", children: [
-    banner ? /* @__PURE__ */ jsx30("div", { className: "panel banner", children: banner }) : null,
-    /* @__PURE__ */ jsx30("div", { className: cn("panel", typed && "dialog-typed"), children: typed ? /* @__PURE__ */ jsxs10(Fragment4, { children: [
-      /* @__PURE__ */ jsx30("span", { className: cn("dialog-icon", `dialog-icon--${type}`), "aria-hidden": true }),
-      /* @__PURE__ */ jsx30("div", { className: "dialog-body", children })
+  return /* @__PURE__ */ jsx31(PaneWindowShell, { className: cn("w-window-sm", className), ...shell, children: /* @__PURE__ */ jsxs11("div", { className: "window-pane dialog-panel-layout", children: [
+    banner ? /* @__PURE__ */ jsx31("div", { className: "panel banner", children: banner }) : null,
+    /* @__PURE__ */ jsx31("div", { className: cn("panel", typed && "dialog-typed"), children: typed ? /* @__PURE__ */ jsxs11(Fragment4, { children: [
+      /* @__PURE__ */ jsx31("span", { className: cn("dialog-icon", `dialog-icon--${type}`), "aria-hidden": true }),
+      /* @__PURE__ */ jsx31("div", { className: "dialog-body", children })
     ] }) : children }),
-    actions ? /* @__PURE__ */ jsx30("div", { className: "panel actions", children: actions }) : null
+    actions ? /* @__PURE__ */ jsx31("div", { className: "panel actions", children: actions }) : null
   ] }) });
 }
 
@@ -1224,7 +1295,7 @@ function DialogWindow({
 import {
   useEffect as useEffect3,
   useLayoutEffect,
-  useRef as useRef4,
+  useRef as useRef5,
   useState
 } from "react";
 
@@ -1269,7 +1340,7 @@ function findShellTitleBar(host) {
 }
 
 // src/admin/bricks/FloatingModal/FloatingModal.tsx
-import { jsx as jsx31 } from "react/jsx-runtime";
+import { jsx as jsx32 } from "react/jsx-runtime";
 function findOuterTitleBar(host) {
   const win = host.querySelector(":scope > .window");
   if (!(win instanceof HTMLElement)) {
@@ -1313,8 +1384,8 @@ function FloatingModal({
   rootRef,
   "data-owner-window": dataOwnerWindow
 }) {
-  const nodeRef = useRef4(null);
-  const dragRef = useRef4(null);
+  const nodeRef = useRef5(null);
+  const dragRef = useRef5(null);
   const [pos, setPos] = useState(null);
   const setRoot = (node) => {
     nodeRef.current = node;
@@ -1415,7 +1486,7 @@ function FloatingModal({
     ...style,
     ...pos ? { left: pos.left, top: pos.top, visibility: "visible" } : { visibility: "hidden" }
   };
-  return /* @__PURE__ */ jsx31(
+  return /* @__PURE__ */ jsx32(
     "div",
     {
       ref: setRoot,
@@ -1539,7 +1610,7 @@ function flashOwnedModalAttention(modalHost, options = {}) {
 }
 
 // src/admin/bricks/DesktopModal/DesktopModal.tsx
-import { Fragment as Fragment5, jsx as jsx32, jsxs as jsxs11 } from "react/jsx-runtime";
+import { Fragment as Fragment5, jsx as jsx33, jsxs as jsxs12 } from "react/jsx-runtime";
 var DesktopModalContext = createContext(null);
 function findDashboard(from) {
   const closest = from?.closest(".dashboard");
@@ -1707,7 +1778,7 @@ function DesktopModal({
     layer === "alert" && "is-alert",
     className
   );
-  const modal = /* @__PURE__ */ jsx32(DesktopModalContext.Provider, { value: contextValue3, children: /* @__PURE__ */ jsx32(
+  const modal = /* @__PURE__ */ jsx33(DesktopModalContext.Provider, { value: contextValue3, children: /* @__PURE__ */ jsx33(
     FloatingModal,
     {
       boundsEl: dashboard,
@@ -1718,7 +1789,7 @@ function DesktopModal({
       children
     }
   ) });
-  const blocker = /* @__PURE__ */ jsx32(
+  const blocker = /* @__PURE__ */ jsx33(
     "div",
     {
       className: "modal-blocker",
@@ -1727,9 +1798,9 @@ function DesktopModal({
     }
   );
   if (dashboard == null) {
-    return /* @__PURE__ */ jsxs11(Fragment5, { children: [
-      /* @__PURE__ */ jsx32("span", { ref: setAnchor, className: "desktop-modal-anchor", hidden: true }),
-      /* @__PURE__ */ jsxs11(
+    return /* @__PURE__ */ jsxs12(Fragment5, { children: [
+      /* @__PURE__ */ jsx33("span", { ref: setAnchor, className: "desktop-modal-anchor", hidden: true }),
+      /* @__PURE__ */ jsxs12(
         "div",
         {
           className: cn(
@@ -1745,15 +1816,15 @@ function DesktopModal({
       )
     ] });
   }
-  return /* @__PURE__ */ jsxs11(Fragment5, { children: [
-    /* @__PURE__ */ jsx32("span", { ref: setAnchor, className: "desktop-modal-anchor", hidden: true }),
+  return /* @__PURE__ */ jsxs12(Fragment5, { children: [
+    /* @__PURE__ */ jsx33("span", { ref: setAnchor, className: "desktop-modal-anchor", hidden: true }),
     blockTarget != null ? createPortal(blocker, blockTarget) : null,
     createPortal(modal, dashboard)
   ] });
 }
 
 // src/admin/bricks/MessageDialog/MessageDialog.tsx
-import { Fragment as Fragment6, jsx as jsx33, jsxs as jsxs12 } from "react/jsx-runtime";
+import { Fragment as Fragment6, jsx as jsx34, jsxs as jsxs13 } from "react/jsx-runtime";
 var DEFAULT_TITLES = {
   info: "WebHemi",
   question: "Confirm",
@@ -1772,24 +1843,24 @@ function MessageDialog({
   cancelLabel = "No"
 }) {
   const isConfirm = typeof onConfirm === "function";
-  return /* @__PURE__ */ jsx33(
+  return /* @__PURE__ */ jsx34(
     DialogWindow,
     {
       className: cn("message-dialog", className),
       type,
       title: title ?? DEFAULT_TITLES[type],
-      titleBarControls: /* @__PURE__ */ jsx33(TitleBarControls, { children: /* @__PURE__ */ jsx33(TitleBarControl, { action: "Close", onClick: onClose }) }),
-      actions: /* @__PURE__ */ jsx33(FieldRow, { className: "justify-center", children: isConfirm ? /* @__PURE__ */ jsxs12(Fragment6, { children: [
-        /* @__PURE__ */ jsx33(Button, { type: "button", isDefault: true, accessKey: "y", onClick: onConfirm, children: confirmLabel }),
-        /* @__PURE__ */ jsx33(Button, { type: "button", accessKey: "n", onClick: onClose, children: cancelLabel })
-      ] }) : /* @__PURE__ */ jsx33(Button, { type: "button", isDefault: true, accessKey: "o", onClick: onClose, children: okLabel }) }),
-      children: message.split("\n").map((line, index) => /* @__PURE__ */ jsx33("p", { style: { marginTop: 0, marginBottom: 8 }, children: line }, `${index}-${line}`))
+      titleBarControls: /* @__PURE__ */ jsx34(TitleBarControls, { children: /* @__PURE__ */ jsx34(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      actions: /* @__PURE__ */ jsx34(FieldRow, { className: "justify-center", children: isConfirm ? /* @__PURE__ */ jsxs13(Fragment6, { children: [
+        /* @__PURE__ */ jsx34(Button, { type: "button", isDefault: true, accessKey: "y", onClick: onConfirm, children: confirmLabel }),
+        /* @__PURE__ */ jsx34(Button, { type: "button", accessKey: "n", onClick: onClose, children: cancelLabel })
+      ] }) : /* @__PURE__ */ jsx34(Button, { type: "button", isDefault: true, accessKey: "o", onClick: onClose, children: okLabel }) }),
+      children: message.split("\n").map((line, index) => /* @__PURE__ */ jsx34("p", { style: { marginTop: 0, marginBottom: 8 }, children: line }, `${index}-${line}`))
     }
   );
 }
 
 // src/admin/bricks/IconPanelWindow/IconPanelWindow.tsx
-import { jsx as jsx34, jsxs as jsxs13 } from "react/jsx-runtime";
+import { jsx as jsx35, jsxs as jsxs14 } from "react/jsx-runtime";
 function IconPanelWindow({
   info,
   infoUnselected = false,
@@ -1802,37 +1873,37 @@ function IconPanelWindow({
   const paneStyle = {
     height: typeof paneHeight === "number" ? `${paneHeight}px` : paneHeight
   };
-  return /* @__PURE__ */ jsx34(
+  return /* @__PURE__ */ jsx35(
     PaneWindowShell,
     {
       className: cn("w-window-xl", className),
       resizable,
       ...shell,
-      children: /* @__PURE__ */ jsxs13(FieldBorder, { scrollable: true, className: "window-pane icon-panel-layout", style: paneStyle, children: [
-        /* @__PURE__ */ jsx34("div", { className: cn("panel info", infoUnselected && "unselected"), children: info }),
-        /* @__PURE__ */ jsx34("div", { className: "panel icon-list", children })
+      children: /* @__PURE__ */ jsxs14(FieldBorder, { scrollable: true, className: "window-pane icon-panel-layout", style: paneStyle, children: [
+        /* @__PURE__ */ jsx35("div", { className: cn("panel info", infoUnselected && "unselected"), children: info }),
+        /* @__PURE__ */ jsx35("div", { className: "panel icon-list", children })
       ] })
     }
   );
 }
 
 // src/admin/bricks/IconPanelWindow/IconPanelSelectionInfo.tsx
-import { Fragment as Fragment7, jsx as jsx35, jsxs as jsxs14 } from "react/jsx-runtime";
+import { Fragment as Fragment7, jsx as jsx36, jsxs as jsxs15 } from "react/jsx-runtime";
 function IconPanelSelectionInfo({
   kind,
   label,
   description
 }) {
-  return /* @__PURE__ */ jsxs14(Fragment7, { children: [
-    /* @__PURE__ */ jsx35("span", { className: cn("info-icon", kind), "aria-hidden": true }),
-    /* @__PURE__ */ jsx35("h1", { className: "info-title", children: label }),
-    /* @__PURE__ */ jsx35("hr", { className: "info-separator" }),
-    /* @__PURE__ */ jsx35("p", { className: "info-description", children: description })
+  return /* @__PURE__ */ jsxs15(Fragment7, { children: [
+    /* @__PURE__ */ jsx36("span", { className: cn("info-icon", kind), "aria-hidden": true }),
+    /* @__PURE__ */ jsx36("h1", { className: "info-title", children: label }),
+    /* @__PURE__ */ jsx36("hr", { className: "info-separator" }),
+    /* @__PURE__ */ jsx36("p", { className: "info-description", children: description })
   ] });
 }
 
 // src/admin/bricks/WizardWindow/WizardWindow.tsx
-import { jsx as jsx36, jsxs as jsxs15 } from "react/jsx-runtime";
+import { jsx as jsx37, jsxs as jsxs16 } from "react/jsx-runtime";
 function WizardWindow({
   banner,
   info,
@@ -1840,15 +1911,15 @@ function WizardWindow({
   className,
   ...shell
 }) {
-  return /* @__PURE__ */ jsx36(PaneWindowShell, { className: cn("w-window-md", className), ...shell, children: /* @__PURE__ */ jsxs15("div", { className: "window-pane wizard-panel-layout", children: [
-    /* @__PURE__ */ jsx36("div", { className: "panel banner", children: banner }),
-    /* @__PURE__ */ jsx36("div", { className: "panel info", children: info }),
-    /* @__PURE__ */ jsx36("div", { className: "panel actions", children: actions })
+  return /* @__PURE__ */ jsx37(PaneWindowShell, { className: cn("w-window-md", className), ...shell, children: /* @__PURE__ */ jsxs16("div", { className: "window-pane wizard-panel-layout", children: [
+    /* @__PURE__ */ jsx37("div", { className: "panel banner", children: banner }),
+    /* @__PURE__ */ jsx37("div", { className: "panel info", children: info }),
+    /* @__PURE__ */ jsx37("div", { className: "panel actions", children: actions })
   ] }) });
 }
 
 // src/admin/bricks/HeadingPanelWindow/HeadingPanelWindow.tsx
-import { jsx as jsx37, jsxs as jsxs16 } from "react/jsx-runtime";
+import { jsx as jsx38, jsxs as jsxs17 } from "react/jsx-runtime";
 function HeadingPanelWindow({
   heading,
   children,
@@ -1856,10 +1927,10 @@ function HeadingPanelWindow({
   className,
   ...shell
 }) {
-  return /* @__PURE__ */ jsx37(PaneWindowShell, { className: cn(className), ...shell, children: /* @__PURE__ */ jsxs16("div", { className: "window-pane heading-panel-layout", children: [
-    heading != null ? /* @__PURE__ */ jsx37("div", { className: "panel", children: heading }) : null,
-    /* @__PURE__ */ jsx37("div", { className: "panel", children }),
-    actions != null ? /* @__PURE__ */ jsx37("div", { className: "panel actions", children: actions }) : null
+  return /* @__PURE__ */ jsx38(PaneWindowShell, { className: cn(className), ...shell, children: /* @__PURE__ */ jsxs17("div", { className: "window-pane heading-panel-layout", children: [
+    heading != null ? /* @__PURE__ */ jsx38("div", { className: "panel", children: heading }) : null,
+    /* @__PURE__ */ jsx38("div", { className: "panel", children }),
+    actions != null ? /* @__PURE__ */ jsx38("div", { className: "panel actions", children: actions }) : null
   ] }) });
 }
 
@@ -2014,9 +2085,9 @@ function findExplorerAncestorIds(roots, id) {
 }
 
 // src/admin/bricks/FileExplorerWindow/ExplorerContent.tsx
-import { jsx as jsx38, jsxs as jsxs17 } from "react/jsx-runtime";
+import { jsx as jsx39, jsxs as jsxs18 } from "react/jsx-runtime";
 function Glyph({ kind }) {
-  return /* @__PURE__ */ jsx38("span", { className: cn("explorer-glyph", kind), "aria-hidden": true });
+  return /* @__PURE__ */ jsx39("span", { className: cn("explorer-glyph", kind), "aria-hidden": true });
 }
 function modifiersFromEvent(event) {
   return {
@@ -2093,7 +2164,7 @@ function ExplorerContent({
     dragOverId === item.id && "is-drag-over"
   );
   if (view === "large-icons") {
-    return /* @__PURE__ */ jsx38("div", { className: "explorer-content-inner large-icons", children: items.map((item) => /* @__PURE__ */ jsx38(
+    return /* @__PURE__ */ jsx39("div", { className: "explorer-content-inner large-icons", children: items.map((item) => /* @__PURE__ */ jsx39(
       SystemIcon,
       {
         kind: item.kind,
@@ -2112,7 +2183,7 @@ function ExplorerContent({
     )) });
   }
   if (view === "list") {
-    return /* @__PURE__ */ jsx38("div", { className: "explorer-content-inner list", children: items.map((item) => /* @__PURE__ */ jsxs17(
+    return /* @__PURE__ */ jsx39("div", { className: "explorer-content-inner list", children: items.map((item) => /* @__PURE__ */ jsxs18(
       "a",
       {
         href: "#",
@@ -2131,21 +2202,21 @@ function ExplorerContent({
         onDragLeave: () => onDragLeaveItem(item),
         onDrop: (event) => onDropItem(item, event),
         children: [
-          /* @__PURE__ */ jsx38(Glyph, { kind: item.kind }),
-          /* @__PURE__ */ jsx38("span", { className: "label", children: item.label })
+          /* @__PURE__ */ jsx39(Glyph, { kind: item.kind }),
+          /* @__PURE__ */ jsx39("span", { className: "label", children: item.label })
         ]
       },
       item.id
     )) });
   }
-  return /* @__PURE__ */ jsx38("div", { className: "explorer-content-inner details", children: /* @__PURE__ */ jsxs17(Table, { className: "explorer-details", children: [
-    /* @__PURE__ */ jsx38("thead", { children: /* @__PURE__ */ jsxs17("tr", { children: [
-      /* @__PURE__ */ jsx38("th", { children: "Name" }),
-      /* @__PURE__ */ jsx38("th", { children: "Size" }),
-      /* @__PURE__ */ jsx38("th", { children: "Type" }),
-      /* @__PURE__ */ jsx38("th", { children: "Modified" })
+  return /* @__PURE__ */ jsx39("div", { className: "explorer-content-inner details", children: /* @__PURE__ */ jsxs18(Table, { className: "explorer-details", children: [
+    /* @__PURE__ */ jsx39("thead", { children: /* @__PURE__ */ jsxs18("tr", { children: [
+      /* @__PURE__ */ jsx39("th", { children: "Name" }),
+      /* @__PURE__ */ jsx39("th", { children: "Size" }),
+      /* @__PURE__ */ jsx39("th", { children: "Type" }),
+      /* @__PURE__ */ jsx39("th", { children: "Modified" })
     ] }) }),
-    /* @__PURE__ */ jsx38("tbody", { children: items.map((item) => /* @__PURE__ */ jsxs17(
+    /* @__PURE__ */ jsx39("tbody", { children: items.map((item) => /* @__PURE__ */ jsxs18(
       TableRow,
       {
         draggable: Boolean(onItemsDrop),
@@ -2158,13 +2229,13 @@ function ExplorerContent({
         onDragLeave: () => onDragLeaveItem(item),
         onDrop: (event) => onDropItem(item, event),
         children: [
-          /* @__PURE__ */ jsxs17("td", { className: "name-cell", children: [
-            /* @__PURE__ */ jsx38(Glyph, { kind: item.kind }),
+          /* @__PURE__ */ jsxs18("td", { className: "name-cell", children: [
+            /* @__PURE__ */ jsx39(Glyph, { kind: item.kind }),
             item.label
           ] }),
-          /* @__PURE__ */ jsx38("td", { children: formatExplorerSize(item.sizeBytes) }),
-          /* @__PURE__ */ jsx38("td", { children: item.typeLabel ?? "" }),
-          /* @__PURE__ */ jsx38("td", { children: item.modifiedAt ?? "" })
+          /* @__PURE__ */ jsx39("td", { children: formatExplorerSize(item.sizeBytes) }),
+          /* @__PURE__ */ jsx39("td", { children: item.typeLabel ?? "" }),
+          /* @__PURE__ */ jsx39("td", { children: item.modifiedAt ?? "" })
         ]
       },
       item.id
@@ -2175,16 +2246,16 @@ function ExplorerContent({
 // src/admin/bricks/FileExplorerWindow/ExplorerMenuBar.tsx
 import {
   useEffect as useEffect4,
-  useId as useId2,
-  useRef as useRef5,
+  useId as useId3,
+  useRef as useRef6,
   useState as useState4
 } from "react";
-import { Fragment as Fragment8, jsx as jsx39, jsxs as jsxs18 } from "react/jsx-runtime";
+import { Fragment as Fragment8, jsx as jsx40, jsxs as jsxs19 } from "react/jsx-runtime";
 function MenuLabel2({ text, accessKey }) {
-  return /* @__PURE__ */ jsx39(Fragment8, { children: underlineAccessKey(text, accessKey) });
+  return /* @__PURE__ */ jsx40(Fragment8, { children: underlineAccessKey(text, accessKey) });
 }
 function menuGlyph(kind) {
-  return /* @__PURE__ */ jsx39("span", { className: `menu-popup-glyph ${kind}` });
+  return /* @__PURE__ */ jsx40("span", { className: `menu-popup-glyph ${kind}` });
 }
 function buildMenus(props) {
   const {
@@ -2391,9 +2462,9 @@ var TOP_LEVEL = [
 function ExplorerMenuBar(props) {
   const { className } = props;
   const menus = buildMenus(props);
-  const rootRef = useRef5(null);
+  const rootRef = useRef6(null);
   const [openMenu, setOpenMenu] = useState4(null);
-  const baseId = useId2();
+  const baseId = useId3();
   useEffect4(() => {
     if (!openMenu) {
       return;
@@ -2424,7 +2495,7 @@ function ExplorerMenuBar(props) {
       setOpenMenu(next.id);
     }
   };
-  return /* @__PURE__ */ jsx39(
+  return /* @__PURE__ */ jsx40(
     "div",
     {
       ref: rootRef,
@@ -2435,7 +2506,7 @@ function ExplorerMenuBar(props) {
         const menuId = `${baseId}-${top.id}`;
         const expanded = openMenu === top.id;
         const items = menus[top.id];
-        return /* @__PURE__ */ jsxs18(
+        return /* @__PURE__ */ jsxs19(
           "div",
           {
             className: "explorer-menu-root",
@@ -2446,7 +2517,7 @@ function ExplorerMenuBar(props) {
               }
             },
             children: [
-              /* @__PURE__ */ jsx39(
+              /* @__PURE__ */ jsx40(
                 "button",
                 {
                   type: "button",
@@ -2458,10 +2529,10 @@ function ExplorerMenuBar(props) {
                   onClick: () => {
                     setOpenMenu((current) => current === top.id ? null : top.id);
                   },
-                  children: /* @__PURE__ */ jsx39(MenuLabel2, { text: top.label, accessKey: top.accessKey })
+                  children: /* @__PURE__ */ jsx40(MenuLabel2, { text: top.label, accessKey: top.accessKey })
                 }
               ),
-              expanded ? /* @__PURE__ */ jsx39(
+              expanded ? /* @__PURE__ */ jsx40(
                 MenuPopup,
                 {
                   id: menuId,
@@ -2483,10 +2554,10 @@ function ExplorerMenuBar(props) {
 // src/admin/bricks/FileExplorerWindow/ExplorerSplitter.tsx
 import {
   useCallback as useCallback2,
-  useRef as useRef6,
+  useRef as useRef7,
   useState as useState5
 } from "react";
-import { jsx as jsx40 } from "react/jsx-runtime";
+import { jsx as jsx41 } from "react/jsx-runtime";
 function ExplorerSplitter({
   value,
   onChange,
@@ -2497,7 +2568,7 @@ function ExplorerSplitter({
   keyboardStep = 8
 }) {
   const [dragging, setDragging] = useState5(false);
-  const dragRef = useRef6(
+  const dragRef = useRef7(
     null
   );
   const clamp = useCallback2(
@@ -2559,7 +2630,7 @@ function ExplorerSplitter({
       onChange(max);
     }
   };
-  return /* @__PURE__ */ jsx40(
+  return /* @__PURE__ */ jsx41(
     "div",
     {
       className: cn("explorer-splitter", dragging && "is-dragging", className),
@@ -2581,7 +2652,7 @@ function ExplorerSplitter({
 }
 
 // src/admin/bricks/FileExplorerWindow/ExplorerToolbar.tsx
-import { jsx as jsx41, jsxs as jsxs19 } from "react/jsx-runtime";
+import { jsx as jsx42, jsxs as jsxs20 } from "react/jsx-runtime";
 var VIEW_TOOLS = [
   { view: "large-icons", label: "Large Icons", className: "large-icons" },
   { view: "list", label: "List", className: "list" },
@@ -2600,8 +2671,8 @@ function ExplorerToolbar({
   onProperties,
   className
 }) {
-  return /* @__PURE__ */ jsxs19("div", { className: cn("panel explorer-toolbar", className), role: "toolbar", "aria-label": "Explorer", children: [
-    /* @__PURE__ */ jsx41(
+  return /* @__PURE__ */ jsxs20("div", { className: cn("panel explorer-toolbar", className), role: "toolbar", "aria-label": "Explorer", children: [
+    /* @__PURE__ */ jsx42(
       Button,
       {
         type: "button",
@@ -2611,9 +2682,9 @@ function ExplorerToolbar({
         onClick: onLevelUp
       }
     ),
-    /* @__PURE__ */ jsx41(VerticalBar, {}),
-    /* @__PURE__ */ jsx41(Button, { type: "button", className: "tool cut", "aria-label": "Cut", disabled: !onCut, onClick: onCut }),
-    /* @__PURE__ */ jsx41(
+    /* @__PURE__ */ jsx42(VerticalBar, {}),
+    /* @__PURE__ */ jsx42(Button, { type: "button", className: "tool cut", "aria-label": "Cut", disabled: !onCut, onClick: onCut }),
+    /* @__PURE__ */ jsx42(
       Button,
       {
         type: "button",
@@ -2623,7 +2694,7 @@ function ExplorerToolbar({
         onClick: onCopy
       }
     ),
-    /* @__PURE__ */ jsx41(
+    /* @__PURE__ */ jsx42(
       Button,
       {
         type: "button",
@@ -2633,7 +2704,7 @@ function ExplorerToolbar({
         onClick: onPaste
       }
     ),
-    /* @__PURE__ */ jsx41(
+    /* @__PURE__ */ jsx42(
       Button,
       {
         type: "button",
@@ -2643,7 +2714,7 @@ function ExplorerToolbar({
         onClick: onUndo
       }
     ),
-    /* @__PURE__ */ jsx41(
+    /* @__PURE__ */ jsx42(
       Button,
       {
         type: "button",
@@ -2653,7 +2724,7 @@ function ExplorerToolbar({
         onClick: onDelete
       }
     ),
-    /* @__PURE__ */ jsx41(
+    /* @__PURE__ */ jsx42(
       Button,
       {
         type: "button",
@@ -2663,8 +2734,8 @@ function ExplorerToolbar({
         onClick: onProperties
       }
     ),
-    /* @__PURE__ */ jsx41(VerticalBar, {}),
-    VIEW_TOOLS.map((tool) => /* @__PURE__ */ jsx41(
+    /* @__PURE__ */ jsx42(VerticalBar, {}),
+    VIEW_TOOLS.map((tool) => /* @__PURE__ */ jsx42(
       Button,
       {
         type: "button",
@@ -2679,7 +2750,7 @@ function ExplorerToolbar({
 }
 
 // src/admin/bricks/FileExplorerWindow/FileExplorerWindow.tsx
-import { jsx as jsx42, jsxs as jsxs20 } from "react/jsx-runtime";
+import { jsx as jsx43, jsxs as jsxs21 } from "react/jsx-runtime";
 var DEFAULT_TREE_WIDTH = 200;
 var MIN_TREE_WIDTH = 120;
 var MAX_TREE_WIDTH = 480;
@@ -2693,9 +2764,9 @@ function TreeNodeLabel({
   node,
   expanded = false
 }) {
-  return /* @__PURE__ */ jsxs20("span", { className: cn("explorer-tree-node", node.disabled && "is-disabled"), children: [
-    /* @__PURE__ */ jsx42("span", { className: cn("explorer-glyph", treeGlyphKind(node, expanded)), "aria-hidden": true }),
-    /* @__PURE__ */ jsx42("span", { className: "tree-view-label", children: node.label })
+  return /* @__PURE__ */ jsxs21("span", { className: cn("explorer-tree-node", node.disabled && "is-disabled"), children: [
+    /* @__PURE__ */ jsx43("span", { className: cn("explorer-glyph", treeGlyphKind(node, expanded)), "aria-hidden": true }),
+    /* @__PURE__ */ jsx43("span", { className: "tree-view-label", children: node.label })
   ] });
 }
 function readDraggedIds(event) {
@@ -2710,7 +2781,7 @@ function TreeDropLink({
 }) {
   const droppable = Boolean(onItemsDrop) && isExplorerLocation(node) && !node.disabled;
   const [dragOver, setDragOver] = useState6(false);
-  return /* @__PURE__ */ jsx42(
+  return /* @__PURE__ */ jsx43(
     "a",
     {
       href: "#",
@@ -2764,8 +2835,8 @@ function ExplorerTreeBranch({
     }
   }, [ancestorIds, node.id]);
   const isCurrent = locationId === node.id;
-  return /* @__PURE__ */ jsx42("li", { children: /* @__PURE__ */ jsxs20("details", { open, children: [
-    /* @__PURE__ */ jsxs20(
+  return /* @__PURE__ */ jsx43("li", { children: /* @__PURE__ */ jsxs21("details", { open, children: [
+    /* @__PURE__ */ jsxs21(
       "summary",
       {
         tabIndex: -1,
@@ -2773,7 +2844,7 @@ function ExplorerTreeBranch({
           event.preventDefault();
         },
         children: [
-          /* @__PURE__ */ jsx42(
+          /* @__PURE__ */ jsx43(
             TreeToggle,
             {
               expanded: open,
@@ -2784,20 +2855,20 @@ function ExplorerTreeBranch({
               }
             }
           ),
-          node.disabled ? /* @__PURE__ */ jsx42("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: /* @__PURE__ */ jsx42(TreeNodeLabel, { node, expanded: open }) }) : /* @__PURE__ */ jsx42(
+          node.disabled ? /* @__PURE__ */ jsx43("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: /* @__PURE__ */ jsx43(TreeNodeLabel, { node, expanded: open }) }) : /* @__PURE__ */ jsx43(
             TreeDropLink,
             {
               node,
               isCurrent,
               onTreeSelect,
               onItemsDrop,
-              children: /* @__PURE__ */ jsx42(TreeNodeLabel, { node, expanded: open })
+              children: /* @__PURE__ */ jsx43(TreeNodeLabel, { node, expanded: open })
             }
           )
         ]
       }
     ),
-    /* @__PURE__ */ jsx42("ul", { children: renderTreeNodes(kids, locationId, ancestorIds, onTreeSelect, onItemsDrop) })
+    /* @__PURE__ */ jsx43("ul", { children: renderTreeNodes(kids, locationId, ancestorIds, onTreeSelect, onItemsDrop) })
   ] }) });
 }
 function renderTreeNodes(nodes, locationId, ancestorIds, onTreeSelect, onItemsDrop) {
@@ -2805,7 +2876,7 @@ function renderTreeNodes(nodes, locationId, ancestorIds, onTreeSelect, onItemsDr
     const canExpand = isExplorerTreeExpandable(node);
     const isCurrent = locationId === node.id;
     if (canExpand) {
-      return /* @__PURE__ */ jsx42(
+      return /* @__PURE__ */ jsx43(
         ExplorerTreeBranch,
         {
           node,
@@ -2817,14 +2888,14 @@ function renderTreeNodes(nodes, locationId, ancestorIds, onTreeSelect, onItemsDr
         node.id
       );
     }
-    return /* @__PURE__ */ jsx42("li", { className: cn(node.disabled && "is-disabled"), children: node.disabled ? /* @__PURE__ */ jsx42("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: /* @__PURE__ */ jsx42(TreeNodeLabel, { node }) }) : /* @__PURE__ */ jsx42(
+    return /* @__PURE__ */ jsx43("li", { className: cn(node.disabled && "is-disabled"), children: node.disabled ? /* @__PURE__ */ jsx43("span", { className: "explorer-tree-leaf is-disabled", "aria-disabled": "true", children: /* @__PURE__ */ jsx43(TreeNodeLabel, { node }) }) : /* @__PURE__ */ jsx43(
       TreeDropLink,
       {
         node,
         isCurrent,
         onTreeSelect,
         onItemsDrop,
-        children: /* @__PURE__ */ jsx42(TreeNodeLabel, { node })
+        children: /* @__PURE__ */ jsx43(TreeNodeLabel, { node })
       }
     ) }, node.id);
   });
@@ -2896,14 +2967,14 @@ function FileExplorerWindow({
   );
   const primarySelectedId = selectedIds.length > 0 ? selectedIds[selectedIds.length - 1] : null;
   const selectedItem = findExplorerItem(tree, primarySelectedId) ?? items.find((item) => item.id === primarySelectedId) ?? null;
-  return /* @__PURE__ */ jsx42(
+  return /* @__PURE__ */ jsx43(
     PaneWindowShell,
     {
       className: cn("w-window-xl file-explorer-window", className),
       resizable,
       ...shell,
-      children: /* @__PURE__ */ jsxs20("div", { className: "window-pane explorer-panel-layout", style: paneStyle, children: [
-        /* @__PURE__ */ jsx42(
+      children: /* @__PURE__ */ jsxs21("div", { className: "window-pane explorer-panel-layout", style: paneStyle, children: [
+        /* @__PURE__ */ jsx43(
           ExplorerMenuBar,
           {
             view,
@@ -2931,8 +3002,8 @@ function FileExplorerWindow({
             onAbout
           }
         ),
-        /* @__PURE__ */ jsx42("div", { className: "explorer-chrome-separator", role: "separator" }),
-        /* @__PURE__ */ jsx42(
+        /* @__PURE__ */ jsx43("div", { className: "explorer-chrome-separator", role: "separator" }),
+        /* @__PURE__ */ jsx43(
           ExplorerToolbar,
           {
             view,
@@ -2947,9 +3018,9 @@ function FileExplorerWindow({
             onProperties
           }
         ),
-        /* @__PURE__ */ jsxs20("div", { className: "explorer-split", children: [
-          /* @__PURE__ */ jsx42(FieldBorder, { scrollable: true, className: "panel explorer-tree", style: treeStyle, children: /* @__PURE__ */ jsx42("div", { className: "explorer-tree-inner", children: /* @__PURE__ */ jsx42(TreeView, { children: renderTreeNodes(tree, locationId, ancestorIds, onTreeSelect, onItemsDrop) }) }) }),
-          treePaneResizable ? /* @__PURE__ */ jsx42(
+        /* @__PURE__ */ jsxs21("div", { className: "explorer-split", children: [
+          /* @__PURE__ */ jsx43(FieldBorder, { scrollable: true, className: "panel explorer-tree", style: treeStyle, children: /* @__PURE__ */ jsx43("div", { className: "explorer-tree-inner", children: /* @__PURE__ */ jsx43(TreeView, { children: renderTreeNodes(tree, locationId, ancestorIds, onTreeSelect, onItemsDrop) }) }) }),
+          treePaneResizable ? /* @__PURE__ */ jsx43(
             ExplorerSplitter,
             {
               value: resolvedTreeWidth,
@@ -2957,8 +3028,8 @@ function FileExplorerWindow({
               min: minTreeWidth,
               max: maxTreeWidth
             }
-          ) : /* @__PURE__ */ jsx42("div", { className: "explorer-splitter is-static", "aria-hidden": true }),
-          /* @__PURE__ */ jsx42(FieldBorder, { scrollable: true, className: "panel explorer-content", children: /* @__PURE__ */ jsx42(
+          ) : /* @__PURE__ */ jsx43("div", { className: "explorer-splitter is-static", "aria-hidden": true }),
+          /* @__PURE__ */ jsx43(FieldBorder, { scrollable: true, className: "panel explorer-content", children: /* @__PURE__ */ jsx43(
             ExplorerContent,
             {
               view,
@@ -3053,7 +3124,7 @@ function isUnderMediaLibrary(forest, itemId, findParent) {
 }
 
 // src/admin/bricks/FileExplorerWindow/ExplorerPropertiesDialog.tsx
-import { jsx as jsx43, jsxs as jsxs21 } from "react/jsx-runtime";
+import { jsx as jsx44, jsxs as jsxs22 } from "react/jsx-runtime";
 function canEditNodePublication(item) {
   const ref = parseExplorerEntityId(item.id);
   if (ref?.type !== "node") {
@@ -3080,14 +3151,14 @@ function ExplorerPropertiesDialog({
   }, [item.id, item.publication]);
   const publicationDirty = publication !== (item.publication ?? "draft");
   const editable = Boolean(canEditPublication && onSavePublication && showPublication);
-  return /* @__PURE__ */ jsx43(
+  return /* @__PURE__ */ jsx44(
     DialogWindow,
     {
       className: cn("explorer-properties-dialog", className),
       title: `${item.label} Properties`,
-      titleBarControls: /* @__PURE__ */ jsx43(TitleBarControls, { children: /* @__PURE__ */ jsx43(TitleBarControl, { action: "Close", onClick: onClose }) }),
-      actions: /* @__PURE__ */ jsxs21(FieldRow, { className: "justify-end", children: [
-        editable ? /* @__PURE__ */ jsx43(
+      titleBarControls: /* @__PURE__ */ jsx44(TitleBarControls, { children: /* @__PURE__ */ jsx44(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      actions: /* @__PURE__ */ jsxs22(FieldRow, { className: "justify-end", children: [
+        editable ? /* @__PURE__ */ jsx44(
           Button,
           {
             type: "button",
@@ -3103,35 +3174,35 @@ function ExplorerPropertiesDialog({
             },
             children: "OK"
           }
-        ) : /* @__PURE__ */ jsx43(Button, { type: "button", isDefault: true, accessKey: "o", onClick: onClose, children: "OK" }),
-        /* @__PURE__ */ jsx43(Button, { type: "button", accessKey: "c", onClick: onClose, disabled: savingPublication, children: "Cancel" })
+        ) : /* @__PURE__ */ jsx44(Button, { type: "button", isDefault: true, accessKey: "o", onClick: onClose, children: "OK" }),
+        /* @__PURE__ */ jsx44(Button, { type: "button", accessKey: "c", onClick: onClose, disabled: savingPublication, children: "Cancel" })
       ] }),
-      children: /* @__PURE__ */ jsxs21("div", { className: "explorer-properties", children: [
-        /* @__PURE__ */ jsxs21("div", { className: "explorer-properties-identity", children: [
-          /* @__PURE__ */ jsx43("span", { className: cn("explorer-glyph", item.kind), "aria-hidden": true }),
-          /* @__PURE__ */ jsx43("span", { className: "explorer-properties-name", children: item.label })
+      children: /* @__PURE__ */ jsxs22("div", { className: "explorer-properties", children: [
+        /* @__PURE__ */ jsxs22("div", { className: "explorer-properties-identity", children: [
+          /* @__PURE__ */ jsx44("span", { className: cn("explorer-glyph", item.kind), "aria-hidden": true }),
+          /* @__PURE__ */ jsx44("span", { className: "explorer-properties-name", children: item.label })
         ] }),
-        /* @__PURE__ */ jsxs21("dl", { className: "explorer-properties-list", children: [
-          /* @__PURE__ */ jsxs21("div", { children: [
-            /* @__PURE__ */ jsx43("dt", { children: "Type:" }),
-            /* @__PURE__ */ jsx43("dd", { children: item.typeLabel ?? "\u2014" })
+        /* @__PURE__ */ jsxs22("dl", { className: "explorer-properties-list", children: [
+          /* @__PURE__ */ jsxs22("div", { children: [
+            /* @__PURE__ */ jsx44("dt", { children: "Type:" }),
+            /* @__PURE__ */ jsx44("dd", { children: item.typeLabel ?? "\u2014" })
           ] }),
-          /* @__PURE__ */ jsxs21("div", { children: [
-            /* @__PURE__ */ jsx43("dt", { children: "Location:" }),
-            /* @__PURE__ */ jsx43("dd", { children: parentLabel ?? "\u2014" })
+          /* @__PURE__ */ jsxs22("div", { children: [
+            /* @__PURE__ */ jsx44("dt", { children: "Location:" }),
+            /* @__PURE__ */ jsx44("dd", { children: parentLabel ?? "\u2014" })
           ] }),
-          /* @__PURE__ */ jsxs21("div", { children: [
-            /* @__PURE__ */ jsx43("dt", { children: "Size:" }),
-            /* @__PURE__ */ jsx43("dd", { children: sizeLabel })
+          /* @__PURE__ */ jsxs22("div", { children: [
+            /* @__PURE__ */ jsx44("dt", { children: "Size:" }),
+            /* @__PURE__ */ jsx44("dd", { children: sizeLabel })
           ] }),
-          /* @__PURE__ */ jsxs21("div", { children: [
-            /* @__PURE__ */ jsx43("dt", { children: "Modified:" }),
-            /* @__PURE__ */ jsx43("dd", { children: item.modifiedAt ?? "\u2014" })
+          /* @__PURE__ */ jsxs22("div", { children: [
+            /* @__PURE__ */ jsx44("dt", { children: "Modified:" }),
+            /* @__PURE__ */ jsx44("dd", { children: item.modifiedAt ?? "\u2014" })
           ] }),
-          showPublication ? /* @__PURE__ */ jsxs21("div", { children: [
-            /* @__PURE__ */ jsx43("dt", { children: /* @__PURE__ */ jsx43("label", { htmlFor: "wh-explorer-publication", children: "Publication:" }) }),
-            /* @__PURE__ */ jsx43("dd", { children: editable ? /* @__PURE__ */ jsxs21("div", { className: "explorer-properties-publication", children: [
-              /* @__PURE__ */ jsxs21(
+          showPublication ? /* @__PURE__ */ jsxs22("div", { children: [
+            /* @__PURE__ */ jsx44("dt", { children: /* @__PURE__ */ jsx44("label", { htmlFor: "wh-explorer-publication", children: "Publication:" }) }),
+            /* @__PURE__ */ jsx44("dd", { children: editable ? /* @__PURE__ */ jsxs22("div", { className: "explorer-properties-publication", children: [
+              /* @__PURE__ */ jsxs22(
                 Select,
                 {
                   id: "wh-explorer-publication",
@@ -3139,13 +3210,13 @@ function ExplorerPropertiesDialog({
                   disabled: savingPublication,
                   onChange: (event) => setPublication(event.target.value),
                   children: [
-                    /* @__PURE__ */ jsx43("option", { value: "draft", children: "Draft" }),
-                    /* @__PURE__ */ jsx43("option", { value: "published", children: "Published" }),
-                    /* @__PURE__ */ jsx43("option", { value: "scheduled", children: "Scheduled" })
+                    /* @__PURE__ */ jsx44("option", { value: "draft", children: "Draft" }),
+                    /* @__PURE__ */ jsx44("option", { value: "published", children: "Published" }),
+                    /* @__PURE__ */ jsx44("option", { value: "scheduled", children: "Scheduled" })
                   ]
                 }
               ),
-              publication === "published" ? /* @__PURE__ */ jsx43(
+              publication === "published" ? /* @__PURE__ */ jsx44(
                 Button,
                 {
                   type: "button",
@@ -3153,7 +3224,7 @@ function ExplorerPropertiesDialog({
                   onClick: () => onSavePublication?.("draft"),
                   children: "Unpublish"
                 }
-              ) : /* @__PURE__ */ jsx43(
+              ) : /* @__PURE__ */ jsx44(
                 Button,
                 {
                   type: "button",
@@ -3174,8 +3245,8 @@ function ExplorerPropertiesDialog({
 import { useCallback as useCallback3, useEffect as useEffect7, useMemo as useMemo3, useState as useState9 } from "react";
 
 // src/admin/bricks/FileExplorerWindow/ExplorerPromptDialog.tsx
-import { useId as useId3, useState as useState8 } from "react";
-import { Fragment as Fragment9, jsx as jsx44, jsxs as jsxs22 } from "react/jsx-runtime";
+import { useId as useId4, useState as useState8 } from "react";
+import { Fragment as Fragment9, jsx as jsx45, jsxs as jsxs23 } from "react/jsx-runtime";
 function ExplorerPromptDialog({
   title,
   label,
@@ -3184,7 +3255,7 @@ function ExplorerPromptDialog({
   onConfirm,
   onCancel
 }) {
-  const inputId = useId3();
+  const inputId = useId4();
   const [value, setValue] = useState8(initialValue);
   const submit = () => {
     const trimmed = value.trim();
@@ -3193,19 +3264,19 @@ function ExplorerPromptDialog({
     }
     onConfirm(trimmed);
   };
-  return /* @__PURE__ */ jsx44(DesktopModal, { children: /* @__PURE__ */ jsx44(
+  return /* @__PURE__ */ jsx45(DesktopModal, { children: /* @__PURE__ */ jsx45(
     DialogWindow,
     {
       title,
       titleIcon: "folder",
-      titleBarControls: /* @__PURE__ */ jsx44(TitleBarControls, { children: /* @__PURE__ */ jsx44(TitleBarControl, { action: "Close", onClick: onCancel }) }),
-      actions: /* @__PURE__ */ jsxs22(Fragment9, { children: [
-        /* @__PURE__ */ jsx44(Button, { type: "button", onClick: submit, children: confirmLabel }),
-        /* @__PURE__ */ jsx44(Button, { type: "button", onClick: onCancel, children: "Cancel" })
+      titleBarControls: /* @__PURE__ */ jsx45(TitleBarControls, { children: /* @__PURE__ */ jsx45(TitleBarControl, { action: "Close", onClick: onCancel }) }),
+      actions: /* @__PURE__ */ jsxs23(Fragment9, { children: [
+        /* @__PURE__ */ jsx45(Button, { type: "button", onClick: submit, children: confirmLabel }),
+        /* @__PURE__ */ jsx45(Button, { type: "button", onClick: onCancel, children: "Cancel" })
       ] }),
-      children: /* @__PURE__ */ jsxs22(FieldRow, { children: [
-        /* @__PURE__ */ jsx44("label", { htmlFor: inputId, children: label }),
-        /* @__PURE__ */ jsx44(
+      children: /* @__PURE__ */ jsxs23(FieldRow, { children: [
+        /* @__PURE__ */ jsx45("label", { htmlFor: inputId, children: label }),
+        /* @__PURE__ */ jsx45(
           TextBox,
           {
             id: inputId,
@@ -3389,7 +3460,7 @@ var EXPLORER_FIXTURE_TREE = [
     expandable: false
   }
 ];
-var EXPLORER_FIXTURE_ITEMS = EXPLORER_FIXTURE_TREE.find((n2) => n2.id === "site-acme")?.children ?? [];
+var EXPLORER_FIXTURE_ITEMS = EXPLORER_FIXTURE_TREE.find((n3) => n3.id === "site-acme")?.children ?? [];
 function buildEmptySiteExplorerTree(site) {
   const prefix = `site-${site.id}`;
   return [
@@ -3609,10 +3680,10 @@ function cloneExplorerItemWithNewIds(roots, item) {
   const used = /* @__PURE__ */ new Set();
   const nextId = (oldId) => {
     let candidate = `${oldId}-copy`;
-    let n2 = 1;
+    let n3 = 1;
     while (findExplorerItem(roots, candidate) || used.has(candidate)) {
-      n2 += 1;
-      candidate = `${oldId}-copy-${n2}`;
+      n3 += 1;
+      candidate = `${oldId}-copy-${n3}`;
     }
     used.add(candidate);
     return candidate;
@@ -3774,7 +3845,7 @@ function undoExplorerAction(roots, entry) {
 }
 
 // src/admin/bricks/FileExplorerWindow/SiteFileExplorer.tsx
-import { jsx as jsx45, jsxs as jsxs23 } from "react/jsx-runtime";
+import { jsx as jsx46, jsxs as jsxs24 } from "react/jsx-runtime";
 function SiteFileExplorer({
   tree: treeProp,
   api,
@@ -4304,8 +4375,8 @@ function SiteFileExplorer({
   const statusCountLabel = selectedIds.length > 0 ? `${selectedIds.length} object(s) selected` : `${items.length} object(s)${hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}${busy ? " \u2014 updating\u2026" : ""}`;
   const canUndo = live ? softDeleteUndo != null : undoEntry != null;
   const copyHandler = live ? void 0 : canCutOrCopyExplorerItems(forest, selectedItems) ? handleCopy : void 0;
-  return /* @__PURE__ */ jsxs23("div", { className: "site-file-explorer", children: [
-    /* @__PURE__ */ jsx45(
+  return /* @__PURE__ */ jsxs24("div", { className: "site-file-explorer", children: [
+    /* @__PURE__ */ jsx46(
       FileExplorerWindow,
       {
         title,
@@ -4348,19 +4419,19 @@ function SiteFileExplorer({
         } : void 0,
         statusBarVisible,
         onStatusBarToggle: () => setStatusBarVisible((value) => !value),
-        titleBarControls: /* @__PURE__ */ jsxs23(TitleBarControls, { children: [
-          /* @__PURE__ */ jsx45(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-          resizable ? /* @__PURE__ */ jsx45(TitleBarControl, { action: maximizeAction, onClick: onMaximize }) : null,
-          /* @__PURE__ */ jsx45(TitleBarControl, { action: "Close", onClick: onClose })
+        titleBarControls: /* @__PURE__ */ jsxs24(TitleBarControls, { children: [
+          /* @__PURE__ */ jsx46(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+          resizable ? /* @__PURE__ */ jsx46(TitleBarControl, { action: maximizeAction, onClick: onMaximize }) : null,
+          /* @__PURE__ */ jsx46(TitleBarControl, { action: "Close", onClick: onClose })
         ] }),
-        statusBar: statusBarVisible ? /* @__PURE__ */ jsxs23(StatusBar, { children: [
-          /* @__PURE__ */ jsx45(StatusBarField, { children: statusCountLabel }),
-          /* @__PURE__ */ jsx45(StatusBarField, { className: "description", children: statusItem?.typeLabel ?? "" }),
-          /* @__PURE__ */ jsx45(StatusBarField, {})
+        statusBar: statusBarVisible ? /* @__PURE__ */ jsxs24(StatusBar, { children: [
+          /* @__PURE__ */ jsx46(StatusBarField, { children: statusCountLabel }),
+          /* @__PURE__ */ jsx46(StatusBarField, { className: "description", children: statusItem?.typeLabel ?? "" }),
+          /* @__PURE__ */ jsx46(StatusBarField, {})
         ] }) : void 0
       }
     ),
-    propertiesItem ? /* @__PURE__ */ jsx45(DesktopModal, { children: /* @__PURE__ */ jsx45(
+    propertiesItem ? /* @__PURE__ */ jsx46(DesktopModal, { children: /* @__PURE__ */ jsx46(
       ExplorerPropertiesDialog,
       {
         item: propertiesItem,
@@ -4373,7 +4444,7 @@ function SiteFileExplorer({
         onClose: () => setPropertiesItem(null)
       }
     ) }) : null,
-    prompt ? /* @__PURE__ */ jsx45(
+    prompt ? /* @__PURE__ */ jsx46(
       ExplorerPromptDialog,
       {
         title: prompt === "new-folder" ? "New Folder" : prompt === "new-page" ? "New Page" : "Rename",
@@ -4386,7 +4457,7 @@ function SiteFileExplorer({
         }
       }
     ) : null,
-    errorMessage ? /* @__PURE__ */ jsx45(DesktopModal, { children: /* @__PURE__ */ jsx45(
+    errorMessage ? /* @__PURE__ */ jsx46(DesktopModal, { children: /* @__PURE__ */ jsx46(
       MessageDialog,
       {
         type: "error",
@@ -5127,11 +5198,11 @@ var ElementDOMSlot = class _ElementDOMSlot extends DOMSlot {
   getFirstChildOffset() {
     const firstChild = this.getFirstChild();
     const insertionAnchor = this.getInsertionAnchor();
-    let i2 = 0;
+    let i3 = 0;
     for (let node = this.element.firstChild; node !== null && node !== firstChild && node !== insertionAnchor; node = node.nextSibling) {
-      i2++;
+      i3++;
     }
-    return i2;
+    return i3;
   }
   /**
    * @internal
@@ -5143,8 +5214,8 @@ var ElementDOMSlot = class _ElementDOMSlot extends DOMSlot {
       const childNodes = this.element.childNodes;
       const limit = Math.min(initialOffset, childNodes.length);
       let idx = 0;
-      for (let i2 = firstChildOffset; i2 < limit; i2++) {
-        if (childNodes[i2] !== blockCursor) {
+      for (let i3 = firstChildOffset; i3 < limit; i3++) {
+        if (childNodes[i3] !== blockCursor) {
           idx++;
         }
       }
@@ -5154,9 +5225,9 @@ var ElementDOMSlot = class _ElementDOMSlot extends DOMSlot {
     initialPath.push(initialOffset);
     const elementPath = indexPath(elementDOM, this.element);
     let offset = element.getIndexWithinParent();
-    for (let i2 = 0; i2 < elementPath.length; i2++) {
-      const target = initialPath[i2];
-      const source = elementPath[i2];
+    for (let i3 = 0; i3 < elementPath.length; i3++) {
+      const target = initialPath[i3];
+      const source = elementPath[i3];
       if (target === void 0 || target < source) {
         break;
       } else if (target > source) {
@@ -5171,11 +5242,11 @@ function indexPath(root, child) {
   const path = [];
   let node = child;
   for (; node !== root && node !== null; node = node.parentNode) {
-    let i2 = 0;
+    let i3 = 0;
     for (let sibling = node.previousSibling; sibling !== null; sibling = sibling.previousSibling) {
-      i2++;
+      i3++;
     }
-    path.push(i2);
+    path.push(i3);
   }
   if (!(node === root)) {
     formatDevErrorMessage2(`indexPath: root is not a parent of child`);
@@ -5567,8 +5638,8 @@ function flushMutations(editor, mutations, observer) {
       const blockCursorElement = editor._blockCursorElement;
       let shouldRevertSelection = false;
       let possibleTextForFirefoxPaste = "";
-      for (let i2 = 0; i2 < mutations.length; i2++) {
-        const mutation = mutations[i2];
+      for (let i3 = 0; i3 < mutations.length; i3++) {
+        const mutation = mutations[i3];
         const type = mutation.type;
         const targetDOM = mutation.target;
         const pair = $getNearestManagedNodePairFromDOMNode(targetDOM, editor, currentEditorState);
@@ -5588,8 +5659,8 @@ function flushMutations(editor, mutations, observer) {
         } else if (type === "childList") {
           shouldRevertSelection = true;
           const addedDOMs = mutation.addedNodes;
-          for (let s2 = 0; s2 < addedDOMs.length; s2++) {
-            const addedDOM = addedDOMs[s2];
+          for (let s4 = 0; s4 < addedDOMs.length; s4++) {
+            const addedDOM = addedDOMs[s4];
             const node = $getNodeFromDOMNode(addedDOM);
             const parentDOM = addedDOM.parentNode;
             if (parentDOM != null && addedDOM !== blockCursorElement && node === null && !isManagedLineBreak(addedDOM, parentDOM, editor) && // @experimental named-slots. Slot containers are keyless
@@ -5615,8 +5686,8 @@ function flushMutations(editor, mutations, observer) {
           const removedDOMsLength = removedDOMs.length;
           if (removedDOMsLength > 0) {
             let unremovedBRs = 0;
-            for (let s2 = 0; s2 < removedDOMsLength; s2++) {
-              const removedDOM = removedDOMs[s2];
+            for (let s4 = 0; s4 < removedDOMsLength; s4++) {
+              const removedDOM = removedDOMs[s4];
               if (isManagedLineBreak(removedDOM, targetDOM, editor) || blockCursorElement === removedDOM) {
                 targetDOM.appendChild(removedDOM);
                 unremovedBRs++;
@@ -5635,12 +5706,12 @@ function flushMutations(editor, mutations, observer) {
       }
       const records = observer.takeRecords();
       if (records.length > 0) {
-        for (let i2 = 0; i2 < records.length; i2++) {
-          const record = records[i2];
+        for (let i3 = 0; i3 < records.length; i3++) {
+          const record = records[i3];
           const addedNodes = record.addedNodes;
           const target = record.target;
-          for (let s2 = 0; s2 < addedNodes.length; s2++) {
-            const addedDOM = addedNodes[s2];
+          for (let s4 = 0; s4 < addedNodes.length; s4++) {
+            const addedDOM = addedNodes[s4];
             const parentDOM = addedDOM.parentNode;
             if (parentDOM != null && addedDOM.nodeName === "BR" && !isManagedLineBreak(addedDOM, target, editor)) {
               parentDOM.removeChild(addedDOM);
@@ -6063,12 +6134,12 @@ function $updateStateFromJSON(node, serialized) {
   }
   return writable;
 }
-function nodeStatesAreEquivalent(a2, b2) {
-  if (a2 === b2) {
+function nodeStatesAreEquivalent(a3, b2) {
+  if (a3 === b2) {
     return true;
   }
   const keys = /* @__PURE__ */ new Set();
-  return !(a2 && hasUnequalMapEntry(keys, a2, b2) || b2 && hasUnequalMapEntry(keys, b2, a2) || a2 && hasUnequalRecordEntry(keys, a2, b2) || b2 && hasUnequalRecordEntry(keys, b2, a2));
+  return !(a3 && hasUnequalMapEntry(keys, a3, b2) || b2 && hasUnequalMapEntry(keys, b2, a3) || a3 && hasUnequalRecordEntry(keys, a3, b2) || b2 && hasUnequalRecordEntry(keys, b2, a3));
 }
 function computeSize(sharedConfigMap, unknownState, knownState) {
   let size = knownState.size;
@@ -6228,7 +6299,7 @@ function $prevSuffixTextSize(startKey, count) {
   return activePrevEditorState.read(() => {
     let size = 0;
     let cur = startKey;
-    for (let i2 = 0; i2 < count && cur !== null; i2++) {
+    for (let i3 = 0; i3 < count && cur !== null; i3++) {
       const prevNode = activePrevNodeMap.get(cur);
       if (!(prevNode !== void 0)) {
         formatDevErrorMessage2(`prevSuffixTextSize: missing prev node for key ${cur}`);
@@ -6245,7 +6316,7 @@ function $prevSuffixTextSize(startKey, count) {
           }
           size += cached.length;
         }
-        if (i2 < count - 1 && !prevNode.isInline()) {
+        if (i3 < count - 1 && !prevNode.isInline()) {
           size += DOUBLE_LINE_BREAK.length;
         }
       } else {
@@ -6729,8 +6800,8 @@ function $suffixStartIfContiguous(parent, dirty) {
   }
   let cur = parent.__last;
   let suffixStart = null;
-  let i2 = 0;
-  while (cur !== null && i2 < k) {
+  let i3 = 0;
+  while (cur !== null && i3 < k) {
     if (!dirty.has(cur)) {
       return null;
     }
@@ -6740,9 +6811,9 @@ function $suffixStartIfContiguous(parent, dirty) {
       return null;
     }
     cur = node.__prev;
-    i2++;
+    i3++;
   }
-  if (i2 !== k) {
+  if (i3 !== k) {
     return null;
   }
   if (cur !== null && dirty.has(cur)) {
@@ -6760,7 +6831,7 @@ function $tryReconcileSuffixWithSizeDelta(prevElement, nextElement, slot, cacheD
   }
   const kPrime = k - sizeDelta;
   let prevSuffixStartKey = prevElement.__last;
-  for (let i2 = 0; i2 < kPrime - 1; i2++) {
+  for (let i3 = 0; i3 < kPrime - 1; i3++) {
     if (prevSuffixStartKey === null) {
       return false;
     }
@@ -6783,7 +6854,7 @@ function $tryReconcileSuffixWithSizeDelta(prevElement, nextElement, slot, cacheD
   }
   const nextSuffixKeys = [];
   let cur = suffixStartKey;
-  for (let i2 = 0; i2 < k; i2++) {
+  for (let i3 = 0; i3 < k; i3++) {
     if (cur === null) {
       return false;
     }
@@ -6793,7 +6864,7 @@ function $tryReconcileSuffixWithSizeDelta(prevElement, nextElement, slot, cacheD
   }
   const prevSuffixKeys = [];
   cur = prevSuffixStartKey;
-  for (let i2 = 0; i2 < kPrime; i2++) {
+  for (let i3 = 0; i3 < kPrime; i3++) {
     if (cur === null) {
       return false;
     }
@@ -6874,14 +6945,14 @@ function $tryReconcileSuffixWithSizeDelta(prevElement, nextElement, slot, cacheD
     $endCaptureGuard(saved);
   }
   let newSuffix = "";
-  for (let i2 = 0; i2 < k; i2++) {
-    const node = activeNextNodeMap.get(nextSuffixKeys[i2]);
+  for (let i3 = 0; i3 < k; i3++) {
+    const node = activeNextNodeMap.get(nextSuffixKeys[i3]);
     if (node === void 0) {
       return false;
     }
     let text;
     if ($isElementNode(node)) {
-      const childKeyedDom = activeEditor$1._keyToDOMMap.get(nextSuffixKeys[i2]);
+      const childKeyedDom = activeEditor$1._keyToDOMMap.get(nextSuffixKeys[i3]);
       const cached = childKeyedDom && childKeyedDom.__lexicalTextContent;
       if (!(typeof cached === "string")) {
         formatDevErrorMessage2(`tryReconcileSuffixWithSizeDelta: missing __lexicalTextContent on child of type ${node.getType()} after suffix reconcile`);
@@ -6891,7 +6962,7 @@ function $tryReconcileSuffixWithSizeDelta(prevElement, nextElement, slot, cacheD
       text = node.getTextContent();
     }
     newSuffix += text;
-    if (i2 < k - 1 && $isElementNode(node) && !node.isInline()) {
+    if (i3 < k - 1 && $isElementNode(node) && !node.isInline()) {
       newSuffix += DOUBLE_LINE_BREAK;
     }
   }
@@ -6971,8 +7042,8 @@ function $reconcileChildren(prevElement, nextElement, slot) {
         if (sizeDelta === 0) {
           const oldSuffixLength = $prevSuffixTextSize(suffixStartKey, k);
           let cur = suffixStartKey;
-          let i2 = 0;
-          while (cur !== null && i2 < k) {
+          let i3 = 0;
+          while (cur !== null && i3 < k) {
             const node = activeNextNodeMap.get(cur);
             if (node === void 0) {
               break;
@@ -6986,12 +7057,12 @@ function $reconcileChildren(prevElement, nextElement, slot) {
             }
             $endCaptureGuard(saved);
             cur = node.__next;
-            i2++;
+            i3++;
           }
           let newSuffix = "";
           cur = suffixStartKey;
-          i2 = 0;
-          while (cur !== null && i2 < k) {
+          i3 = 0;
+          while (cur !== null && i3 < k) {
             const node = activeNextNodeMap.get(cur);
             if (node === void 0) {
               break;
@@ -7008,11 +7079,11 @@ function $reconcileChildren(prevElement, nextElement, slot) {
               text = node.getTextContent();
             }
             newSuffix += text;
-            if (i2 < k - 1 && $isElementNode(node) && !node.isInline()) {
+            if (i3 < k - 1 && $isElementNode(node) && !node.isInline()) {
               newSuffix += DOUBLE_LINE_BREAK;
             }
             cur = node.__next;
-            i2++;
+            i3++;
           }
           const slotLen = cacheDom.__lexicalSlotTextLength || 0;
           const prevChildText = slotLen > 0 ? cachedParentText.slice(slotLen) : cachedParentText;
@@ -7035,7 +7106,7 @@ function $reconcileChildren(prevElement, nextElement, slot) {
     }
     if (sizeDelta === 0) {
       let nodeKey = prevElement.__first;
-      let i2 = 0;
+      let i3 = 0;
       while (nodeKey !== null) {
         const node = activeNextNodeMap.get(nodeKey);
         if (node === void 0) {
@@ -7069,12 +7140,12 @@ function $reconcileChildren(prevElement, nextElement, slot) {
             subTreeTextStyle = node.getStyle();
             subTreeFirstTextKey = node.__key;
           }
-        } else if ($isElementNode(node) && i2 < nextChildrenSize - 1 && !node.isInline()) {
+        } else if ($isElementNode(node) && i3 < nextChildrenSize - 1 && !node.isInline()) {
           subTreeTextContent += DOUBLE_LINE_BREAK;
         }
         $endCaptureGuard(saved);
         nodeKey = node.__next;
-        i2++;
+        i3++;
       }
       cacheDom.__lexicalTextContent = subTreeTextContent;
       cacheDom.__lexicalFirstTextKey = subTreeFirstTextKey;
@@ -7284,11 +7355,11 @@ function getNextSibling(element) {
   return nextSibling;
 }
 function childrenSet(children, start) {
-  const s2 = /* @__PURE__ */ new Set();
-  for (let i2 = start; i2 < children.length; i2++) {
-    s2.add(children[i2]);
+  const s4 = /* @__PURE__ */ new Set();
+  for (let i3 = start; i3 < children.length; i3++) {
+    s4.add(children[i3]);
   }
-  return s2;
+  return s4;
 }
 function $reconcileNodeChildren(nextElement, prevChildren, nextChildren, prevChildrenLength, nextChildrenLength, slot) {
   const prevEndIndex = prevChildrenLength - 1;
@@ -7662,11 +7733,11 @@ function onSelectionChange(domSelection, editor, isActive) {
         const endKey = isBackward ? anchorKey : focusKey;
         let combinedFormat = IS_ALL_FORMATTING;
         let hasTextNodes = false;
-        for (let i2 = 0; i2 < nodesLength; i2++) {
-          const node = nodes[i2];
+        for (let i3 = 0; i3 < nodesLength; i3++) {
+          const node = nodes[i3];
           const textContentSize = node.getTextContentSize();
           if ($isTextNode(node) && textContentSize !== 0 && // Exclude empty text nodes at boundaries resulting from user's selection
-          !(i2 === 0 && node.__key === startKey && startOffset === textContentSize || i2 === nodesLength - 1 && node.__key === endKey && endOffset === 0)) {
+          !(i3 === 0 && node.__key === startKey && startOffset === textContentSize || i3 === nodesLength - 1 && node.__key === endKey && endOffset === 0)) {
             hasTextNodes = true;
             combinedFormat &= node.getFormat();
             if (combinedFormat === 0) {
@@ -7724,12 +7795,12 @@ function onClick(event, editor) {
       if (rootElement !== null && event.target === rootElement) {
         const clientY = event.clientY;
         let offset = rootElement.childNodes.length;
-        for (let i2 = 0; i2 < rootElement.childNodes.length; i2++) {
-          const child = rootElement.childNodes[i2];
+        for (let i3 = 0; i3 < rootElement.childNodes.length; i3++) {
+          const child = rootElement.childNodes[i3];
           if (isHTMLElement(child)) {
             const rect = child.getBoundingClientRect();
             if (clientY <= (rect.top + rect.bottom) / 2) {
-              offset = i2;
+              offset = i3;
               break;
             }
           }
@@ -8530,8 +8601,8 @@ function addRootElementEvents(rootElement, editor) {
   rootElement.__lexicalEditor = editor;
   const removeHandles = getRootElementRemoveHandles(rootElement);
   removeHandles.push(documentSelectionChange.register(doc));
-  for (let i2 = 0; i2 < rootElementEvents.length; i2++) {
-    const [eventName, onEvent] = rootElementEvents[i2];
+  for (let i3 = 0; i3 < rootElementEvents.length; i3++) {
+    const [eventName, onEvent] = rootElementEvents[i3];
     const eventHandler = typeof onEvent === "function" ? (event) => {
       if (hasStoppedLexicalPropagation(event)) {
         return;
@@ -8596,8 +8667,8 @@ function removeRootElementEvents(rootElement) {
     }
   }
   const removeHandles = getRootElementRemoveHandles(rootElement);
-  for (let i2 = 0; i2 < removeHandles.length; i2++) {
-    removeHandles[i2]();
+  for (let i3 = 0; i3 < removeHandles.length; i3++) {
+    removeHandles[i3]();
   }
   rootElement.__lexicalEventHandles = [];
 }
@@ -8902,7 +8973,7 @@ var LexicalNode = class {
     if (targetSelection == null) {
       return false;
     }
-    const isSelected = targetSelection.getNodes().some((n2) => n2.__key === this.__key);
+    const isSelected = targetSelection.getNodes().some((n3) => n3.__key === this.__key);
     if ($isTextNode(this)) {
       return isSelected;
     }
@@ -9125,9 +9196,9 @@ var LexicalNode = class {
    * @param node - the other node to find the common ancestor of.
    */
   getCommonAncestor(node) {
-    const a2 = $isElementNode(this) ? this : this.getParent();
+    const a3 = $isElementNode(this) ? this : this.getParent();
     const b2 = $isElementNode(node) ? node : node.getParent();
-    const result = a2 && b2 ? $getCommonAncestor(a2, b2) : null;
+    const result = a3 && b2 ? $getCommonAncestor(a3, b2) : null;
     return result ? result.commonAncestor : null;
   }
   /**
@@ -9814,25 +9885,25 @@ function getStyleObjectFromCSS(css) {
   let parenthesisDepth = 0;
   const length = css.length;
   let chunkStart = -1;
-  for (let i2 = 0; i2 < length; i2++) {
-    const char = css[i2];
+  for (let i3 = 0; i3 < length; i3++) {
+    const char = css[i3];
     if (inComment) {
-      if (char === "*" && css[i2 + 1] === "/") {
+      if (char === "*" && css[i3 + 1] === "/") {
         inComment = false;
-        i2++;
+        i3++;
       }
       continue;
     }
     if (isEscaped) {
       if (chunkStart === -1) {
-        chunkStart = i2;
+        chunkStart = i3;
       }
       isEscaped = false;
       continue;
     }
     if (currentQuote !== null) {
       if (chunkStart === -1) {
-        chunkStart = i2;
+        chunkStart = i3;
       }
       if (char === "\\") {
         isEscaped = true;
@@ -9841,43 +9912,43 @@ function getStyleObjectFromCSS(css) {
       }
       continue;
     }
-    if (char === "/" && css[i2 + 1] === "*") {
+    if (char === "/" && css[i3 + 1] === "*") {
       if (chunkStart !== -1) {
         if (isParsingValue) {
-          currentValue += css.slice(chunkStart, i2);
+          currentValue += css.slice(chunkStart, i3);
         } else {
-          currentProperty += css.slice(chunkStart, i2);
+          currentProperty += css.slice(chunkStart, i3);
         }
         chunkStart = -1;
       }
       inComment = true;
-      i2++;
+      i3++;
       continue;
     }
     if (char === '"' || char === "'") {
       if (chunkStart === -1) {
-        chunkStart = i2;
+        chunkStart = i3;
       }
       currentQuote = char;
       continue;
     }
     if (char === "(") {
       if (chunkStart === -1) {
-        chunkStart = i2;
+        chunkStart = i3;
       }
       parenthesisDepth++;
       continue;
     }
     if (char === ")") {
       if (chunkStart === -1) {
-        chunkStart = i2;
+        chunkStart = i3;
       }
       parenthesisDepth = Math.max(0, parenthesisDepth - 1);
       continue;
     }
     if (!isParsingValue && char === ":" && parenthesisDepth === 0) {
       if (chunkStart !== -1) {
-        currentProperty += css.slice(chunkStart, i2);
+        currentProperty += css.slice(chunkStart, i3);
         chunkStart = -1;
       }
       isParsingValue = true;
@@ -9886,9 +9957,9 @@ function getStyleObjectFromCSS(css) {
     if (char === ";" && parenthesisDepth === 0) {
       if (chunkStart !== -1) {
         if (isParsingValue) {
-          currentValue += css.slice(chunkStart, i2);
+          currentValue += css.slice(chunkStart, i3);
         } else {
-          currentProperty += css.slice(chunkStart, i2);
+          currentProperty += css.slice(chunkStart, i3);
         }
         chunkStart = -1;
       }
@@ -9903,7 +9974,7 @@ function getStyleObjectFromCSS(css) {
       continue;
     }
     if (chunkStart === -1) {
-      chunkStart = i2;
+      chunkStart = i3;
     }
   }
   if (chunkStart !== -1) {
@@ -10019,15 +10090,15 @@ function setTextThemeClassNames(tag, prevFormat, nextFormat, dom, textClassNames
     }
   }
 }
-function diffComposedText(a2, b2) {
-  const aLength = a2.length;
+function diffComposedText(a3, b2) {
+  const aLength = a3.length;
   const bLength = b2.length;
   let left = 0;
   let right = 0;
-  while (left < aLength && left < bLength && a2[left] === b2[left]) {
+  while (left < aLength && left < bLength && a3[left] === b2[left]) {
     left++;
   }
-  while (right + left < aLength && right + left < bLength && a2[aLength - right - 1] === b2[bLength - right - 1]) {
+  while (right + left < aLength && right + left < bLength && a3[aLength - right - 1] === b2[bLength - right - 1]) {
     right++;
   }
   return [left, aLength - left - right, b2.slice(left, bLength - right)];
@@ -10651,7 +10722,7 @@ var TextNode = class extends LexicalNode {
     const key = self.__key;
     const compositionKey = $getCompositionKey();
     const textLength = textContent.length;
-    splitOffsets.sort((a2, b2) => a2 - b2);
+    splitOffsets.sort((a3, b2) => a3 - b2);
     splitOffsets.push(textLength);
     const parts = [];
     const splitOffsetsLength = splitOffsets.length;
@@ -10696,8 +10767,8 @@ var TextNode = class extends LexicalNode {
       writableNode = self.setTextContent(firstPart);
     }
     const splitNodes = [writableNode];
-    for (let i2 = 1; i2 < partsLength; i2++) {
-      const part = parts[i2];
+    for (let i3 = 1; i3 < partsLength; i3++) {
+      const part = parts[i3];
       const sibling = $createTextNode(part);
       sibling.__format = format;
       sibling.__style = style;
@@ -10831,8 +10902,8 @@ function findParentPreDOMNode(node) {
     parent = parent.parentNode;
   }
   const resultNode = cached === void 0 ? parent : cached;
-  for (let i2 = 0; i2 < visited.length; i2++) {
-    preParentCache.set(visited[i2], resultNode);
+  for (let i3 = 0; i3 < visited.length; i3++) {
+    preParentCache.set(visited[i3], resultNode);
   }
   return resultNode;
 }
@@ -11235,9 +11306,9 @@ var NodeSelection = class _NodeSelection {
     if (!$isNodeSelection(selection)) {
       return false;
     }
-    const a2 = this._nodes;
+    const a3 = this._nodes;
     const b2 = selection._nodes;
-    return a2.size === b2.size && Array.from(a2).every((key) => b2.has(key));
+    return a3.size === b2.size && Array.from(a3).every((key) => b2.has(key));
   }
   isCollapsed() {
     return false;
@@ -11291,8 +11362,8 @@ var NodeSelection = class _NodeSelection {
       selectionAtEnd = lastSelectedNode.getParentOrThrow().select(index, index);
     }
     selectionAtEnd.insertNodes(nodes);
-    for (let i2 = 0; i2 < selectedNodesLength; i2++) {
-      selectedNodes[i2].remove();
+    for (let i3 = 0; i3 < selectedNodesLength; i3++) {
+      selectedNodes[i3].remove();
     }
   }
   getNodes() {
@@ -11316,8 +11387,8 @@ var NodeSelection = class _NodeSelection {
   getTextContent() {
     const nodes = this.getNodes();
     let textContent = "";
-    for (let i2 = 0; i2 < nodes.length; i2++) {
-      textContent += nodes[i2].getTextContent();
+    for (let i3 = 0; i3 < nodes.length; i3++) {
+      textContent += nodes[i3].getTextContent();
     }
     return textContent;
   }
@@ -11457,8 +11528,8 @@ var RangeSelection = class _RangeSelection {
     const [anchorOffset, focusOffset] = $getCharacterOffsets(this);
     let textContent = "";
     let prevWasElement = true;
-    for (let i2 = 0; i2 < nodes.length; i2++) {
-      const node = nodes[i2];
+    for (let i3 = 0; i3 < nodes.length; i3++) {
+      const node = nodes[i3];
       if ($isElementNode(node) && !node.isInline()) {
         if (!prevWasElement) {
           textContent += "\n";
@@ -12359,8 +12430,8 @@ function $updateTextFormat(selection, applyFormat) {
     }
     lastNode.setFormat(lastNextFormat);
   }
-  for (let i2 = firstIndex + 1; i2 < lastIndex; i2++) {
-    const textNode = selectedTextNodes[i2];
+  for (let i3 = firstIndex + 1; i3 < lastIndex; i3++) {
+    const textNode = selectedTextNodes[i3];
     textNode.setFormat(applyFormat(textNode.getFormat()));
   }
   if (startPoint.type === "text") {
@@ -12591,13 +12662,13 @@ function $removeSegment(node, isBackward, offset) {
   const splitLength = split.length;
   let segmentOffset = 0;
   let restoreOffset = 0;
-  for (let i2 = 0; i2 < splitLength; i2++) {
-    const text = split[i2];
-    const isLast = i2 === splitLength - 1;
+  for (let i3 = 0; i3 < splitLength; i3++) {
+    const text = split[i3];
+    const isLast = i3 === splitLength - 1;
     restoreOffset = segmentOffset;
     segmentOffset += text.length;
     if (isBackward && segmentOffset === offset || segmentOffset > offset || isLast) {
-      split.splice(i2, 1);
+      split.splice(i3, 1);
       if (isLast) {
         restoreOffset = void 0;
       }
@@ -13348,13 +13419,13 @@ function $isInlineRunNode(node) {
 function $wrapInlineNodes(nodes) {
   const virtualRoot = $createParagraphNode();
   let currentBlock = null;
-  for (let i2 = 0; i2 < nodes.length; i2++) {
-    const node = nodes[i2];
+  for (let i3 = 0; i3 < nodes.length; i3++) {
+    const node = nodes[i3];
     if ($isInlineRunNode(node)) {
       if (currentBlock === null) {
         currentBlock = node.createParentElementNode();
         virtualRoot.append(currentBlock);
-        const nextNode = nodes[i2 + 1];
+        const nextNode = nodes[i3 + 1];
         if ($isLineBreakNode(node) && (nextNode === void 0 || !$isInlineRunNode(nextNode))) {
           continue;
         }
@@ -13575,8 +13646,8 @@ function $applyTransforms(editor, node, transformsCache) {
     transformsCache.set(type, transformsArr);
   }
   const transformsArrLength = transformsArr.length;
-  for (let i2 = 0; i2 < transformsArrLength; i2++) {
-    transformsArr[i2](node);
+  for (let i3 = 0; i3 < transformsArrLength; i3++) {
+    transformsArr[i3](node);
     if (!node.isAttached()) {
       break;
     }
@@ -13687,8 +13758,8 @@ function $parseSerializedNodeImpl(serializedNode, registeredNodes) {
   const node = nodeClass.importJSON(serializedNode);
   const children = serializedNode.children;
   if ($isElementNode(node) && Array.isArray(children)) {
-    for (let i2 = 0; i2 < children.length; i2++) {
-      const serializedJSONChildNode = children[i2];
+    for (let i3 = 0; i3 < children.length; i3++) {
+      const serializedJSONChildNode = children[i3];
       const childNode = $parseSerializedNodeImpl(serializedJSONChildNode, registeredNodes);
       node.append(childNode);
     }
@@ -13928,8 +13999,8 @@ function triggerTextContentListeners(editor, currentEditorState, pendingEditorSt
 function triggerMutationListeners(editor, mutatedNodes2, updateTags, dirtyLeaves, prevEditorState) {
   const listeners = Array.from(editor._listeners.mutation);
   const listenersLength = listeners.length;
-  for (let i2 = 0; i2 < listenersLength; i2++) {
-    const [listener, klassSet] = listeners[i2];
+  for (let i3 = 0; i3 < listenersLength; i3++) {
+    const [listener, klassSet] = listeners[i3];
     for (const klass of klassSet) {
       const mutatedNodesByType = mutatedNodes2.get(klass);
       if (mutatedNodesByType !== void 0) {
@@ -13967,23 +14038,23 @@ function triggerCommandListeners(editor, type, payload, fromEditor) {
   const editors = getEditorsToPropagate(editor);
   let updatingParentEditor;
   if (!isCommittingPendingUpdates) {
-    for (let e2 = 0; e2 < editors.length; e2++) {
-      if (!editors[e2]._updating) {
-        editors[e2]._cascadeCount = 0;
+    for (let e3 = 0; e3 < editors.length; e3++) {
+      if (!editors[e3]._updating) {
+        editors[e3]._cascadeCount = 0;
       }
     }
   }
-  for (let i2 = 4; i2 >= 0; i2--) {
-    for (let e2 = 0; e2 < editors.length; e2++) {
-      const currentEditor = editors[e2];
-      if (e2 > 0 && currentEditor._updating) {
+  for (let i3 = 4; i3 >= 0; i3--) {
+    for (let e3 = 0; e3 < editors.length; e3++) {
+      const currentEditor = editors[e3];
+      if (e3 > 0 && currentEditor._updating) {
         updatingParentEditor = currentEditor;
         break;
       }
       const commandListeners = currentEditor._commands;
       const listenerInPriorityOrder = commandListeners.get(type);
       if (listenerInPriorityOrder !== void 0) {
-        const listenersSet = listenerInPriorityOrder[i2];
+        const listenersSet = listenerInPriorityOrder[i3];
         if (listenersSet.size > 0) {
           let returnVal = false;
           updateEditorSync(currentEditor, () => {
@@ -14043,8 +14114,8 @@ function triggerDeferredUpdateCallbacks(editor, deferred) {
     const previouslyUpdating = editor._updating;
     editor._updating = true;
     try {
-      for (let i2 = 0; i2 < deferred.length; i2++) {
-        deferred[i2]();
+      for (let i3 = 0; i3 < deferred.length; i3++) {
+        deferred[i3]();
       }
     } finally {
       editor._updating = previouslyUpdating;
@@ -14530,27 +14601,27 @@ var ElementNode = class extends LexicalNode {
   getChildAtIndex(index) {
     const size = this.getChildrenSize();
     let node;
-    let i2;
+    let i3;
     if (index < size / 2) {
       node = this.getFirstChild();
-      i2 = 0;
-      while (node !== null && i2 <= index) {
-        if (i2 === index) {
+      i3 = 0;
+      while (node !== null && i3 <= index) {
+        if (i3 === index) {
           return node;
         }
         node = node.getNextSibling();
-        i2++;
+        i3++;
       }
       return null;
     }
     node = this.getLastChild();
-    i2 = size - 1;
-    while (node !== null && i2 >= index) {
-      if (i2 === index) {
+    i3 = size - 1;
+    while (node !== null && i3 >= index) {
+      if (i3 === index) {
         return node;
       }
       node = node.getPreviousSibling();
-      i2--;
+      i3--;
     }
     return null;
   }
@@ -14558,12 +14629,12 @@ var ElementNode = class extends LexicalNode {
     let textContent = $getSlotsTextContent(this);
     const children = this.getChildren();
     const childrenLength = children.length;
-    for (let i2 = 0; i2 < childrenLength; i2++) {
-      const child = children[i2];
+    for (let i3 = 0; i3 < childrenLength; i3++) {
+      const child = children[i3];
       textContent += child.getTextContent();
       if (
         // this is an inline $textContentRequiresDoubleLinebreakAtEnd(child)
-        $isElementNode(child) && i2 !== childrenLength - 1 && !child.isInline()
+        $isElementNode(child) && i3 !== childrenLength - 1 && !child.isInline()
       ) {
         textContent += DOUBLE_LINE_BREAK;
       }
@@ -14574,12 +14645,12 @@ var ElementNode = class extends LexicalNode {
     let textContentSize = $getSlotsTextContentSize(this);
     const children = this.getChildren();
     const childrenLength = children.length;
-    for (let i2 = 0; i2 < childrenLength; i2++) {
-      const child = children[i2];
+    for (let i3 = 0; i3 < childrenLength; i3++) {
+      const child = children[i3];
       textContentSize += child.getTextContentSize();
       if (
         // This is an inline $textContentRequiresDoubleLinebreakAtEnd(child)
-        $isElementNode(child) && i2 !== childrenLength - 1 && !child.isInline()
+        $isElementNode(child) && i3 !== childrenLength - 1 && !child.isInline()
       ) {
         textContentSize += DOUBLE_LINE_BREAK.length;
       }
@@ -14732,7 +14803,7 @@ var ElementNode = class extends LexicalNode {
     }
     if (deleteCount > 0) {
       let nodeToDelete = nodeBeforeRange === null ? this.getFirstChild() : nodeBeforeRange.getNextSibling();
-      for (let i2 = 0; i2 < deleteCount; i2++) {
+      for (let i3 = 0; i3 < deleteCount; i3++) {
         if (nodeToDelete === null) {
           {
             formatDevErrorMessage2(`splice: sibling not found`);
@@ -15122,8 +15193,8 @@ function $exportNodeToJSON(node) {
       }
     }
     const children = node.getChildren();
-    for (let i2 = 0; i2 < children.length; i2++) {
-      const child = children[i2];
+    for (let i3 = 0; i3 < children.length; i3++) {
+      const child = children[i3];
       const serializedChildNode = $exportNodeToJSON(child);
       serializedChildren.push(serializedChildNode);
     }
@@ -15545,8 +15616,8 @@ function createEditor(editorConfig) {
     registeredNodes = activeEditor2._nodes;
   } else {
     registeredNodes = /* @__PURE__ */ new Map();
-    for (let i2 = 0; i2 < nodes.length; i2++) {
-      let klass = nodes[i2];
+    for (let i3 = 0; i3 < nodes.length; i3++) {
+      let klass = nodes[i3];
       let replace = null;
       let replaceWithKlass = null;
       if (klass && typeof klass === "object") {
@@ -15562,7 +15633,7 @@ function createEditor(editorConfig) {
         } catch (_unused) {
         }
         {
-          formatDevErrorMessage2(`createEditor: nodes[${String(i2 - nodes.length + (config.nodes ? config.nodes.length : 0))}] ${typeof klass === "function" ? `${klass.name}${typeof klass.getType === "function" ? ` (type ${String(klass.getType())})` : ""}` : String(klass)} is not a constructor that subclasses LexicalNode from the lexical package used by this editor (${String(version)})`);
+          formatDevErrorMessage2(`createEditor: nodes[${String(i3 - nodes.length + (config.nodes ? config.nodes.length : 0))}] ${typeof klass === "function" ? `${klass.name}${typeof klass.getType === "function" ? ` (type ${String(klass.getType())})` : ""}` : String(klass)} is not a constructor that subclasses LexicalNode from the lexical package used by this editor (${String(version)})`);
         }
       }
       void getStaticNodeConfig(klass);
@@ -15597,7 +15668,7 @@ function createEditor(editorConfig) {
         klass,
         replace,
         replaceWithKlass,
-        sharedNodeState: createSharedNodeState(nodes[i2]),
+        sharedNodeState: createSharedNodeState(nodes[i3]),
         transforms
       });
     }
@@ -17876,8 +17947,8 @@ function isDOMCapturingSelection(elementDom, editor) {
   }
   return false;
 }
-function hasOwn(o2, k) {
-  return Object.prototype.hasOwnProperty.call(o2, k);
+function hasOwn(o3, k) {
+  return Object.prototype.hasOwnProperty.call(o3, k);
 }
 function hasOwnStaticMethod(klass, k) {
   return hasOwn(klass, k) && klass[k] !== LexicalNode[k];
@@ -18181,8 +18252,8 @@ function getDeclaredSlotRank(klass) {
   }
   return rank;
 }
-function compareSlotNames(a2, b2, rank) {
-  const rankA = rank.get(a2);
+function compareSlotNames(a3, b2, rank) {
+  const rankA = rank.get(a3);
   const rankB = rank.get(b2);
   if (rankA !== void 0) {
     return rankB !== void 0 ? rankA - rankB : -1;
@@ -18190,7 +18261,7 @@ function compareSlotNames(a2, b2, rank) {
   if (rankB !== void 0) {
     return 1;
   }
-  return a2 < b2 ? -1 : a2 > b2 ? 1 : 0;
+  return a3 < b2 ? -1 : a3 > b2 ? 1 : 0;
 }
 function $canonicalizeSlotOrder(host) {
   const slots = host.__slots;
@@ -18210,7 +18281,7 @@ function $canonicalizeSlotOrder(host) {
   if (sorted) {
     return;
   }
-  const entries = Array.from(slots).sort(([a2], [b2]) => compareSlotNames(a2, b2, rank));
+  const entries = Array.from(slots).sort(([a3], [b2]) => compareSlotNames(a3, b2, rank));
   slots.clear();
   for (const [name, key] of entries) {
     slots.set(name, key);
@@ -18748,22 +18819,22 @@ function makeStepwiseIterator(config) {
     }
   };
 }
-function compareNumber(a2, b2) {
-  return Math.sign(a2 - b2);
+function compareNumber(a3, b2) {
+  return Math.sign(a3 - b2);
 }
-function $comparePointCaretNext(a2, b2) {
-  const compare = $getCommonAncestor(a2.origin, b2.origin);
+function $comparePointCaretNext(a3, b2) {
+  const compare = $getCommonAncestor(a3.origin, b2.origin);
   if (!(compare !== null)) {
-    formatDevErrorMessage2(`$comparePointCaretNext: a (key ${a2.origin.getKey()}) and b (key ${b2.origin.getKey()}) do not have a common ancestor`);
+    formatDevErrorMessage2(`$comparePointCaretNext: a (key ${a3.origin.getKey()}) and b (key ${b2.origin.getKey()}) do not have a common ancestor`);
   }
   switch (compare.type) {
     case "same": {
-      const aIsText = a2.type === "text";
+      const aIsText = a3.type === "text";
       const bIsText = b2.type === "text";
-      return aIsText && bIsText ? compareNumber(a2.offset, b2.offset) : a2.type === b2.type ? 0 : aIsText ? -1 : bIsText ? 1 : a2.type === "child" ? -1 : 1;
+      return aIsText && bIsText ? compareNumber(a3.offset, b2.offset) : a3.type === b2.type ? 0 : aIsText ? -1 : bIsText ? 1 : a3.type === "child" ? -1 : 1;
     }
     case "ancestor": {
-      return a2.type === "child" ? -1 : 1;
+      return a3.type === "child" ? -1 : 1;
     }
     case "descendant": {
       return b2.type === "child" ? 1 : -1;
@@ -18775,12 +18846,12 @@ function $comparePointCaretNext(a2, b2) {
 }
 function $getCommonAncestorResultBranchOrder(compare) {
   const {
-    a: a2,
+    a: a3,
     b: b2
   } = compare;
-  const aKey = a2.__key;
+  const aKey = a3.__key;
   const bKey = b2.__key;
-  let na = a2;
+  let na = a3;
   let nb = b2;
   for (; na && nb; na = na.getNextSibling(), nb = nb.getNextSibling()) {
     if (na.__key === bKey) {
@@ -18797,22 +18868,22 @@ function $isSameNode(reference, other) {
 function $initialElementTuple(node) {
   return $isElementNode(node) ? [node.getLatest(), null] : [node.getParent(), node.getLatest()];
 }
-function $getCommonAncestor(a2, b2) {
-  if (a2.is(b2)) {
+function $getCommonAncestor(a3, b2) {
+  if (a3.is(b2)) {
     return {
-      commonAncestor: a2,
+      commonAncestor: a3,
       type: "same"
     };
   }
   const aMap = /* @__PURE__ */ new Map();
-  for (let [parent, child] = $initialElementTuple(a2); parent; child = parent, parent = parent.getParent()) {
+  for (let [parent, child] = $initialElementTuple(a3); parent; child = parent, parent = parent.getParent()) {
     aMap.set(parent, child);
   }
   for (let [parent, child] = $initialElementTuple(b2); parent; child = parent, parent = parent.getParent()) {
     const aChild = aMap.get(parent);
     if (aChild === void 0) ;
     else if (aChild === null) {
-      if (!$isSameNode(a2, parent)) {
+      if (!$isSameNode(a3, parent)) {
         formatDevErrorMessage2(`$originComparison: ancestor logic error`);
       }
       return {
@@ -18828,7 +18899,7 @@ function $getCommonAncestor(a2, b2) {
         type: "descendant"
       };
     } else {
-      if (!(($isElementNode(aChild) || $isSameNode(a2, aChild)) && ($isElementNode(child) || $isSameNode(b2, child)) && parent.is(aChild.getParent()) && parent.is(child.getParent()))) {
+      if (!(($isElementNode(aChild) || $isSameNode(a3, aChild)) && ($isElementNode(child) || $isSameNode(b2, child)) && parent.is(aChild.getParent()) && parent.is(child.getParent()))) {
         formatDevErrorMessage2(`$originComparison: branch logic error`);
       }
       return {
@@ -19035,7 +19106,7 @@ function $removeTextFromCaretRange(initialRange, sliceMode = "removeEmptySlices"
     return $getCollapsedCaretRange(anchor);
   }
   {
-    formatDevErrorMessage2(`$removeTextFromCaretRange: selection was lost, could not find a new anchor given candidates with keys: ${JSON.stringify(anchorCandidates.map((n2) => n2.origin.__key))}`);
+    formatDevErrorMessage2(`$removeTextFromCaretRange: selection was lost, could not find a new anchor given candidates with keys: ${JSON.stringify(anchorCandidates.map((n3) => n3.origin.__key))}`);
   }
 }
 function $getBlockFromCaret(caret) {
@@ -19071,8 +19142,8 @@ function $getBlockMergeTargets(anchor, focus, seenStart) {
   }
   const $getBlock = (arr, predicate) => {
     let block;
-    for (let i2 = commonAncestorCount; i2 < arr.length; i2++) {
-      const ancestor = arr[i2];
+    for (let i3 = commonAncestorCount; i3 < arr.length; i3++) {
+      const ancestor = arr[i3];
       if ($isRootOrShadowRoot(ancestor)) {
         return;
       } else if (!block && predicate(ancestor)) {
@@ -19128,7 +19199,7 @@ function $getCaretRangeInDirection(range, direction) {
 }
 function $getChildCaretAtIndex(parent, index, direction) {
   let caret = $getChildCaret(parent, "next");
-  for (let i2 = 0; i2 < index; i2++) {
+  for (let i3 = 0; i3 < index; i3++) {
     const nextCaret = caret.getAdjacentCaret();
     if (nextCaret === null) {
       break;
@@ -19272,8 +19343,8 @@ function normalizeClassNames(...classNames) {
   const rval = [];
   for (const className of classNames) {
     if (className && typeof className === "string") {
-      for (const [s2] of className.matchAll(/\S+/g)) {
-        rval.push(s2);
+      for (const [s4] of className.matchAll(/\S+/g)) {
+        rval.push(s4);
       }
     }
   }
@@ -19293,8 +19364,8 @@ function removeClassNamesFromElement(element, ...classNames) {
 }
 function mergeRegister(...func) {
   return () => {
-    for (let i2 = func.length - 1; i2 >= 0; i2--) {
-      func[i2]();
+    for (let i3 = func.length - 1; i3 >= 0; i3--) {
+      func[i3]();
     }
     func.length = 0;
   };
@@ -19612,7 +19683,7 @@ var unmountSlotContainer2 = mod2.unmountSlotContainer;
 
 // node_modules/@lexical/react/dist/LexicalComposer.dev.mjs
 import { useLayoutEffect as useLayoutEffect3, useEffect as useEffect8, useMemo as useMemo4 } from "react";
-import { jsx as jsx46 } from "react/jsx-runtime";
+import { jsx as jsx47 } from "react/jsx-runtime";
 var useLayoutEffectImpl = CAN_USE_DOM2 ? useLayoutEffect3 : useEffect8;
 var HISTORY_MERGE_OPTIONS = {
   tag: HISTORY_MERGE_TAG2
@@ -19656,7 +19727,7 @@ function LexicalComposer({
     const [editor] = composerContext;
     editor.setEditable(isEditable !== void 0 ? isEditable : true);
   }, []);
-  return /* @__PURE__ */ jsx46(LexicalComposerContext2.Provider, {
+  return /* @__PURE__ */ jsx47(LexicalComposerContext2.Provider, {
     value: composerContext,
     children
   });
@@ -19716,13 +19787,13 @@ var useLexicalEditable_dev_exports = {};
 __export(useLexicalEditable_dev_exports, {
   useLexicalEditable: () => useLexicalEditable
 });
-import { useLayoutEffect as useLayoutEffect4, useEffect as useEffect9, useMemo as useMemo5, useState as useState10, useRef as useRef7 } from "react";
+import { useLayoutEffect as useLayoutEffect4, useEffect as useEffect9, useMemo as useMemo5, useState as useState10, useRef as useRef8 } from "react";
 var useLayoutEffectImpl2 = CAN_USE_DOM2 ? useLayoutEffect4 : useEffect9;
 function useLexicalSubscription(subscription2) {
   const [editor] = useLexicalComposerContext2();
   const initializedSubscription = useMemo5(() => subscription2(editor), [editor, subscription2]);
   const [value, setValue] = useState10(() => initializedSubscription.initialValueFn());
-  const valueRef = useRef7(value);
+  const valueRef = useRef8(value);
   useLayoutEffectImpl2(() => {
     const {
       initialValueFn,
@@ -19993,20 +20064,20 @@ function createRectsFromDOMRange(editor, range) {
   const rootPadding = parseFloat(computedStyle.paddingLeft) + parseFloat(computedStyle.paddingRight);
   const selectionRects = Array.from(range.getClientRects());
   let selectionRectsLength = selectionRects.length;
-  selectionRects.sort((a2, b2) => {
-    const top = a2.top - b2.top;
+  selectionRects.sort((a3, b2) => {
+    const top = a3.top - b2.top;
     if (Math.abs(top) <= 3) {
-      return a2.left - b2.left;
+      return a3.left - b2.left;
     }
     return top;
   });
   let prevRect;
-  for (let i2 = 0; i2 < selectionRectsLength; i2++) {
-    const selectionRect = selectionRects[i2];
+  for (let i3 = 0; i3 < selectionRectsLength; i3++) {
+    const selectionRect = selectionRects[i3];
     const isOverlappingRect = prevRect && prevRect.top <= selectionRect.top && prevRect.top + prevRect.height > selectionRect.top && prevRect.left + prevRect.width > selectionRect.left;
     const selectionSpansElement = selectionRect.width + rootPadding === rootRect.width;
     if (isOverlappingRect || selectionSpansElement) {
-      selectionRects.splice(i2--, 1);
+      selectionRects.splice(i3--, 1);
       selectionRectsLength--;
       continue;
     }
@@ -20396,8 +20467,8 @@ function $wrapNodes(selection, createElement, wrappingElement = null) {
   }
   let topLevelNode = null;
   let descendants = [];
-  for (let i2 = 0; i2 < nodesLength; i2++) {
-    const node = nodes[i2];
+  for (let i3 = 0; i3 < nodesLength; i3++) {
+    const node = nodes[i3];
     if ($isRootOrShadowRoot2(node)) {
       $wrapNodesImpl(selection, descendants, descendants.length, createElement, wrappingElement);
       descendants = [];
@@ -20434,15 +20505,15 @@ function $wrapNodesImpl(selection, nodes, nodesLength, createElement, wrappingEl
     }
   }
   const emptyElements = /* @__PURE__ */ new Set();
-  for (let i2 = 0; i2 < nodesLength; i2++) {
-    const node = nodes[i2];
+  for (let i3 = 0; i3 < nodesLength; i3++) {
+    const node = nodes[i3];
     if ($isElementNode2(node) && node.getChildrenSize() === 0) {
       emptyElements.add(node.getKey());
     }
   }
   const movedNodes = /* @__PURE__ */ new Set();
-  for (let i2 = 0; i2 < nodesLength; i2++) {
-    const node = nodes[i2];
+  for (let i3 = 0; i3 < nodesLength; i3++) {
+    const node = nodes[i3];
     let parent = node.getParent();
     if (parent !== null && parent.isInline()) {
       parent = parent.getParent();
@@ -20479,8 +20550,8 @@ function $wrapNodesImpl(selection, nodes, nodesLength, createElement, wrappingEl
     }
   }
   if (wrappingElement !== null) {
-    for (let i2 = 0; i2 < elements.length; i2++) {
-      const element = elements[i2];
+    for (let i3 = 0; i3 < elements.length; i3++) {
+      const element = elements[i3];
       wrappingElement.append(element);
     }
   }
@@ -20490,8 +20561,8 @@ function $wrapNodesImpl(selection, nodes, nodesLength, createElement, wrappingEl
       if (wrappingElement !== null) {
         target.insertAfter(wrappingElement);
       } else {
-        for (let i2 = elements.length - 1; i2 >= 0; i2--) {
-          const element = elements[i2];
+        for (let i3 = elements.length - 1; i3 >= 0; i3--) {
+          const element = elements[i3];
           target.insertAfter(element);
         }
       }
@@ -20505,8 +20576,8 @@ function $wrapNodesImpl(selection, nodes, nodesLength, createElement, wrappingEl
         if (wrappingElement) {
           rootTarget.append(wrappingElement);
         } else {
-          for (let i2 = 0; i2 < elements.length; i2++) {
-            const element = elements[i2];
+          for (let i3 = 0; i3 < elements.length; i3++) {
+            const element = elements[i3];
             rootTarget.append(element);
             lastElement = element;
           }
@@ -20515,8 +20586,8 @@ function $wrapNodesImpl(selection, nodes, nodesLength, createElement, wrappingEl
         if (wrappingElement !== null) {
           firstChild.insertBefore(wrappingElement);
         } else {
-          for (let i2 = 0; i2 < elements.length; i2++) {
-            const element = elements[i2];
+          for (let i3 = 0; i3 < elements.length; i3++) {
+            const element = elements[i3];
             firstChild.insertBefore(element);
             lastElement = element;
           }
@@ -20527,8 +20598,8 @@ function $wrapNodesImpl(selection, nodes, nodesLength, createElement, wrappingEl
     if (wrappingElement) {
       target.insertAfter(wrappingElement);
     } else {
-      for (let i2 = elements.length - 1; i2 >= 0; i2--) {
-        const element = elements[i2];
+      for (let i3 = elements.length - 1; i3 >= 0; i3--) {
+        const element = elements[i3];
         target.insertAfter(element);
         lastElement = element;
       }
@@ -20638,9 +20709,9 @@ function $getSelectionStyleValueForProperty(selection, styleProperty, defaultVal
       endNode = lastNode;
     }
   }
-  for (let i2 = 0; i2 < nodes.length; i2++) {
-    const node = nodes[i2];
-    if ($isTextNode2(node) && !node.is(i2 === 0 ? startNode : endNode)) {
+  for (let i3 = 0; i3 < nodes.length; i3++) {
+    const node = nodes[i3];
+    if ($isTextNode2(node) && !node.is(i3 === 0 ? startNode : endNode)) {
       const nodeStyleValue = $getNodeStyleValueForProperty(node, styleProperty, defaultValue);
       if (styleValue === null) {
         styleValue = nodeStyleValue;
@@ -20689,7 +20760,7 @@ function formatDevErrorMessage4(message) {
   throw new Error(message);
 }
 function dedupeSelectionRects(rects) {
-  const contains = (a2, b2) => b2.left >= a2.left - 1 && b2.top >= a2.top - 1 && b2.right <= a2.right + 1 && b2.bottom <= a2.bottom + 1;
+  const contains = (a3, b2) => b2.left >= a3.left - 1 && b2.top >= a3.top - 1 && b2.right <= a3.right + 1 && b2.bottom <= a3.bottom + 1;
   const kept = [];
   for (const rect of Array.from(rects)) {
     if (rect.width < 0.5 || rect.height < 0.5) {
@@ -20698,9 +20769,9 @@ function dedupeSelectionRects(rects) {
     if (kept.some((keptRect) => contains(rect, keptRect))) {
       continue;
     }
-    for (let i2 = kept.length - 1; i2 >= 0; i2--) {
-      if (contains(kept[i2], rect)) {
-        kept.splice(i2, 1);
+    for (let i3 = kept.length - 1; i3 >= 0; i3--) {
+      if (contains(kept[i3], rect)) {
+        kept.splice(i3, 1);
       }
     }
     kept.push(rect);
@@ -20742,9 +20813,9 @@ function mlcPositionNodeOnRange(editor, range, onReposition) {
       prependDOMNode(parentDOMNode, wrapperNode);
     }
     let hasRepositioned = false;
-    for (let i2 = 0; i2 < rects.length; i2++) {
-      const rect = rects[i2];
-      const rectNode = lastNodes[i2] || getRootOwnerDocument2(rootDOMNode).createElement("div");
+    for (let i3 = 0; i3 < rects.length; i3++) {
+      const rect = rects[i3];
+      const rectNode = lastNodes[i3] || getRootOwnerDocument2(rootDOMNode).createElement("div");
       const rectNodeStyle = rectNode.style;
       if (rectNodeStyle.position !== "absolute") {
         rectNodeStyle.position = "absolute";
@@ -20774,7 +20845,7 @@ function mlcPositionNodeOnRange(editor, range, onReposition) {
         wrapperNode.append(rectNode);
         hasRepositioned = true;
       }
-      lastNodes[i2] = rectNode;
+      lastNodes[i3] = rectNode;
     }
     while (lastNodes.length > rects.length) {
       const node = lastNodes.pop();
@@ -21159,8 +21230,8 @@ function* $reverseDfsWithSlotsIterator(startNode, endNode) {
 }
 function* $reverseSlotsOf(host, childDepth) {
   const names = $getSlotNames2(host);
-  for (let i2 = names.length - 1; i2 >= 0; i2--) {
-    const slot = $getSlot2(host, names[i2]);
+  for (let i3 = names.length - 1; i3 >= 0; i3--) {
+    const slot = $getSlot2(host, names[i3]);
     if (slot !== null) {
       yield* $reverseDfsSubtreeIterator(slot, childDepth);
     }
@@ -21174,8 +21245,8 @@ function* $reverseDfsSubtreeIterator(node, depth) {
   const childDepth = depth + 1;
   if ($isElementNode2(node)) {
     const children = node.getChildren();
-    for (let i2 = children.length - 1; i2 >= 0; i2--) {
-      yield* $reverseDfsSubtreeIterator(children[i2], childDepth);
+    for (let i3 = children.length - 1; i3 >= 0; i3--) {
+      yield* $reverseDfsSubtreeIterator(children[i3], childDepth);
     }
   }
   if ($isSlotHost2(node)) {
@@ -21218,8 +21289,8 @@ function registerNestedElementResolver(editor, targetNode, cloneNode, handleOver
   };
   const $findMatch = (node) => {
     const children = node.getChildren();
-    for (let i2 = 0; i2 < children.length; i2++) {
-      const child = children[i2];
+    for (let i3 = 0; i3 < children.length; i3++) {
+      const child = children[i3];
       if ($isTargetNode(child)) {
         return null;
       }
@@ -21253,8 +21324,8 @@ function registerNestedElementResolver(editor, targetNode, cloneNode, handleOver
         if (nextSiblingsLength !== 0) {
           const newParent = cloneNode(parent);
           child.insertAfter(newParent);
-          for (let i2 = 0; i2 < nextSiblingsLength; i2++) {
-            newParent.append(nextSiblings[i2]);
+          for (let i3 = 0; i3 < nextSiblingsLength; i3++) {
+            newParent.append(nextSiblings[i3]);
           }
         }
         if (!parent.canBeEmpty() && parent.getChildrenSize() === 0) {
@@ -21346,8 +21417,8 @@ function eventFiles(event) {
 }
 function $filter(nodes, filterFn) {
   const result = [];
-  for (let i2 = 0; i2 < nodes.length; i2++) {
-    const node = filterFn(nodes[i2]);
+  for (let i3 = 0; i3 < nodes.length; i3++) {
+    const node = filterFn(nodes[i3]);
     if (node !== null) {
       result.push(node);
     }
@@ -21361,8 +21432,8 @@ function $handleIndentAndOutdent(indentOrOutdent) {
   }
   const alreadyHandled = /* @__PURE__ */ new Set();
   const nodes = selection.getNodes();
-  for (let i2 = 0; i2 < nodes.length; i2++) {
-    const node = nodes[i2];
+  for (let i3 = 0; i3 < nodes.length; i3++) {
+    const node = nodes[i3];
     const key = node.getKey();
     if (alreadyHandled.has(key)) {
       continue;
@@ -21606,57 +21677,57 @@ function t() {
     e--;
     return;
   }
-  let i2, t2 = false;
+  let i3, t3 = false;
   !(function() {
-    let i3 = r2;
+    let i4 = r2;
     r2 = void 0;
-    while (void 0 !== i3) {
-      if (i3.S.v === i3.v) i3.S.i = i3.i;
-      i3 = i3.o;
+    while (void 0 !== i4) {
+      if (i4.S.v === i4.v) i4.S.i = i4.i;
+      i4 = i4.o;
     }
   })();
   while (void 0 !== s) {
-    let n2 = s;
+    let n3 = s;
     s = void 0;
     u++;
-    while (void 0 !== n2) {
-      const o2 = n2.u;
-      n2.u = void 0;
-      n2.f &= -3;
-      if (!(8 & n2.f) && w(n2)) try {
-        n2.c();
-      } catch (n3) {
-        if (!t2) {
-          i2 = n3;
-          t2 = true;
+    while (void 0 !== n3) {
+      const o3 = n3.u;
+      n3.u = void 0;
+      n3.f &= -3;
+      if (!(8 & n3.f) && w(n3)) try {
+        n3.c();
+      } catch (n4) {
+        if (!t3) {
+          i3 = n4;
+          t3 = true;
         }
       }
-      n2 = o2;
+      n3 = o3;
     }
   }
   u = 0;
   e--;
-  if (t2) throw i2;
+  if (t3) throw i3;
 }
-function n(i2) {
-  if (e > 0) return i2();
+function n(i3) {
+  if (e > 0) return i3();
   d = ++c;
   e++;
   try {
-    return i2();
+    return i3();
   } finally {
     t();
   }
 }
 var o;
 var s;
-function h(i2) {
-  const t2 = o;
+function h(i3) {
+  const t3 = o;
   o = void 0;
   try {
-    return i2();
+    return i3();
   } finally {
-    o = t2;
+    o = t3;
   }
 }
 var r2;
@@ -21665,83 +21736,83 @@ var u = 0;
 var c = 0;
 var d = 0;
 var v = 0;
-function l(i2) {
+function l(i3) {
   if (void 0 === o) return;
-  let t2 = i2.n;
-  if (void 0 === t2 || t2.t !== o) {
-    t2 = { i: 0, S: i2, p: o.s, n: void 0, t: o, e: void 0, x: void 0, r: t2 };
-    if (void 0 !== o.s) o.s.n = t2;
-    o.s = t2;
-    i2.n = t2;
-    if (32 & o.f) i2.S(t2);
-    return t2;
-  } else if (-1 === t2.i) {
-    t2.i = 0;
-    if (void 0 !== t2.n) {
-      t2.n.p = t2.p;
-      if (void 0 !== t2.p) t2.p.n = t2.n;
-      t2.p = o.s;
-      t2.n = void 0;
-      o.s.n = t2;
-      o.s = t2;
+  let t3 = i3.n;
+  if (void 0 === t3 || t3.t !== o) {
+    t3 = { i: 0, S: i3, p: o.s, n: void 0, t: o, e: void 0, x: void 0, r: t3 };
+    if (void 0 !== o.s) o.s.n = t3;
+    o.s = t3;
+    i3.n = t3;
+    if (32 & o.f) i3.S(t3);
+    return t3;
+  } else if (-1 === t3.i) {
+    t3.i = 0;
+    if (void 0 !== t3.n) {
+      t3.n.p = t3.p;
+      if (void 0 !== t3.p) t3.p.n = t3.n;
+      t3.p = o.s;
+      t3.n = void 0;
+      o.s.n = t3;
+      o.s = t3;
     }
-    return t2;
+    return t3;
   }
 }
-function y(i2, t2) {
-  this.v = i2;
+function y(i3, t3) {
+  this.v = i3;
   this.i = 0;
   this.n = void 0;
   this.t = void 0;
   this.l = 0;
-  this.W = null == t2 ? void 0 : t2.watched;
-  this.Z = null == t2 ? void 0 : t2.unwatched;
-  this.name = null == t2 ? void 0 : t2.name;
+  this.W = null == t3 ? void 0 : t3.watched;
+  this.Z = null == t3 ? void 0 : t3.unwatched;
+  this.name = null == t3 ? void 0 : t3.name;
 }
 y.prototype.brand = i;
 y.prototype.h = function() {
   return true;
 };
-y.prototype.S = function(i2) {
-  const t2 = this.t;
-  if (t2 !== i2 && void 0 === i2.e) {
-    i2.x = t2;
-    this.t = i2;
-    if (void 0 !== t2) t2.e = i2;
+y.prototype.S = function(i3) {
+  const t3 = this.t;
+  if (t3 !== i3 && void 0 === i3.e) {
+    i3.x = t3;
+    this.t = i3;
+    if (void 0 !== t3) t3.e = i3;
     else h(() => {
-      var i3;
-      null == (i3 = this.W) || i3.call(this);
+      var i4;
+      null == (i4 = this.W) || i4.call(this);
     });
   }
 };
-y.prototype.U = function(i2) {
+y.prototype.U = function(i3) {
   if (void 0 !== this.t) {
-    const t2 = i2.e, n2 = i2.x;
-    if (void 0 !== t2) {
-      t2.x = n2;
-      i2.e = void 0;
+    const t3 = i3.e, n3 = i3.x;
+    if (void 0 !== t3) {
+      t3.x = n3;
+      i3.e = void 0;
     }
-    if (void 0 !== n2) {
-      n2.e = t2;
-      i2.x = void 0;
+    if (void 0 !== n3) {
+      n3.e = t3;
+      i3.x = void 0;
     }
-    if (i2 === this.t) {
-      this.t = n2;
-      if (void 0 === n2) h(() => {
-        var i3;
-        null == (i3 = this.Z) || i3.call(this);
+    if (i3 === this.t) {
+      this.t = n3;
+      if (void 0 === n3) h(() => {
+        var i4;
+        null == (i4 = this.Z) || i4.call(this);
       });
     }
   }
 };
-y.prototype.subscribe = function(i2) {
+y.prototype.subscribe = function(i3) {
   return j(() => {
-    const t2 = this.value, n2 = o;
+    const t3 = this.value, n3 = o;
     o = void 0;
     try {
-      i2(t2);
+      i3(t3);
     } finally {
-      o = n2;
+      o = n3;
     }
   }, { name: "sub" });
 };
@@ -21755,83 +21826,83 @@ y.prototype.toJSON = function() {
   return this.value;
 };
 y.prototype.peek = function() {
-  const i2 = o;
+  const i3 = o;
   o = void 0;
   try {
     return this.value;
   } finally {
-    o = i2;
+    o = i3;
   }
 };
 Object.defineProperty(y.prototype, "value", { get() {
-  const i2 = l(this);
-  if (void 0 !== i2) i2.i = this.i;
+  const i3 = l(this);
+  if (void 0 !== i3) i3.i = this.i;
   return this.v;
-}, set(i2) {
-  if (i2 !== this.v) {
+}, set(i3) {
+  if (i3 !== this.v) {
     if (u > 100) throw new Error("Cycle detected");
-    !(function(i3) {
+    !(function(i4) {
       if (0 !== e && 0 === u) {
-        if (i3.l !== d) {
-          i3.l = d;
-          r2 = { S: i3, v: i3.v, i: i3.i, o: r2 };
+        if (i4.l !== d) {
+          i4.l = d;
+          r2 = { S: i4, v: i4.v, i: i4.i, o: r2 };
         }
       }
     })(this);
-    this.v = i2;
+    this.v = i3;
     this.i++;
     v++;
     e++;
     try {
-      for (let i3 = this.t; void 0 !== i3; i3 = i3.x) i3.t.N();
+      for (let i4 = this.t; void 0 !== i4; i4 = i4.x) i4.t.N();
     } finally {
       t();
     }
   }
 } });
-function a(i2, t2) {
-  return new y(i2, t2);
+function a(i3, t3) {
+  return new y(i3, t3);
 }
-function w(i2) {
-  for (let t2 = i2.s; void 0 !== t2; t2 = t2.n) if (t2.S.i !== t2.i || !t2.S.h() || t2.S.i !== t2.i) return true;
+function w(i3) {
+  for (let t3 = i3.s; void 0 !== t3; t3 = t3.n) if (t3.S.i !== t3.i || !t3.S.h() || t3.S.i !== t3.i) return true;
   return false;
 }
-function _(i2) {
-  for (let t2 = i2.s; void 0 !== t2; t2 = t2.n) {
-    const n2 = t2.S.n;
-    if (void 0 !== n2) t2.r = n2;
-    t2.S.n = t2;
-    t2.i = -1;
-    if (void 0 === t2.n) {
-      i2.s = t2;
+function _(i3) {
+  for (let t3 = i3.s; void 0 !== t3; t3 = t3.n) {
+    const n3 = t3.S.n;
+    if (void 0 !== n3) t3.r = n3;
+    t3.S.n = t3;
+    t3.i = -1;
+    if (void 0 === t3.n) {
+      i3.s = t3;
       break;
     }
   }
 }
-function b(i2) {
-  let t2, n2 = i2.s;
-  while (void 0 !== n2) {
-    const i3 = n2.p;
-    if (-1 === n2.i) {
-      n2.S.U(n2);
-      if (void 0 !== i3) i3.n = n2.n;
-      if (void 0 !== n2.n) n2.n.p = i3;
-    } else t2 = n2;
-    n2.S.n = n2.r;
-    if (void 0 !== n2.r) n2.r = void 0;
-    n2 = i3;
+function b(i3) {
+  let t3, n3 = i3.s;
+  while (void 0 !== n3) {
+    const i4 = n3.p;
+    if (-1 === n3.i) {
+      n3.S.U(n3);
+      if (void 0 !== i4) i4.n = n3.n;
+      if (void 0 !== n3.n) n3.n.p = i4;
+    } else t3 = n3;
+    n3.S.n = n3.r;
+    if (void 0 !== n3.r) n3.r = void 0;
+    n3 = i4;
   }
-  i2.s = t2;
+  i3.s = t3;
 }
-function p(i2, t2) {
+function p(i3, t3) {
   y.call(this, void 0);
-  this.x = i2;
+  this.x = i3;
   this.s = void 0;
   this.g = v - 1;
   this.f = 4;
-  this.W = null == t2 ? void 0 : t2.watched;
-  this.Z = null == t2 ? void 0 : t2.unwatched;
-  this.name = null == t2 ? void 0 : t2.name;
+  this.W = null == t3 ? void 0 : t3.watched;
+  this.Z = null == t3 ? void 0 : t3.unwatched;
+  this.name = null == t3 ? void 0 : t3.name;
 }
 p.prototype = new y();
 p.prototype.h = function() {
@@ -21846,110 +21917,110 @@ p.prototype.h = function() {
     this.f &= -2;
     return true;
   }
-  const i2 = o;
+  const i3 = o;
   try {
     _(this);
     o = this;
-    const i3 = this.x();
-    if (16 & this.f || this.v !== i3 || 0 === this.i) {
-      this.v = i3;
+    const i4 = this.x();
+    if (16 & this.f || this.v !== i4 || 0 === this.i) {
+      this.v = i4;
       this.f &= -17;
       this.i++;
     }
-  } catch (i3) {
-    this.v = i3;
+  } catch (i4) {
+    this.v = i4;
     this.f |= 16;
     this.i++;
   }
-  o = i2;
+  o = i3;
   b(this);
   this.f &= -2;
   return true;
 };
-p.prototype.S = function(i2) {
+p.prototype.S = function(i3) {
   if (void 0 === this.t) {
     this.f |= 36;
-    for (let i3 = this.s; void 0 !== i3; i3 = i3.n) i3.S.S(i3);
+    for (let i4 = this.s; void 0 !== i4; i4 = i4.n) i4.S.S(i4);
   }
-  y.prototype.S.call(this, i2);
+  y.prototype.S.call(this, i3);
 };
-p.prototype.U = function(i2) {
+p.prototype.U = function(i3) {
   if (void 0 !== this.t) {
-    y.prototype.U.call(this, i2);
+    y.prototype.U.call(this, i3);
     if (void 0 === this.t) {
       this.f &= -33;
-      for (let i3 = this.s; void 0 !== i3; i3 = i3.n) i3.S.U(i3);
+      for (let i4 = this.s; void 0 !== i4; i4 = i4.n) i4.S.U(i4);
     }
   }
 };
 p.prototype.N = function() {
   if (!(2 & this.f)) {
     this.f |= 6;
-    for (let i2 = this.t; void 0 !== i2; i2 = i2.x) i2.t.N();
+    for (let i3 = this.t; void 0 !== i3; i3 = i3.x) i3.t.N();
   }
 };
 Object.defineProperty(p.prototype, "value", { get() {
   if (1 & this.f) throw new Error("Cycle detected");
-  const i2 = l(this);
+  const i3 = l(this);
   this.h();
-  if (void 0 !== i2) i2.i = this.i;
+  if (void 0 !== i3) i3.i = this.i;
   if (16 & this.f) throw this.v;
   return this.v;
 } });
-function g(i2, t2) {
-  return new p(i2, t2);
+function g(i3, t3) {
+  return new p(i3, t3);
 }
-function S(i2) {
-  const n2 = i2.m;
-  i2.m = void 0;
-  if ("function" == typeof n2) {
+function S(i3) {
+  const n3 = i3.m;
+  i3.m = void 0;
+  if ("function" == typeof n3) {
     e++;
-    const s2 = o;
+    const s4 = o;
     o = void 0;
     try {
-      n2();
-    } catch (t2) {
-      i2.f &= -2;
-      i2.f |= 8;
-      m(i2);
-      throw t2;
+      n3();
+    } catch (t3) {
+      i3.f &= -2;
+      i3.f |= 8;
+      m(i3);
+      throw t3;
     } finally {
-      o = s2;
+      o = s4;
       t();
     }
   }
 }
-function m(i2) {
-  for (let t2 = i2.s; void 0 !== t2; t2 = t2.n) t2.S.U(t2);
-  i2.x = void 0;
-  i2.s = void 0;
-  S(i2);
+function m(i3) {
+  for (let t3 = i3.s; void 0 !== t3; t3 = t3.n) t3.S.U(t3);
+  i3.x = void 0;
+  i3.s = void 0;
+  S(i3);
 }
-function x(i2) {
+function x(i3) {
   if (o !== this) throw new Error("Out-of-order effect");
   b(this);
-  o = i2;
+  o = i3;
   this.f &= -2;
   if (8 & this.f) m(this);
   t();
 }
-function E(i2, t2) {
-  this.x = i2;
+function E(i3, t3) {
+  this.x = i3;
   this.m = void 0;
   this.s = void 0;
   this.u = void 0;
   this.f = 32;
-  this.name = null == t2 ? void 0 : t2.name;
+  this.name = null == t3 ? void 0 : t3.name;
 }
 E.prototype.c = function() {
-  const i2 = this.S();
+  const i3 = this.S();
   try {
     if (8 & this.f) return;
     if (void 0 === this.x) return;
-    const t2 = this.x();
-    if ("function" == typeof t2) this.m = t2;
+    const t3 = this.x();
+    if ("function" == typeof t3) this.m = t3;
   } finally {
-    i2();
+    i3();
   }
 };
 E.prototype.S = function() {
@@ -21959,9 +22030,9 @@ E.prototype.S = function() {
   S(this);
   _(this);
   e++;
-  const i2 = o;
+  const i3 = o;
   o = this;
-  return x.bind(this, i2);
+  return x.bind(this, i3);
 };
 E.prototype.N = function() {
   if (!(2 & this.f)) {
@@ -21977,17 +22048,17 @@ E.prototype.d = function() {
 E.prototype.dispose = function() {
   this.d();
 };
-function j(i2, t2) {
-  const n2 = new E(i2, t2);
+function j(i3, t3) {
+  const n3 = new E(i3, t3);
   try {
-    n2.c();
-  } catch (i3) {
-    n2.d();
-    throw i3;
+    n3.c();
+  } catch (i4) {
+    n3.d();
+    throw i4;
   }
-  const o2 = n2.d.bind(n2);
-  o2[Symbol.dispose] = o2;
-  return o2;
+  const o3 = n3.d.bind(n3);
+  o3[Symbol.dispose] = o3;
+  return o3;
 }
 function namedSignals(defaults, opts = {}) {
   const initial = {};
@@ -22292,9 +22363,9 @@ try {
 }
 var LEXICAL_VERSION2 = envLexicalVersion2 ?? '"<unknown>+source"';
 var UNSAFE_KEYS = /* @__PURE__ */ new Set(["__proto__", "constructor", "prototype"]);
-function deepThemeMergeInPlace(a2, b2) {
-  if (a2 && b2 && !Array.isArray(b2) && typeof a2 === "object" && typeof b2 === "object") {
-    const aObj = a2;
+function deepThemeMergeInPlace(a3, b2) {
+  if (a3 && b2 && !Array.isArray(b2) && typeof a3 === "object" && typeof b2 === "object") {
+    const aObj = a3;
     const bObj = b2;
     for (const k in bObj) {
       if (UNSAFE_KEYS.has(k) || !Object.prototype.hasOwnProperty.call(bObj, k)) {
@@ -22302,7 +22373,7 @@ function deepThemeMergeInPlace(a2, b2) {
       }
       aObj[k] = deepThemeMergeInPlace(aObj[k], bObj[k]);
     }
-    return a2;
+    return a3;
   }
   return b2;
 }
@@ -22546,12 +22617,12 @@ var ExtensionRep = class {
     return this.builder.incomingEdges.get(this.extension.name) || emptySet;
   }
   getPeerNameSet() {
-    let s2 = this._peerNameSet;
-    if (!s2) {
-      s2 = new Set((this.extension.peerDependencies || []).map(([name]) => name));
-      this._peerNameSet = s2;
+    let s4 = this._peerNameSet;
+    if (!s4) {
+      s4 = new Set((this.extension.peerDependencies || []).map(([name]) => name));
+      this._peerNameSet = s4;
     }
-    return s2;
+    return s4;
   }
   getExtensionDependency() {
     if (!this._dependency) {
@@ -23474,9 +23545,9 @@ var NormalizeTripleClickSelectionExtension = /* @__PURE__ */ defineExtension2({
     });
   })
 });
-function captureKeydown(e2) {
-  const target = e2.target;
-  if (isExactShortcutMatch2(e2, "a", {
+function captureKeydown(e3) {
+  const target = e3.target;
+  if (isExactShortcutMatch2(e3, "a", {
     ctrlKey: !IS_APPLE2,
     metaKey: IS_APPLE2
   }) && isHTMLElement2(target) && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
@@ -23778,7 +23849,7 @@ var ReactProviderExtension2 = mod8.ReactProviderExtension;
 // node_modules/@lexical/react/dist/LexicalRichTextPlugin.dev.mjs
 import { useLayoutEffect as useLayoutEffect5, useEffect as useEffect10, useState as useState11, useMemo as useMemo6, Suspense } from "react";
 import { flushSync, createPortal as createPortal2 } from "react-dom";
-import { jsx as jsx47, jsxs as jsxs24, Fragment as Fragment10 } from "react/jsx-runtime";
+import { jsx as jsx48, jsxs as jsxs25, Fragment as Fragment10 } from "react/jsx-runtime";
 
 // node_modules/@lexical/text/dist/LexicalText.dev.mjs
 var LexicalText_dev_exports = {};
@@ -23818,8 +23889,8 @@ function $canShowPlaceholder(isComposing) {
   if (childrenLength > 1) {
     return false;
   }
-  for (let i2 = 0; i2 < childrenLength; i2++) {
-    const topBlock = children[i2];
+  for (let i3 = 0; i3 < childrenLength; i3++) {
+    const topBlock = children[i3];
     if ($isDecoratorNode2(topBlock)) {
       return false;
     }
@@ -23832,8 +23903,8 @@ function $canShowPlaceholder(isComposing) {
       }
       const topBlockChildren = topBlock.getChildren();
       const topBlockChildrenLength = topBlockChildren.length;
-      for (let s2 = 0; s2 < topBlockChildrenLength; s2++) {
-        const child = topBlockChildren[i2];
+      for (let s4 = 0; s4 < topBlockChildrenLength; s4++) {
+        const child = topBlockChildren[i3];
         if (!$isTextNode2(child)) {
           return false;
         }
@@ -24336,7 +24407,7 @@ function contextUpdater(cfg, updater) {
   };
 }
 // @__NO_SIDE_EFFECTS__
-function $withFullContext(sym, contextRecord, f, editor = $getEditor2()) {
+function $withFullContext(sym, contextRecord, f2, editor = $getEditor2()) {
   const prevDOMContext = activeContext;
   const parentEditorContext = getEditorContext(editor);
   try {
@@ -24345,7 +24416,7 @@ function $withFullContext(sym, contextRecord, f, editor = $getEditor2()) {
       editor,
       [sym]: contextRecord
     };
-    return f();
+    return f2();
   } finally {
     activeContext = prevDOMContext;
   }
@@ -24353,14 +24424,14 @@ function $withFullContext(sym, contextRecord, f, editor = $getEditor2()) {
 // @__NO_SIDE_EFFECTS__
 function $withContext(sym, $defaults = () => void 0) {
   return (cfg, editor = $getEditor2()) => {
-    return (f) => {
+    return (f2) => {
       const parentEditorContext = getEditorContext(editor);
       const parentContextRecord = parentEditorContext && parentEditorContext[sym];
       const contextRecord = contextFromPairs(cfg, parentContextRecord || $defaults(editor));
       if (!contextRecord || contextRecord === parentContextRecord) {
-        return f();
+        return f2();
       }
-      return /* @__PURE__ */ $withFullContext(sym, contextRecord, f, editor);
+      return /* @__PURE__ */ $withFullContext(sym, contextRecord, f2, editor);
     };
   };
 }
@@ -24390,8 +24461,8 @@ function $inlineStylesFromStyleSheetsDOM(dom) {
     let props = originalInlineStyles.get(el2);
     if (props === void 0) {
       props = /* @__PURE__ */ new Set();
-      for (let i2 = 0; i2 < el2.style.length; i2++) {
-        props.add(el2.style[i2]);
+      for (let i3 = 0; i3 < el2.style.length; i3++) {
+        props.add(el2.style[i3]);
       }
       originalInlineStyles.set(el2, props);
     }
@@ -24420,8 +24491,8 @@ function $inlineStylesFromStyleSheetsDOM(dom) {
             continue;
           }
           const originalProps = getOriginalInlineProps(el2);
-          for (let i2 = 0; i2 < rule.style.length; i2++) {
-            const prop = rule.style[i2];
+          for (let i3 = 0; i3 < rule.style.length; i3++) {
+            const prop = rule.style[i3];
             if (!originalProps.has(prop)) {
               el2.style.setProperty(prop, rule.style.getPropertyValue(prop), rule.style.getPropertyPriority(prop));
             }
@@ -24542,13 +24613,13 @@ function ignoreNext2(acc) {
   return (node, _$next, editor) => acc(node, editor);
 }
 function ignoreNext3(acc) {
-  return (node, a2, _$next, editor) => acc(node, a2, editor);
+  return (node, a3, _$next, editor) => acc(node, a3, editor);
 }
 function ignoreNext4(acc) {
-  return (node, a2, b2, _$next, editor) => acc(node, a2, b2, editor);
+  return (node, a3, b2, _$next, editor) => acc(node, a3, b2, editor);
 }
 function ignoreNext5(acc) {
-  return (node, a2, b2, c2, _$next, editor) => acc(node, a2, b2, c2, editor);
+  return (node, a3, b2, c3, _$next, editor) => acc(node, a3, b2, c3, editor);
 }
 function merge2($acc, $getOverride) {
   return (node, editor) => {
@@ -24558,34 +24629,34 @@ function merge2($acc, $getOverride) {
   };
 }
 function merge3(acc, $getOverride) {
-  return (node, a2, editor) => {
-    const $next = () => acc(node, a2, editor);
+  return (node, a3, editor) => {
+    const $next = () => acc(node, a3, editor);
     const $override = $getOverride(node);
-    return $override ? $override(node, a2, $next, editor) : $next();
+    return $override ? $override(node, a3, $next, editor) : $next();
   };
 }
 var merge3GetDOMSlot = merge3;
 var ignoreNext3GetDOMSlot = ignoreNext3;
 function merge4($acc, $getOverride) {
-  return (node, a2, b2, editor) => {
-    const $next = () => $acc(node, a2, b2, editor);
+  return (node, a3, b2, editor) => {
+    const $next = () => $acc(node, a3, b2, editor);
     const $override = $getOverride(node);
-    return $override ? $override(node, a2, b2, $next, editor) : $next();
+    return $override ? $override(node, a3, b2, $next, editor) : $next();
   };
 }
 function merge5(acc, $getOverride) {
-  return (node, a2, b2, c2, editor) => {
-    const $next = () => acc(node, a2, b2, c2, editor);
+  return (node, a3, b2, c3, editor) => {
+    const $next = () => acc(node, a3, b2, c3, editor);
     const $override = $getOverride(node);
-    return $override ? $override(node, a2, b2, c2, $next, editor) : $next();
+    return $override ? $override(node, a3, b2, c3, $next, editor) : $next();
   };
 }
 function sequence4($acc, $getOverride) {
-  return (node, a2, b2, editor) => {
-    $acc(node, a2, b2, editor);
+  return (node, a3, b2, editor) => {
+    $acc(node, a3, b2, editor);
     const $override = $getOverride(node);
     if ($override) {
-      $override(node, a2, b2, editor);
+      $override(node, a3, b2, editor);
     }
   };
 }
@@ -24605,8 +24676,8 @@ function compilePrerenderKey(prerender, k, defaults, mergeFunction, ignoreNextFu
         }
       }
       acc = mergeFunction(acc, (node) => {
-        const f = compiled[node.getType()];
-        return f && ignoreNextFunction(f);
+        const f2 = compiled[node.getType()];
+        return f2 && ignoreNextFunction(f2);
       });
     }
   }
@@ -24673,7 +24744,7 @@ function sortedOverrides(overrides) {
     }
     return depth;
   };
-  byNode.sort((a2, b2) => depthOf(a2.nodes[0]) - depthOf(b2.nodes[0]));
+  byNode.sort((a3, b2) => depthOf(a3.nodes[0]) - depthOf(b2.nodes[0]));
   return [...byNode, ...byPredicate, ...byWildcard];
 }
 function precompileDOMRenderConfigOverrides(editorConfig, overrides) {
@@ -24723,14 +24794,14 @@ function createEditorContextRecord(contextDefaults) {
 }
 function filterEditorInstalled(overrides, record) {
   const reader = makeReader(record);
-  return overrides.filter((o2) => !(o2.disabledForEditor && o2.disabledForEditor(reader)));
+  return overrides.filter((o3) => !(o3.disabledForEditor && o3.disabledForEditor(reader)));
 }
-function sameOverrides(a2, b2) {
-  if (a2.length !== b2.length) {
+function sameOverrides(a3, b2) {
+  if (a3.length !== b2.length) {
     return false;
   }
-  for (let i2 = 0; i2 < a2.length; i2++) {
-    if (a2[i2] !== b2[i2]) {
+  for (let i3 = 0; i3 < a3.length; i3++) {
+    if (a3[i3] !== b2[i3]) {
       return false;
     }
   }
@@ -24740,36 +24811,36 @@ function symmetricDiff(prev, next) {
   const prevSet = new Set(prev);
   const nextSet = new Set(next);
   const changed = [];
-  for (const o2 of prev) {
-    if (!nextSet.has(o2)) {
-      changed.push(o2);
+  for (const o3 of prev) {
+    if (!nextSet.has(o3)) {
+      changed.push(o3);
     }
   }
-  for (const o2 of next) {
-    if (!prevSet.has(o2)) {
-      changed.push(o2);
+  for (const o3 of next) {
+    if (!prevSet.has(o3)) {
+      changed.push(o3);
     }
   }
   return changed;
 }
-function nodeMatcher(o2) {
-  if (o2.nodes === "*") {
+function nodeMatcher(o3) {
+  if (o3.nodes === "*") {
     return () => true;
   }
-  const matchers = o2.nodes.map((match) => {
+  const matchers = o3.nodes.map((match) => {
     const klass = match;
     return $isLexicalNode2(klass.prototype) ? (node) => node instanceof klass : match;
   });
-  return (node) => matchers.some((f) => f(node));
+  return (node) => matchers.some((f2) => f2(node));
 }
 function recreatePredicate(changed) {
   const matchers = [];
-  for (const o2 of changed) {
-    if (o2.$createDOM || o2.$getDOMSlot || o2.$decorateDOM) {
-      matchers.push(nodeMatcher(o2));
+  for (const o3 of changed) {
+    if (o3.$createDOM || o3.$getDOMSlot || o3.$decorateDOM) {
+      matchers.push(nodeMatcher(o3));
     }
   }
-  return matchers.length === 0 ? null : (node) => matchers.some((f) => f(node));
+  return matchers.length === 0 ? null : (node) => matchers.some((f2) => f2(node));
 }
 var DOMRenderRuntimeImpl = class {
   editor;
@@ -24790,7 +24861,7 @@ var DOMRenderRuntimeImpl = class {
     this.overrides = overrides;
     this.editorContext = editorContext;
     this.installed = filterEditorInstalled(overrides, editorContext);
-    this.hasSessionGates = overrides.some((o2) => o2.disabledForSession);
+    this.hasSessionGates = overrides.some((o3) => o3.disabledForSession);
   }
   setContextValue(cfg, value) {
     const prev = this.installed;
@@ -24825,11 +24896,11 @@ var DOMRenderRuntimeImpl = class {
     const reader = makeReader(getContextRecord(DOMRenderContextSymbol, this.editor) || this.editorContext);
     const disabledKeys = [];
     const sessionSet = [];
-    this.installed.forEach((o2, i2) => {
-      if (o2.disabledForSession && o2.disabledForSession(reader)) {
-        disabledKeys.push(String(i2));
+    this.installed.forEach((o3, i3) => {
+      if (o3.disabledForSession && o3.disabledForSession(reader)) {
+        disabledKeys.push(String(i3));
       } else {
-        sessionSet.push(o2);
+        sessionSet.push(o3);
       }
     });
     if (disabledKeys.length === 0) {
@@ -24913,8 +24984,8 @@ function combinePredicates(preds) {
     return preds[0];
   }
   return (node, captures) => {
-    for (const p2 of preds) {
-      if (!p2(node, captures)) {
+    for (const p3 of preds) {
+      if (!p3(node, captures)) {
         return false;
       }
     }
@@ -24939,9 +25010,9 @@ function buildSelector(tags, predicates) {
 }
 function normalizeClassList(classes) {
   const out = [];
-  for (const c2 of classes) {
-    if (c2) {
-      out.push(c2);
+  for (const c3 of classes) {
+    if (c3) {
+      out.push(c3);
     }
   }
   return out;
@@ -24956,8 +25027,8 @@ function buildClassAllPredicate(classes) {
       return false;
     }
     const cl = node.classList;
-    for (const c2 of ns) {
-      if (!cl.contains(c2)) {
+    for (const c3 of ns) {
+      if (!cl.contains(c3)) {
         return false;
       }
     }
@@ -24974,8 +25045,8 @@ function buildClassAnyPredicate(classes) {
       return false;
     }
     const cl = node.classList;
-    for (const c2 of ns) {
-      if (cl.contains(c2)) {
+    for (const c3 of ns) {
+      if (cl.contains(c3)) {
         return true;
       }
     }
@@ -25000,12 +25071,12 @@ function buildAttrPredicate(name, value, options) {
       if (v2 == null) {
         return false;
       }
-      const m2 = v2.match(re);
-      if (m2 === null) {
+      const m3 = v2.match(re);
+      if (m3 === null) {
         return false;
       }
       if (capture !== void 0) {
-        captures[capture] = m2;
+        captures[capture] = m3;
       }
       return true;
     };
@@ -25029,12 +25100,12 @@ function buildStylePredicate(prop, value, options) {
       if (!v2) {
         return false;
       }
-      const m2 = v2.match(re);
-      if (m2 === null) {
+      const m3 = v2.match(re);
+      if (m3 === null) {
         return false;
       }
       if (capture !== void 0) {
-        captures[capture] = m2;
+        captures[capture] = m3;
       }
       return true;
     };
@@ -25078,8 +25149,8 @@ var selBase = {
       formatDevErrorMessage7(`sel.tag() requires at least one tag name`);
     }
     const upper = /* @__PURE__ */ new Set();
-    for (const t2 of tags) {
-      upper.add(t2.toUpperCase());
+    for (const t3 of tags) {
+      upper.add(t3.toUpperCase());
     }
     return buildSelector(upper, []);
   },
@@ -25145,52 +25216,52 @@ var Cursor = class {
     }
   }
 };
-function parseSimpleSelector(c2) {
+function parseSimpleSelector(c3) {
   const tags = /* @__PURE__ */ new Set();
   const predicates = [];
   const classes = [];
-  c2.skipWhitespace();
-  if (c2.peek() === "*") {
-    c2.consume();
-  } else if (IDENT_CHAR.test(c2.peek())) {
-    const tag = c2.readIdent();
+  c3.skipWhitespace();
+  if (c3.peek() === "*") {
+    c3.consume();
+  } else if (IDENT_CHAR.test(c3.peek())) {
+    const tag = c3.readIdent();
     if (tag) {
       tags.add(tag.toUpperCase());
     }
   }
-  while (!c2.eof()) {
-    const ch = c2.peek();
+  while (!c3.eof()) {
+    const ch = c3.peek();
     if (ch === ".") {
-      c2.consume();
-      const cls = c2.readIdent();
-      c2.assert(cls !== "", 'expected class name after "."');
+      c3.consume();
+      const cls = c3.readIdent();
+      c3.assert(cls !== "", 'expected class name after "."');
       classes.push(cls);
     } else if (ch === "#") {
-      c2.consume();
-      const id = c2.readIdent();
-      c2.assert(id !== "", 'expected id after "#"');
+      c3.consume();
+      const id = c3.readIdent();
+      c3.assert(id !== "", 'expected id after "#"');
       predicates.push(buildAttrPredicate("id", id));
     } else if (ch === "[") {
-      c2.consume();
-      c2.skipWhitespace();
-      const name = c2.readIdent();
-      c2.assert(name !== "", 'expected attribute name after "["');
-      c2.skipWhitespace();
+      c3.consume();
+      c3.skipWhitespace();
+      const name = c3.readIdent();
+      c3.assert(name !== "", 'expected attribute name after "["');
+      c3.skipWhitespace();
       let value = true;
-      if (c2.peek() === "=") {
-        c2.consume();
-        c2.skipWhitespace();
-        const next = c2.peek();
+      if (c3.peek() === "=") {
+        c3.consume();
+        c3.skipWhitespace();
+        const next = c3.peek();
         if (next === '"' || next === "'") {
-          value = c2.readQuoted();
+          value = c3.readQuoted();
         } else {
-          value = c2.readIdent();
-          c2.assert(value !== "", "expected attribute value");
+          value = c3.readIdent();
+          c3.assert(value !== "", "expected attribute value");
         }
-        c2.skipWhitespace();
+        c3.skipWhitespace();
       }
-      c2.assert(c2.peek() === "]", 'expected "]"');
-      c2.consume();
+      c3.assert(c3.peek() === "]", 'expected "]"');
+      c3.consume();
       predicates.push(buildAttrPredicate(name, value));
     } else {
       break;
@@ -25205,39 +25276,39 @@ function parseSimpleSelector(c2) {
   };
 }
 function parseSelector(source) {
-  const c2 = new Cursor(source, 0);
+  const c3 = new Cursor(source, 0);
   const groups = [];
   while (true) {
-    const group = parseSimpleSelector(c2);
+    const group = parseSimpleSelector(c3);
     groups.push(group);
-    c2.skipWhitespace();
-    if (c2.eof()) {
+    c3.skipWhitespace();
+    if (c3.eof()) {
       break;
     }
-    c2.assert(c2.peek() === ",", 'expected "," (selector lists are the only supported combinator)');
-    c2.consume();
-    c2.skipWhitespace();
+    c3.assert(c3.peek() === ",", 'expected "," (selector lists are the only supported combinator)');
+    c3.consume();
+    c3.skipWhitespace();
   }
   if (groups.length === 1) {
     return buildSelector(groups[0].tags, groups[0].predicates);
   }
   const tags = /* @__PURE__ */ new Set();
-  if (groups.every((g2) => g2.tags.size > 0)) {
-    for (const g2 of groups) {
-      for (const t2 of g2.tags) {
-        tags.add(t2);
+  if (groups.every((g3) => g3.tags.size > 0)) {
+    for (const g3 of groups) {
+      for (const t3 of g3.tags) {
+        tags.add(t3);
       }
     }
   }
   const orPredicate = (node, captures) => {
-    for (const g2 of groups) {
+    for (const g3 of groups) {
       const upper = node.nodeName;
-      if (g2.tags.size > 0 && !g2.tags.has(upper)) {
+      if (g3.tags.size > 0 && !g3.tags.has(upper)) {
         continue;
       }
       let ok = true;
-      for (const p2 of g2.predicates) {
-        if (!p2(node, captures)) {
+      for (const p3 of g3.predicates) {
+        if (!p3(node, captures)) {
           ok = false;
           break;
         }
@@ -25361,15 +25432,15 @@ function $applySchema(schema, children, parent, domParent) {
     if (schema.$packageRun) {
       const packaged = schema.$packageRun(rejected, parent, domParent);
       if (packaged.length > 0) {
-        for (const n2 of packaged) {
-          out.push(n2);
+        for (const n3 of packaged) {
+          out.push(n3);
         }
         return;
       }
     }
     if (schema.onReject === "hoist") {
-      for (const n2 of rejected) {
-        out.push(n2);
+      for (const n3 of rejected) {
+        out.push(n3);
       }
     }
   };
@@ -25702,17 +25773,17 @@ var LineBreakRule = /* @__PURE__ */ defineImportRule({
 });
 var ParagraphRule = /* @__PURE__ */ defineImportRule({
   $import: (ctx, el2) => {
-    const p2 = $createParagraphNode2();
-    $setFormatFromDOM2(p2, el2);
-    setNodeIndentFromDOM2(el2, p2);
-    if (p2.getFormatType() === "") {
+    const p3 = $createParagraphNode2();
+    $setFormatFromDOM2(p3, el2);
+    setNodeIndentFromDOM2(el2, p3);
+    if (p3.getFormatType() === "") {
       const align = el2.getAttribute("align");
       if (align && isAlignmentValue(align)) {
-        p2.setFormat(align);
+        p3.setFormat(align);
       }
     }
-    $setDirectionFromDOM2(p2, el2);
-    return [p2.splice(0, 0, ctx.$importChildren(el2))];
+    $setDirectionFromDOM2(p3, el2);
+    return [p3.splice(0, 0, ctx.$importChildren(el2))];
   },
   match: sel$1.tag("p"),
   name: "@lexical/html/p"
@@ -25735,19 +25806,19 @@ var TransparentBlockRule = /* @__PURE__ */ defineImportRule({
   name: "@lexical/html/transparent-block"
 });
 var CoreImportRules = [IgnoreScriptStyleRule, ParagraphRule, HorizontalRuleRule, TransparentBlockRule, TextRule, LineBreakRule, InlineFormatRule];
-function mergeSortedAsc(a2, b2) {
+function mergeSortedAsc(a3, b2) {
   const out = [];
-  let i2 = 0;
+  let i3 = 0;
   let j2 = 0;
-  while (i2 < a2.length && j2 < b2.length) {
-    if (a2[i2] <= b2[j2]) {
-      out.push(a2[i2++]);
+  while (i3 < a3.length && j2 < b2.length) {
+    if (a3[i3] <= b2[j2]) {
+      out.push(a3[i3++]);
     } else {
       out.push(b2[j2++]);
     }
   }
-  while (i2 < a2.length) {
-    out.push(a2[i2++]);
+  while (i3 < a3.length) {
+    out.push(a3[i3++]);
   }
   while (j2 < b2.length) {
     out.push(b2[j2++]);
@@ -25761,9 +25832,9 @@ function compileImportRules(rules) {
   const textIndices = [];
   const commentIndices = [];
   const seenNames = /* @__PURE__ */ new Set();
-  rules.forEach((rule, i2) => {
+  rules.forEach((rule, i3) => {
     const sel3 = getSelectorImpl(rule.match);
-    const name = rule.name || defaultRuleName(sel3, i2);
+    const name = rule.name || defaultRuleName(sel3, i3);
     if (typeof rule.name === "string" && seenNames.has(rule.name)) {
       console.warn(`[lexical] duplicate DOMImportRule name "${rule.name}" \u2014 keep names unique to aid debugging.`);
     }
@@ -25776,11 +25847,11 @@ function compileImportRules(rules) {
       predicate: sel3.predicate
     });
     if (sel3.kind === "text") {
-      textIndices.push(i2);
+      textIndices.push(i3);
     } else if (sel3.kind === "comment") {
-      commentIndices.push(i2);
+      commentIndices.push(i3);
     } else if (sel3.tags.size === 0) {
-      wildcardIndices.push(i2);
+      wildcardIndices.push(i3);
     } else {
       for (const tag of sel3.tags) {
         let list = byTag.get(tag);
@@ -25788,7 +25859,7 @@ function compileImportRules(rules) {
           list = [];
           byTag.set(tag, list);
         }
-        list.push(i2);
+        list.push(i3);
       }
     }
   });
@@ -25840,8 +25911,8 @@ function flattenRuleEntries(entries) {
   const out = [];
   for (const entry of entries) {
     if (isCompiledOverlayRules(entry)) {
-      for (const r3 of entry.rules) {
-        out.push(r3);
+      for (const r4 of entry.rules) {
+        out.push(r4);
       }
     } else {
       out.push(entry);
@@ -25913,12 +25984,12 @@ function $importOneInternal(runtime, node, opts) {
 }
 function getCandidates(runtime, node) {
   const candidates = [];
-  for (let i2 = runtime.overlays.length - 1; i2 >= 0; i2--) {
-    const d2 = runtime.overlays[i2];
-    const idx = getDispatchIndices(d2, node);
+  for (let i3 = runtime.overlays.length - 1; i3 >= 0; i3--) {
+    const d3 = runtime.overlays[i3];
+    const idx = getDispatchIndices(d3, node);
     if (idx.length > 0) {
       candidates.push({
-        dispatch: d2,
+        dispatch: d3,
         indices: idx
       });
     }
@@ -25953,11 +26024,11 @@ function $dispatch(runtime, node) {
           const ctx = makeContext(runtime, Object.keys(captures).length === 0 ? NO_CAPTURES : captures);
           try {
             return rule.$import(ctx, node, $next);
-          } catch (e2) {
+          } catch (e3) {
             {
-              console.error(`[lexical] DOM import rule "${rule.name}" threw on node`, node, e2);
+              console.error(`[lexical] DOM import rule "${rule.name}" threw on node`, node, e3);
             }
-            throw e2;
+            throw e3;
           }
         }
       }
@@ -25986,7 +26057,7 @@ function $runImport(dispatch, editor, dom, session) {
   const runtime = {
     dispatch,
     editor,
-    overlays: installed.map((o2) => o2.dispatch),
+    overlays: installed.map((o3) => o3.dispatch),
     session
   };
   const rootParent = isDOMDocumentNode2(dom) ? dom.body : dom;
@@ -25995,10 +26066,10 @@ function $runImport(dispatch, editor, dom, session) {
   });
 }
 function $runPreprocessStack(stack, dom, ctx) {
-  let i2 = stack.length - 1;
+  let i3 = stack.length - 1;
   const $next = () => {
-    while (i2 >= 0) {
-      const cur = stack[i2--];
+    while (i3 >= 0) {
+      const cur = stack[i3--];
       cur(dom, ctx, $next);
       return;
     }
@@ -26239,8 +26310,8 @@ function $createNodesFromDOM(node, editor, allArtificialNodes, hasBlockAncestorL
   const children = node.childNodes;
   let childLexicalNodes = [];
   const hasBlockAncestorLexicalNodeForChildren = currentLexicalNode != null && $isRootOrShadowRoot2(currentLexicalNode) ? false : currentLexicalNode != null && $isBlockElementNode2(currentLexicalNode) || hasBlockAncestorLexicalNode;
-  for (let i2 = 0; i2 < children.length; i2++) {
-    childLexicalNodes.push(...$createNodesFromDOM(children[i2], editor, allArtificialNodes, hasBlockAncestorLexicalNodeForChildren, new Map(forChildMap), currentLexicalNode));
+  for (let i3 = 0; i3 < children.length; i3++) {
+    childLexicalNodes.push(...$createNodesFromDOM(children[i3], editor, allArtificialNodes, hasBlockAncestorLexicalNodeForChildren, new Map(forChildMap), currentLexicalNode));
   }
   if (postTransform != null) {
     childLexicalNodes = postTransform(childLexicalNodes);
@@ -26277,8 +26348,8 @@ function wrapContinuousInlines(domNode, nodes, createWrapperFn) {
   const textAlign = domNode.style.textAlign;
   const out = [];
   let continuousInlines = [];
-  for (let i2 = 0; i2 < nodes.length; i2++) {
-    const node = nodes[i2];
+  for (let i3 = 0; i3 < nodes.length; i3++) {
+    const node = nodes[i3];
     if ($isBlockElementNode2(node)) {
       if (textAlign && !node.getFormat()) {
         node.setFormat(textAlign);
@@ -26286,7 +26357,7 @@ function wrapContinuousInlines(domNode, nodes, createWrapperFn) {
       out.push(node);
     } else {
       continuousInlines.push(node);
-      if (i2 === nodes.length - 1 || i2 < nodes.length - 1 && $isBlockElementNode2(nodes[i2 + 1])) {
+      if (i3 === nodes.length - 1 || i3 < nodes.length - 1 && $isBlockElementNode2(nodes[i3 + 1])) {
         const wrapper = createWrapperFn();
         wrapper.setFormat(textAlign);
         wrapper.append(...continuousInlines);
@@ -26379,21 +26450,21 @@ function isWithinComposedTree(node, rootElement) {
 }
 function findTextOffsetAtPoint(x2, y2, container, doc) {
   const range = doc.createRange();
-  const vDist = (r3) => y2 < r3.top ? r3.top - y2 : y2 > r3.bottom ? y2 - r3.bottom : 0;
-  const hDist = (r3) => x2 < r3.left ? r3.left - x2 : x2 > r3.right ? x2 - r3.right : 0;
+  const vDist = (r4) => y2 < r4.top ? r4.top - y2 : y2 > r4.bottom ? y2 - r4.bottom : 0;
+  const hDist = (r4) => x2 < r4.left ? r4.left - x2 : x2 > r4.right ? x2 - r4.right : 0;
   const walker = doc.createTreeWalker(container, NodeFilter.SHOW_TEXT);
   let bestNode = null;
   let bestV = Infinity;
   let bestH = Infinity;
-  for (let n2 = walker.nextNode(); n2; n2 = walker.nextNode()) {
-    range.selectNodeContents(n2);
-    for (const r3 of range.getClientRects()) {
-      const v2 = vDist(r3);
-      const h2 = hDist(r3);
-      if (v2 < bestV || v2 === bestV && h2 < bestH) {
+  for (let n3 = walker.nextNode(); n3; n3 = walker.nextNode()) {
+    range.selectNodeContents(n3);
+    for (const r4 of range.getClientRects()) {
+      const v2 = vDist(r4);
+      const h3 = hDist(r4);
+      if (v2 < bestV || v2 === bestV && h3 < bestH) {
         bestV = v2;
-        bestH = h2;
-        bestNode = n2;
+        bestH = h3;
+        bestNode = n3;
       }
     }
   }
@@ -26403,16 +26474,16 @@ function findTextOffsetAtPoint(x2, y2, container, doc) {
   let bestOffset = 0;
   let offV = Infinity;
   let offH = Infinity;
-  for (let i2 = 0; i2 <= bestNode.length; i2++) {
-    range.setStart(bestNode, i2);
+  for (let i3 = 0; i3 <= bestNode.length; i3++) {
+    range.setStart(bestNode, i3);
     range.collapse(true);
-    const r3 = range.getBoundingClientRect();
-    const v2 = vDist(r3);
-    const h2 = Math.abs(x2 - r3.left);
-    if (v2 < offV || v2 === offV && h2 < offH) {
+    const r4 = range.getBoundingClientRect();
+    const v2 = vDist(r4);
+    const h3 = Math.abs(x2 - r4.left);
+    if (v2 < offV || v2 === offV && h3 < offH) {
       offV = v2;
-      offH = h2;
-      bestOffset = i2;
+      offH = h3;
+      bestOffset = i3;
     }
   }
   return {
@@ -26544,16 +26615,16 @@ function $callImportMimeTypeFunctionStack(fns, data, selection, dataTransfer) {
   if (!fns) {
     return false;
   }
-  const callAt = (i2) => fns[i2] ? fns[i2](data, selection, callAt.bind(null, i2 - 1), dataTransfer) : false;
+  const callAt = (i3) => fns[i3] ? fns[i3](data, selection, callAt.bind(null, i3 - 1), dataTransfer) : false;
   return callAt(fns.length - 1);
 }
 function orderedMimeTypes(config) {
   const mimes = Object.keys(config.$importMimeType).filter((k) => config.$importMimeType[k] !== void 0);
-  return mimes.sort((a2, b2) => {
-    const wa = config.priority[a2];
+  return mimes.sort((a3, b2) => {
+    const wa = config.priority[a3];
     const wb = config.priority[b2];
     if (wa === void 0 && wb === void 0) {
-      return a2 < b2 ? -1 : a2 > b2 ? 1 : 0;
+      return a3 < b2 ? -1 : a3 > b2 ? 1 : 0;
     }
     if (wa === void 0) {
       return 1;
@@ -26861,8 +26932,8 @@ function $appendNodesToJSON(editor, selection, currentNode, targetArray = []) {
     shouldInclude = false;
   }
   const childSelection = shouldInclude && $isNodeSelection2(selection) && $isElementNode2(currentNode) ? null : selection;
-  for (let i2 = 0; i2 < children.length; i2++) {
-    const childNode = children[i2];
+  for (let i3 = 0; i3 < children.length; i3++) {
+    const childNode = children[i3];
     const shouldIncludeChild = $appendNodesToJSON(editor, childSelection, childNode, serializedNode.children);
     if (!shouldInclude && $isElementNode2(currentNode) && shouldIncludeChild && currentNode.extractWithChild(childNode, selection, "clone")) {
       shouldInclude = true;
@@ -26890,8 +26961,8 @@ function $appendNodesToJSON(editor, selection, currentNode, targetArray = []) {
   if (shouldInclude && !shouldExclude) {
     targetArray.push(serializedNode);
   } else if (Array.isArray(serializedNode.children)) {
-    for (let i2 = 0; i2 < serializedNode.children.length; i2++) {
-      const serializedChildNode = serializedNode.children[i2];
+    for (let i3 = 0; i3 < serializedNode.children.length; i3++) {
+      const serializedChildNode = serializedNode.children[i3];
       targetArray.push(serializedChildNode);
     }
   }
@@ -26903,8 +26974,8 @@ function $generateJSONFromSelectedNodes(editor, selection) {
   const slotFrameAnchor = $isRangeSelection2(selection) ? selection.anchor.getNode() : $isNodeSelection2(selection) ? selection.getNodes()[0] ?? null : null;
   const slotFrame = slotFrameAnchor !== null ? $getSlotFrame2(slotFrameAnchor) : null;
   const topLevelChildren = ($isElementNode2(slotFrame) ? slotFrame : root).getChildren();
-  for (let i2 = 0; i2 < topLevelChildren.length; i2++) {
-    const topLevelNode = topLevelChildren[i2];
+  for (let i3 = 0; i3 < topLevelChildren.length; i3++) {
+    const topLevelNode = topLevelChildren[i3];
     $appendNodesToJSON(editor, selection, topLevelNode, nodes);
   }
   return {
@@ -27037,7 +27108,7 @@ function $getClipboardDataWithConfigFromSelection($exportMimeType, selection) {
   return clipboardData;
 }
 function callExportMimeTypeFunctionStack(fns, selection) {
-  const callAt = (i2) => fns[i2] ? fns[i2](selection, callAt.bind(null, i2 - 1)) : null;
+  const callAt = (i3) => fns[i3] ? fns[i3](selection, callAt.bind(null, i3 - 1)) : null;
   return callAt(fns.length - 1);
 }
 function $exportMimeTypeFromSelection(mimeType, selection = $getSelection2()) {
@@ -27699,7 +27770,7 @@ function $tryDecoratorLineNavigation(selection, isBackward) {
     }
     return false;
   }
-  const topBlock = $findMatchingParent2($isElementNode2(focusNode) ? focusNode : focusNode.getParentOrThrow(), (n2) => $isElementNode2(n2) && !n2.isInline() && $isRootOrShadowRoot2(n2.getParent()));
+  const topBlock = $findMatchingParent2($isElementNode2(focusNode) ? focusNode : focusNode.getParentOrThrow(), (n3) => $isElementNode2(n3) && !n3.isInline() && $isRootOrShadowRoot2(n3.getParent()));
   if (topBlock === null) {
     return false;
   }
@@ -27757,7 +27828,7 @@ function $tryInlineGridLineNavigation(selection, isBackward) {
     return false;
   }
   const focusNode = selection.focus.getNode();
-  const parentBlock = $findMatchingParent2($isElementNode2(focusNode) ? focusNode : focusNode.getParentOrThrow(), (n2) => $isElementNode2(n2) && !n2.isInline());
+  const parentBlock = $findMatchingParent2($isElementNode2(focusNode) ? focusNode : focusNode.getParentOrThrow(), (n3) => $isElementNode2(n3) && !n3.isInline());
   if (parentBlock === null) {
     return false;
   }
@@ -27775,8 +27846,8 @@ function $tryInlineGridLineNavigation(selection, isBackward) {
     if ($isElementNode2(child) && child.isInline()) {
       const dom = editor.getElementByKey(child.getKey());
       if (dom !== null) {
-        const d2 = win.getComputedStyle(dom).display;
-        if (d2 === "inline-grid" || d2 === "inline-flex") {
+        const d3 = win.getComputedStyle(dom).display;
+        if (d3 === "inline-grid" || d3 === "inline-flex") {
           hasGrid = true;
           break;
         }
@@ -27862,7 +27933,7 @@ function $promoteNodeSelectionToBlockEdge(selection, isBackward, event) {
   }
   const sorted = nodes.map((node) => $getSiblingCaret2(node, "next")).sort($comparePointCaretNext2);
   const targetNode = (isBackward ? sorted[0] : sorted[sorted.length - 1]).origin;
-  const block = $findMatchingParent2(targetNode, (n2) => n2 !== targetNode && $isElementNode2(n2) && !n2.isInline()) ?? $getRoot2();
+  const block = $findMatchingParent2(targetNode, (n3) => n3 !== targetNode && $isElementNode2(n3) && !n3.isInline()) ?? $getRoot2();
   const offset = isBackward ? 0 : block.getChildrenSize();
   block.select(offset, offset);
   return true;
@@ -28366,11 +28437,11 @@ function useDecorators(editor, ErrorBoundary2) {
   return useMemo6(() => {
     const decoratedPortals = [];
     const decoratorKeys = Object.keys(decorators);
-    for (let i2 = 0; i2 < decoratorKeys.length; i2++) {
-      const nodeKey = decoratorKeys[i2];
-      const reactDecorator = /* @__PURE__ */ jsx47(ErrorBoundary2, {
-        onError: (e2) => editor._onError(e2),
-        children: /* @__PURE__ */ jsx47(Suspense, {
+    for (let i3 = 0; i3 < decoratorKeys.length; i3++) {
+      const nodeKey = decoratorKeys[i3];
+      const reactDecorator = /* @__PURE__ */ jsx48(ErrorBoundary2, {
+        onError: (e3) => editor._onError(e3),
+        children: /* @__PURE__ */ jsx48(Suspense, {
           fallback: null,
           children: decorators[nodeKey]
         })
@@ -28405,7 +28476,7 @@ function LegacyDecorators({
   editor,
   ErrorBoundary: ErrorBoundary2
 }) {
-  return isUsingReactExtension(editor) ? null : /* @__PURE__ */ jsx47(Decorators, {
+  return isUsingReactExtension(editor) ? null : /* @__PURE__ */ jsx48(Decorators, {
     editor,
     ErrorBoundary: ErrorBoundary2
   });
@@ -28443,10 +28514,10 @@ function RichTextPlugin({
 }) {
   const [editor] = useLexicalComposerContext2();
   useRichTextSetup(editor);
-  return /* @__PURE__ */ jsxs24(Fragment10, {
-    children: [contentEditable, /* @__PURE__ */ jsx47(Placeholder, {
+  return /* @__PURE__ */ jsxs25(Fragment10, {
+    children: [contentEditable, /* @__PURE__ */ jsx48(Placeholder, {
       content: placeholder
-    }), /* @__PURE__ */ jsx47(LegacyDecorators, {
+    }), /* @__PURE__ */ jsx48(LegacyDecorators, {
       editor,
       ErrorBoundary: ErrorBoundary2
     })]
@@ -28479,7 +28550,7 @@ __export(LexicalContentEditable_dev_exports, {
   ContentEditableElement: () => ContentEditableElement
 });
 import { useLayoutEffect as useLayoutEffect6, useEffect as useEffect11, forwardRef, useState as useState12, useCallback as useCallback4, useMemo as useMemo7 } from "react";
-import { jsx as jsx48, jsxs as jsxs25, Fragment as Fragment11 } from "react/jsx-runtime";
+import { jsx as jsx49, jsxs as jsxs26, Fragment as Fragment11 } from "react/jsx-runtime";
 function mergeRefs(...refs) {
   return (value) => {
     for (const ref of refs) {
@@ -28531,7 +28602,7 @@ function ContentEditableElementImpl({
       setEditable(currentIsEditable);
     });
   }, [editor]);
-  return /* @__PURE__ */ jsx48("div", {
+  return /* @__PURE__ */ jsx49("div", {
     "aria-activedescendant": isEditable ? ariaActiveDescendant : void 0,
     "aria-autocomplete": isEditable ? ariaAutoComplete : "none",
     "aria-controls": isEditable ? ariaControls : void 0,
@@ -28590,12 +28661,12 @@ function ContentEditableImpl(props, ref) {
     ...rest
   } = props;
   const [editor] = useLexicalComposerContext2();
-  return /* @__PURE__ */ jsxs25(Fragment11, {
-    children: [/* @__PURE__ */ jsx48(ContentEditableElement, {
+  return /* @__PURE__ */ jsxs26(Fragment11, {
+    children: [/* @__PURE__ */ jsx49(ContentEditableElement, {
       editor,
       ...rest,
       ref
-    }), placeholder != null && /* @__PURE__ */ jsx48(Placeholder2, {
+    }), placeholder != null && /* @__PURE__ */ jsx49(Placeholder2, {
       editor,
       content: placeholder
     })]
@@ -28625,7 +28696,7 @@ function Placeholder2({
   if (placeholder === null) {
     return null;
   }
-  return /* @__PURE__ */ jsx48("div", {
+  return /* @__PURE__ */ jsx49("div", {
     "aria-hidden": true,
     children: placeholder
   });
@@ -29134,8 +29205,8 @@ function $getTopListNode(listItem) {
 function $getAllListItems(node) {
   let listItemNodes = [];
   const listChildren = node.getChildren().filter($isListItemNode);
-  for (let i2 = 0; i2 < listChildren.length; i2++) {
-    const listItemNode = listChildren[i2];
+  for (let i3 = 0; i3 < listChildren.length; i3++) {
+    const listItemNode = listChildren[i3];
     const firstChild = listItemNode.getFirstChild();
     if ($isListNode(firstChild)) {
       listItemNodes = listItemNodes.concat($getAllListItems(firstChild));
@@ -29201,8 +29272,8 @@ function $insertList(listType) {
       }
     }
     const handled = /* @__PURE__ */ new Set();
-    for (let i2 = 0; i2 < nodes.length; i2++) {
-      const node = nodes[i2];
+    for (let i3 = 0; i3 < nodes.length; i3++) {
+      const node = nodes[i3];
       if ($isElementNode2(node) && node.isEmpty() && !$isListItemNode(node) && !handled.has(node.getKey())) {
         $createListOrMerge(node, listType);
         continue;
@@ -29295,8 +29366,8 @@ function $removeList() {
     if ($isSelectingEmptyListItem(anchorNode, nodes)) {
       listNodes.add($getTopListNode(anchorNode));
     } else {
-      for (let i2 = 0; i2 < nodes.length; i2++) {
-        const node = nodes[i2];
+      for (let i3 = 0; i3 < nodes.length; i3++) {
+        const node = nodes[i3];
         if ($isLeafNode2(node)) {
           const listItemNode = $getNearestNodeOfType2(node, ListItemNode);
           if (listItemNode != null) {
@@ -29627,8 +29698,8 @@ var ListItemNode = class extends ElementNode2 {
     };
   }
   append(...nodes) {
-    for (let i2 = 0; i2 < nodes.length; i2++) {
-      const node = nodes[i2];
+    for (let i3 = 0; i3 < nodes.length; i3++) {
+      const node = nodes[i3];
       if ($isElementNode2(node) && this.canMergeWith(node)) {
         const children = node.getChildren();
         this.append(...children);
@@ -30064,13 +30135,13 @@ var ListNode = class extends ElementNode2 {
   }
   splice(start, deleteCount, nodesToInsert) {
     let listItemNodesToInsert = nodesToInsert;
-    for (let i2 = 0; i2 < nodesToInsert.length; i2++) {
-      const node = nodesToInsert[i2];
+    for (let i3 = 0; i3 < nodesToInsert.length; i3++) {
+      const node = nodesToInsert[i3];
       if (!$isListItemNode(node)) {
         if (listItemNodesToInsert === nodesToInsert) {
           listItemNodesToInsert = [...nodesToInsert];
         }
-        listItemNodesToInsert[i2] = this.createListItemNode().append($isElementNode2(node) && !($isListNode(node) || node.isInline()) ? $createTextNode2(node.getTextContent()) : node);
+        listItemNodesToInsert[i3] = this.createListItemNode().append($isElementNode2(node) && !($isListNode(node) || node.isInline()) ? $createTextNode2(node.getTextContent()) : node);
       }
     }
     return super.splice(start, deleteCount, listItemNodesToInsert);
@@ -30112,9 +30183,9 @@ function $setListThemeClassNames(dom, editorThemeClasses, node) {
     }
     if (listLevelClassName !== void 0) {
       classesToAdd.push(...normalizeClassNames2(listLevelClassName));
-      for (let i2 = 0; i2 < listLevelsClassNames.length; i2++) {
-        if (i2 !== normalizedListDepth) {
-          classesToRemove.push(node.__tag + i2);
+      for (let i3 = 0; i3 < listLevelsClassNames.length; i3++) {
+        if (i3 !== normalizedListDepth) {
+          classesToRemove.push(node.__tag + i3);
         }
       }
     }
@@ -30137,8 +30208,8 @@ function $setListThemeClassNames(dom, editorThemeClasses, node) {
 function $normalizeChildren(nodes, listNode) {
   const $createWrapperItem = listNode.createListItemNode.bind(listNode);
   const normalizedListItems = [];
-  for (let i2 = 0; i2 < nodes.length; i2++) {
-    const node = nodes[i2];
+  for (let i3 = 0; i3 < nodes.length; i3++) {
+    const node = nodes[i3];
     if ($isListItemNode(node)) {
       normalizedListItems.push(node);
       const children = node.getChildren();
@@ -31258,9 +31329,9 @@ function $withSelectedNodes($fn) {
   return rval;
 }
 function $splitLinkAtSelection(parentLink, extractedNodes) {
-  const extractedKeys = new Set(extractedNodes.filter((n2) => parentLink.isParentOf(n2)).map((n2) => n2.getKey()));
+  const extractedKeys = new Set(extractedNodes.filter((n3) => parentLink.isParentOf(n3)).map((n3) => n3.getKey()));
   const allChildren = parentLink.getChildren();
-  const isExtractedChild = (child) => extractedKeys.has(child.getKey()) || $isElementNode2(child) && extractedNodes.some((n2) => parentLink.isParentOf(n2) && child.isParentOf(n2));
+  const isExtractedChild = (child) => extractedKeys.has(child.getKey()) || $isElementNode2(child) && extractedNodes.some((n3) => parentLink.isParentOf(n3) && child.isParentOf(n3));
   const extractedChildren = allChildren.filter(isExtractedChild);
   if (extractedChildren.length === allChildren.length) {
     allChildren.forEach((child) => parentLink.insertBefore(child));
@@ -31274,12 +31345,12 @@ function $splitLinkAtSelection(parentLink, extractedNodes) {
   if (isAtStart) {
     extractedChildren.forEach((child) => parentLink.insertBefore(child));
   } else if (isAtEnd) {
-    for (let i2 = extractedChildren.length - 1; i2 >= 0; i2--) {
-      parentLink.insertAfter(extractedChildren[i2]);
+    for (let i3 = extractedChildren.length - 1; i3 >= 0; i3--) {
+      parentLink.insertAfter(extractedChildren[i3]);
     }
   } else {
-    for (let i2 = extractedChildren.length - 1; i2 >= 0; i2--) {
-      parentLink.insertAfter(extractedChildren[i2]);
+    for (let i3 = extractedChildren.length - 1; i3 >= 0; i3--) {
+      parentLink.insertAfter(extractedChildren[i3]);
     }
     const trailingChildren = allChildren.slice(lastExtractedIndex + 1);
     if (trailingChildren.length > 0) {
@@ -31599,10 +31670,10 @@ function registerClickableLink(editor, stores, eventOptions = {}) {
             url = maybeLinkNode.sanitizeUrl(maybeLinkNode.getURL());
             urlTarget = maybeLinkNode.getTarget();
           } else {
-            const a2 = findMatchingDOM(target, isHTMLAnchorElement2);
-            if (a2 !== null) {
-              url = a2.href;
-              urlTarget = a2.target;
+            const a3 = findMatchingDOM(target, isHTMLAnchorElement2);
+            if (a3 !== null) {
+              url = a3.href;
+              urlTarget = a3.target;
             }
           }
         }
@@ -31691,8 +31762,8 @@ var autoLinkUrlMatcher = (text) => {
 };
 var autoLinkEmailMatcher = createLinkMatcherWithRegExp(EMAIL_REGEX, (text) => `mailto:${text}`);
 function findFirstMatch(text, matchers) {
-  for (let i2 = 0; i2 < matchers.length; i2++) {
-    const match = matchers[i2](text);
+  for (let i3 = 0; i3 < matchers.length; i3++) {
+    const match = matchers[i3](text);
     if (match) {
       return match;
     }
@@ -31792,8 +31863,8 @@ function $createAutoLinkNode_(nodes, startIndex, endIndex, match) {
     }
     const linkNodes = [];
     let remainingTextNode;
-    for (let i2 = 1; i2 < nodes.length; i2++) {
-      const currentNode = nodes[i2];
+    for (let i3 = 1; i3 < nodes.length; i3++) {
+      const currentNode = nodes[i3];
       const currentNodeText = currentNode.getTextContent();
       const currentNodeLength = currentNodeText.length;
       const currentNodeStart = offset;
@@ -31875,8 +31946,8 @@ function $handleLinkCreation(nodes, matchers, onChange, separatorRegex) {
 function handleLinkEdit(linkNode, matchers, onChange, separatorRegex) {
   const children = linkNode.getChildren();
   const childrenLength = children.length;
-  for (let i2 = 0; i2 < childrenLength; i2++) {
-    const child = children[i2];
+  for (let i3 = 0; i3 < childrenLength; i3++) {
+    const child = children[i3];
     if (!$isTextNode2(child) || !child.isSimpleText()) {
       replaceWithChildren(linkNode);
       onChange(null, linkNode.getURL());
@@ -32126,7 +32197,7 @@ __export(LexicalErrorBoundary_dev_exports, {
   LexicalErrorBoundary: () => LexicalErrorBoundary
 });
 import { Component } from "react";
-import { jsx as jsx49 } from "react/jsx-runtime";
+import { jsx as jsx50 } from "react/jsx-runtime";
 var ErrorBoundary = class extends Component {
   state = {
     hasError: false
@@ -32150,8 +32221,8 @@ function LexicalErrorBoundary({
   fallback,
   onError: onError2
 }) {
-  return /* @__PURE__ */ jsx49(ErrorBoundary, {
-    fallback: fallback === void 0 ? /* @__PURE__ */ jsx49("div", {
+  return /* @__PURE__ */ jsx50(ErrorBoundary, {
+    fallback: fallback === void 0 ? /* @__PURE__ */ jsx50("div", {
       style: {
         border: "1px solid #f00",
         color: "#f00",
@@ -32230,8 +32301,8 @@ var DecoratorBlockNode2 = mod24.DecoratorBlockNode;
 import { useCallback as useCallback5, useState as useState14 } from "react";
 
 // src/admin/bricks/DocumentEditor/AccordionSettingsDialog.tsx
-import { useId as useId4, useState as useState13 } from "react";
-import { Fragment as Fragment12, jsx as jsx50, jsxs as jsxs26 } from "react/jsx-runtime";
+import { useId as useId5, useState as useState13 } from "react";
+import { Fragment as Fragment12, jsx as jsx51, jsxs as jsxs27 } from "react/jsx-runtime";
 function newItemId() {
   return `acc-${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -32243,20 +32314,20 @@ function AccordionSettingsDialog({
   const [items, setItems] = useState13(
     () => initial.map((item) => ({ ...item }))
   );
-  const baseId = useId4();
+  const baseId = useId5();
   const updateItem = (id, patch) => {
     setItems(
       (prev) => prev.map((item) => item.id === id ? { ...item, ...patch } : item)
     );
   };
-  return /* @__PURE__ */ jsx50(DesktopModal, { children: /* @__PURE__ */ jsxs26(
+  return /* @__PURE__ */ jsx51(DesktopModal, { children: /* @__PURE__ */ jsxs27(
     DialogWindow,
     {
       title: "Accordion",
       titleIcon: "folder",
-      titleBarControls: /* @__PURE__ */ jsx50(TitleBarControls, { children: /* @__PURE__ */ jsx50(TitleBarControl, { action: "Close", onClick: onCancel }) }),
-      actions: /* @__PURE__ */ jsxs26(Fragment12, { children: [
-        /* @__PURE__ */ jsx50(
+      titleBarControls: /* @__PURE__ */ jsx51(TitleBarControls, { children: /* @__PURE__ */ jsx51(TitleBarControl, { action: "Close", onClick: onCancel }) }),
+      actions: /* @__PURE__ */ jsxs27(Fragment12, { children: [
+        /* @__PURE__ */ jsx51(
           Button,
           {
             type: "button",
@@ -32265,17 +32336,17 @@ function AccordionSettingsDialog({
             children: "OK"
           }
         ),
-        /* @__PURE__ */ jsx50(Button, { type: "button", onClick: onCancel, children: "Cancel" })
+        /* @__PURE__ */ jsx51(Button, { type: "button", onClick: onCancel, children: "Cancel" })
       ] }),
       children: [
-        /* @__PURE__ */ jsx50("p", { style: { marginTop: 0 }, children: "Sections shown as a placeholder in the editor. Public accordion rendering comes later." }),
-        items.map((item, index) => /* @__PURE__ */ jsxs26("div", { className: "wh-doc-accordion-form-row", children: [
-          /* @__PURE__ */ jsxs26(FieldRow, { children: [
-            /* @__PURE__ */ jsxs26("label", { htmlFor: `${baseId}-title-${item.id}`, children: [
+        /* @__PURE__ */ jsx51("p", { style: { marginTop: 0 }, children: "Sections shown as a placeholder in the editor. Public accordion rendering comes later." }),
+        items.map((item, index) => /* @__PURE__ */ jsxs27("div", { className: "wh-doc-accordion-form-row", children: [
+          /* @__PURE__ */ jsxs27(FieldRow, { children: [
+            /* @__PURE__ */ jsxs27("label", { htmlFor: `${baseId}-title-${item.id}`, children: [
               "Title ",
               index + 1
             ] }),
-            /* @__PURE__ */ jsx50(
+            /* @__PURE__ */ jsx51(
               TextBox,
               {
                 id: `${baseId}-title-${item.id}`,
@@ -32284,12 +32355,12 @@ function AccordionSettingsDialog({
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs26(FieldRow, { children: [
-            /* @__PURE__ */ jsxs26("label", { htmlFor: `${baseId}-body-${item.id}`, children: [
+          /* @__PURE__ */ jsxs27(FieldRow, { children: [
+            /* @__PURE__ */ jsxs27("label", { htmlFor: `${baseId}-body-${item.id}`, children: [
               "Body ",
               index + 1
             ] }),
-            /* @__PURE__ */ jsx50(
+            /* @__PURE__ */ jsx51(
               TextBox,
               {
                 id: `${baseId}-body-${item.id}`,
@@ -32298,7 +32369,7 @@ function AccordionSettingsDialog({
               }
             )
           ] }),
-          /* @__PURE__ */ jsx50(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx50(
+          /* @__PURE__ */ jsx51(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx51(
             Button,
             {
               type: "button",
@@ -32308,7 +32379,7 @@ function AccordionSettingsDialog({
             }
           ) })
         ] }, item.id)),
-        /* @__PURE__ */ jsx50(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx50(
+        /* @__PURE__ */ jsx51(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx51(
           Button,
           {
             type: "button",
@@ -32325,7 +32396,7 @@ function AccordionSettingsDialog({
 }
 
 // src/admin/bricks/DocumentEditor/nodes/AccordionPlaceholder.tsx
-import { Fragment as Fragment13, jsx as jsx51, jsxs as jsxs27 } from "react/jsx-runtime";
+import { Fragment as Fragment13, jsx as jsx52, jsxs as jsxs28 } from "react/jsx-runtime";
 function AccordionPlaceholder({
   nodeKey,
   blockId,
@@ -32347,16 +32418,16 @@ function AccordionPlaceholder({
   );
   const count = items.length;
   const summary = count === 0 ? "No sections" : count === 1 ? "1 section" : `${count} sections`;
-  return /* @__PURE__ */ jsxs27(Fragment13, { children: [
-    /* @__PURE__ */ jsxs27("div", { className: "wh-doc-accordion-chip", children: [
-      /* @__PURE__ */ jsx51("span", { className: "wh-doc-accordion-chip__label", children: "Accordion" }),
-      /* @__PURE__ */ jsxs27("span", { className: "wh-doc-accordion-chip__meta", children: [
+  return /* @__PURE__ */ jsxs28(Fragment13, { children: [
+    /* @__PURE__ */ jsxs28("div", { className: "wh-doc-accordion-chip", children: [
+      /* @__PURE__ */ jsx52("span", { className: "wh-doc-accordion-chip__label", children: "Accordion" }),
+      /* @__PURE__ */ jsxs28("span", { className: "wh-doc-accordion-chip__meta", children: [
         summary,
         blockId ? ` \xB7 ${blockId}` : ""
       ] }),
-      /* @__PURE__ */ jsx51(Button, { type: "button", onClick: () => setOpen(true), children: "Edit\u2026" })
+      /* @__PURE__ */ jsx52(Button, { type: "button", onClick: () => setOpen(true), children: "Edit\u2026" })
     ] }),
-    open ? /* @__PURE__ */ jsx51(
+    open ? /* @__PURE__ */ jsx52(
       AccordionSettingsDialog,
       {
         items,
@@ -32368,7 +32439,7 @@ function AccordionPlaceholder({
 }
 
 // src/admin/bricks/DocumentEditor/nodes/AccordionNode.tsx
-import { jsx as jsx52 } from "react/jsx-runtime";
+import { jsx as jsx53 } from "react/jsx-runtime";
 function newId() {
   return `acc-${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -32449,7 +32520,7 @@ var AccordionNode = class _AccordionNode extends DecoratorBlockNode2 {
     writable.__items = structuredClone(items);
   }
   decorate(_editor, _config) {
-    return /* @__PURE__ */ jsx52(
+    return /* @__PURE__ */ jsx53(
       AccordionPlaceholder,
       {
         nodeKey: this.getKey(),
@@ -32467,7 +32538,7 @@ function $isAccordionNode(node) {
 }
 
 // src/admin/bricks/DocumentEditor/DocumentEditorToolbar.tsx
-import { jsx as jsx53, jsxs as jsxs28 } from "react/jsx-runtime";
+import { jsx as jsx54, jsxs as jsxs29 } from "react/jsx-runtime";
 function DocumentEditorToolbar() {
   const [editor] = useLexicalComposerContext2();
   const formatHeading = (tag) => {
@@ -32500,8 +32571,8 @@ function DocumentEditorToolbar() {
     const trimmed = url.trim();
     editor.dispatchCommand(TOGGLE_LINK_COMMAND2, trimmed === "" ? null : trimmed);
   };
-  return /* @__PURE__ */ jsxs28(FieldRow, { className: "wh-doc-toolbar", children: [
-    /* @__PURE__ */ jsx53(
+  return /* @__PURE__ */ jsxs29(FieldRow, { className: "wh-doc-toolbar", children: [
+    /* @__PURE__ */ jsx54(
       Button,
       {
         type: "button",
@@ -32509,7 +32580,7 @@ function DocumentEditorToolbar() {
         children: "Bold"
       }
     ),
-    /* @__PURE__ */ jsx53(
+    /* @__PURE__ */ jsx54(
       Button,
       {
         type: "button",
@@ -32517,10 +32588,10 @@ function DocumentEditorToolbar() {
         children: "Italic"
       }
     ),
-    /* @__PURE__ */ jsx53(Button, { type: "button", onClick: () => formatHeading("paragraph"), children: "Body" }),
-    /* @__PURE__ */ jsx53(Button, { type: "button", onClick: () => formatHeading("h2"), children: "H2" }),
-    /* @__PURE__ */ jsx53(Button, { type: "button", onClick: () => formatHeading("h3"), children: "H3" }),
-    /* @__PURE__ */ jsx53(
+    /* @__PURE__ */ jsx54(Button, { type: "button", onClick: () => formatHeading("paragraph"), children: "Body" }),
+    /* @__PURE__ */ jsx54(Button, { type: "button", onClick: () => formatHeading("h2"), children: "H2" }),
+    /* @__PURE__ */ jsx54(Button, { type: "button", onClick: () => formatHeading("h3"), children: "H3" }),
+    /* @__PURE__ */ jsx54(
       Button,
       {
         type: "button",
@@ -32528,7 +32599,7 @@ function DocumentEditorToolbar() {
         children: "List"
       }
     ),
-    /* @__PURE__ */ jsx53(
+    /* @__PURE__ */ jsx54(
       Button,
       {
         type: "button",
@@ -32536,9 +32607,9 @@ function DocumentEditorToolbar() {
         children: "Numbered"
       }
     ),
-    /* @__PURE__ */ jsx53(Button, { type: "button", onClick: insertLink, children: "Link" }),
-    /* @__PURE__ */ jsx53(Button, { type: "button", onClick: insertAccordion, children: "Accordion" }),
-    /* @__PURE__ */ jsx53(
+    /* @__PURE__ */ jsx54(Button, { type: "button", onClick: insertLink, children: "Link" }),
+    /* @__PURE__ */ jsx54(Button, { type: "button", onClick: insertAccordion, children: "Accordion" }),
+    /* @__PURE__ */ jsx54(
       Button,
       {
         type: "button",
@@ -32546,7 +32617,7 @@ function DocumentEditorToolbar() {
         children: "Undo"
       }
     ),
-    /* @__PURE__ */ jsx53(
+    /* @__PURE__ */ jsx54(
       Button,
       {
         type: "button",
@@ -32592,7 +32663,7 @@ function normalizeDocumentBodyJson(raw) {
 }
 
 // src/admin/bricks/DocumentEditor/DocumentEditorCanvas.tsx
-import { jsx as jsx54, jsxs as jsxs29 } from "react/jsx-runtime";
+import { jsx as jsx55, jsxs as jsxs30 } from "react/jsx-runtime";
 function onError(error) {
   console.error(error);
 }
@@ -32641,32 +32712,32 @@ function DocumentEditorCanvas({
   const handleChange = (state) => {
     onChangeJson?.(JSON.stringify(state.toJSON()));
   };
-  return /* @__PURE__ */ jsx54("div", { className: "wh-doc-editor", children: /* @__PURE__ */ jsxs29(LexicalComposer2, { initialConfig, children: [
-    readOnly ? null : /* @__PURE__ */ jsx54(DocumentEditorToolbar, {}),
-    /* @__PURE__ */ jsx54("div", { className: "wh-doc-editor__canvas sunken-panel", children: /* @__PURE__ */ jsx54(
+  return /* @__PURE__ */ jsx55("div", { className: "wh-doc-editor", children: /* @__PURE__ */ jsxs30(LexicalComposer2, { initialConfig, children: [
+    readOnly ? null : /* @__PURE__ */ jsx55(DocumentEditorToolbar, {}),
+    /* @__PURE__ */ jsx55("div", { className: "wh-doc-editor__canvas sunken-panel", children: /* @__PURE__ */ jsx55(
       RichTextPlugin2,
       {
-        contentEditable: /* @__PURE__ */ jsx54(
+        contentEditable: /* @__PURE__ */ jsx55(
           ContentEditable2,
           {
             className: "wh-doc-editor__content",
             "aria-placeholder": "Start writing\u2026",
-            placeholder: /* @__PURE__ */ jsx54("div", { className: "wh-doc-editor__placeholder", children: "Start writing\u2026" })
+            placeholder: /* @__PURE__ */ jsx55("div", { className: "wh-doc-editor__placeholder", children: "Start writing\u2026" })
           }
         ),
         ErrorBoundary: LexicalErrorBoundary2
       }
     ) }),
-    /* @__PURE__ */ jsx54(HistoryPlugin2, {}),
-    /* @__PURE__ */ jsx54(ListPlugin2, {}),
-    /* @__PURE__ */ jsx54(LinkPlugin2, {}),
-    onChangeJson ? /* @__PURE__ */ jsx54(OnChangePlugin2, { onChange: handleChange }) : null
+    /* @__PURE__ */ jsx55(HistoryPlugin2, {}),
+    /* @__PURE__ */ jsx55(ListPlugin2, {}),
+    /* @__PURE__ */ jsx55(LinkPlugin2, {}),
+    onChangeJson ? /* @__PURE__ */ jsx55(OnChangePlugin2, { onChange: handleChange }) : null
   ] }, String(editorKey)) });
 }
 
 // src/admin/bricks/DocumentEditor/DocumentEditorWindow.tsx
 import { useEffect as useEffect16, useState as useState15 } from "react";
-import { Fragment as Fragment14, jsx as jsx55, jsxs as jsxs30 } from "react/jsx-runtime";
+import { Fragment as Fragment14, jsx as jsx56, jsxs as jsxs31 } from "react/jsx-runtime";
 function DocumentEditorWindow({
   title,
   documentTitle: documentTitleProp = "",
@@ -32741,8 +32812,8 @@ function DocumentEditorWindow({
     persist("draft");
   };
   const isPublished = publication === "published";
-  return /* @__PURE__ */ jsxs30(Fragment14, { children: [
-    /* @__PURE__ */ jsxs30(
+  return /* @__PURE__ */ jsxs31(Fragment14, { children: [
+    /* @__PURE__ */ jsxs31(
       HeadingPanelWindow,
       {
         className: cn("document-editor-window", maximized && "is-maximized", className),
@@ -32753,25 +32824,25 @@ function DocumentEditorWindow({
         width,
         style,
         onMouseDown: onActivate,
-        titleBarControls: /* @__PURE__ */ jsxs30(TitleBarControls, { children: [
-          /* @__PURE__ */ jsx55(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-          resizable ? /* @__PURE__ */ jsx55(
+        titleBarControls: /* @__PURE__ */ jsxs31(TitleBarControls, { children: [
+          /* @__PURE__ */ jsx56(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+          resizable ? /* @__PURE__ */ jsx56(
             TitleBarControl,
             {
               action: maximized ? "Restore" : "Maximize",
               onClick: onMaximize
             }
           ) : null,
-          /* @__PURE__ */ jsx55(TitleBarControl, { action: "Close", onClick: onClose })
+          /* @__PURE__ */ jsx56(TitleBarControl, { action: "Close", onClick: onClose })
         ] }),
-        statusBar: /* @__PURE__ */ jsxs30(StatusBar, { children: [
-          /* @__PURE__ */ jsx55(StatusBarField, { children: loading ? "Loading\u2026" : saving ? "Saving\u2026" : statusMessage ? statusMessage : dirty ? "Unsaved changes" : isPublished ? "Published" : publication === "scheduled" ? "Scheduled" : "Draft" }),
-          statusMessage ? /* @__PURE__ */ jsx55(StatusBarField, { children: /* @__PURE__ */ jsx55(Button, { type: "button", onClick: onClearStatusMessage, children: "Clear" }) }) : null
+        statusBar: /* @__PURE__ */ jsxs31(StatusBar, { children: [
+          /* @__PURE__ */ jsx56(StatusBarField, { children: loading ? "Loading\u2026" : saving ? "Saving\u2026" : statusMessage ? statusMessage : dirty ? "Unsaved changes" : isPublished ? "Published" : publication === "scheduled" ? "Scheduled" : "Draft" }),
+          statusMessage ? /* @__PURE__ */ jsx56(StatusBarField, { children: /* @__PURE__ */ jsx56(Button, { type: "button", onClick: onClearStatusMessage, children: "Clear" }) }) : null
         ] }),
         children: [
-          /* @__PURE__ */ jsxs30(FieldRow, { children: [
-            /* @__PURE__ */ jsx55("label", { htmlFor: "wh-doc-title", children: "Title" }),
-            /* @__PURE__ */ jsx55(
+          /* @__PURE__ */ jsxs31(FieldRow, { children: [
+            /* @__PURE__ */ jsx56("label", { htmlFor: "wh-doc-title", children: "Title" }),
+            /* @__PURE__ */ jsx56(
               TextBox,
               {
                 id: "wh-doc-title",
@@ -32784,9 +32855,9 @@ function DocumentEditorWindow({
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs30(FieldRow, { children: [
-            /* @__PURE__ */ jsx55("label", { htmlFor: "wh-doc-publication", children: "Publication" }),
-            /* @__PURE__ */ jsxs30(
+          /* @__PURE__ */ jsxs31(FieldRow, { children: [
+            /* @__PURE__ */ jsx56("label", { htmlFor: "wh-doc-publication", children: "Publication" }),
+            /* @__PURE__ */ jsxs31(
               Select,
               {
                 id: "wh-doc-publication",
@@ -32797,14 +32868,14 @@ function DocumentEditorWindow({
                   setDirty(true);
                 },
                 children: [
-                  /* @__PURE__ */ jsx55("option", { value: "draft", children: "Draft" }),
-                  /* @__PURE__ */ jsx55("option", { value: "published", children: "Published" }),
-                  /* @__PURE__ */ jsx55("option", { value: "scheduled", children: "Scheduled" })
+                  /* @__PURE__ */ jsx56("option", { value: "draft", children: "Draft" }),
+                  /* @__PURE__ */ jsx56("option", { value: "published", children: "Published" }),
+                  /* @__PURE__ */ jsx56("option", { value: "scheduled", children: "Scheduled" })
                 ]
               }
             )
           ] }),
-          /* @__PURE__ */ jsx55("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }, children: loading ? /* @__PURE__ */ jsx55("p", { children: "Loading document\u2026" }) : /* @__PURE__ */ jsx55(
+          /* @__PURE__ */ jsx56("div", { style: { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }, children: loading ? /* @__PURE__ */ jsx56("p", { children: "Loading document\u2026" }) : /* @__PURE__ */ jsx56(
             DocumentEditorCanvas,
             {
               editorKey,
@@ -32816,8 +32887,8 @@ function DocumentEditorWindow({
               }
             }
           ) }),
-          /* @__PURE__ */ jsxs30(FieldRow, { className: "justify-end", children: [
-            isPublished ? /* @__PURE__ */ jsx55(
+          /* @__PURE__ */ jsxs31(FieldRow, { className: "justify-end", children: [
+            isPublished ? /* @__PURE__ */ jsx56(
               Button,
               {
                 type: "button",
@@ -32825,7 +32896,7 @@ function DocumentEditorWindow({
                 onClick: handleUnpublish,
                 children: "Unpublish"
               }
-            ) : /* @__PURE__ */ jsx55(
+            ) : /* @__PURE__ */ jsx56(
               Button,
               {
                 type: "button",
@@ -32834,7 +32905,7 @@ function DocumentEditorWindow({
                 children: "Publish"
               }
             ),
-            /* @__PURE__ */ jsx55(
+            /* @__PURE__ */ jsx56(
               Button,
               {
                 type: "button",
@@ -32844,12 +32915,12 @@ function DocumentEditorWindow({
                 children: "Save"
               }
             ),
-            /* @__PURE__ */ jsx55(Button, { type: "button", onClick: onClose, children: "Close" })
+            /* @__PURE__ */ jsx56(Button, { type: "button", onClick: onClose, children: "Close" })
           ] })
         ]
       }
     ),
-    alertMessage ? /* @__PURE__ */ jsx55(DesktopModal, { children: /* @__PURE__ */ jsx55(
+    alertMessage ? /* @__PURE__ */ jsx56(DesktopModal, { children: /* @__PURE__ */ jsx56(
       MessageDialog,
       {
         type: "error",
@@ -32877,7 +32948,9 @@ var TITLE_BAR_ICON_OPTIONS = [
   "sites",
   "settings",
   "themes",
-  "folder"
+  "folder",
+  "external-link",
+  "my-account"
 ];
 function resolveTitleBarIcon(value) {
   return value && value !== "none" ? value : void 0;
@@ -33090,6 +33163,16 @@ function createAdminApiClient(options = {}) {
       body: JSON.stringify(body)
     }),
     getMe: () => request("/me"),
+    getMyProfile: () => request("/me/profile"),
+    updateMyProfile: (body) => request("/me/profile", {
+      method: "PATCH",
+      body: JSON.stringify(body)
+    }),
+    uploadMyAvatar: (file, filename = "avatar.jpg") => {
+      const form = new FormData();
+      form.append("file", file, filename);
+      return requestMultipart("/me/avatar", form);
+    },
     getExplorerForest: (siteId) => request(`/sites/${siteId}/explorer`),
     getContentTrash: (siteId) => request(`/sites/${siteId}/trash`),
     getContentNode: (siteId, nodeId) => request(`/sites/${siteId}/nodes/${nodeId}`),
@@ -33153,11 +33236,11 @@ function parsePositiveInt(raw) {
   if (raw == null || raw === "") {
     return null;
   }
-  const n2 = Number(raw);
-  if (!Number.isInteger(n2) || n2 <= 0) {
+  const n3 = Number(raw);
+  if (!Number.isInteger(n3) || n3 <= 0) {
     return null;
   }
-  return n2;
+  return n3;
 }
 function parseAdminDeepLink(search) {
   const query = search.startsWith("?") ? search.slice(1) : search;
@@ -33187,7 +33270,7 @@ function parseAdminDeepLink(search) {
 }
 
 // src/admin/components/LoginForm/LoginForm.tsx
-import { jsx as jsx56, jsxs as jsxs31 } from "react/jsx-runtime";
+import { jsx as jsx57, jsxs as jsxs32 } from "react/jsx-runtime";
 function LoginForm({
   action = "/admin/login",
   method = "post",
@@ -33212,7 +33295,7 @@ function LoginForm({
     });
   };
   const bannerSrc = bannerUrl || adminAsset("system/banner-dialog-login.gif");
-  return /* @__PURE__ */ jsxs31(
+  return /* @__PURE__ */ jsxs32(
     "form",
     {
       action,
@@ -33221,16 +33304,16 @@ function LoginForm({
       noValidate: true,
       className: cn(className),
       children: [
-        csrfToken ? /* @__PURE__ */ jsx56("input", { type: "hidden", name: csrfFieldName, value: csrfToken }) : null,
-        /* @__PURE__ */ jsxs31(
+        csrfToken ? /* @__PURE__ */ jsx57("input", { type: "hidden", name: csrfFieldName, value: csrfToken }) : null,
+        /* @__PURE__ */ jsxs32(
           DialogWindow,
           {
             title: "Sign in \u2014 WebHemi CMS Admin",
             titleBarControls: null,
-            banner: /* @__PURE__ */ jsx56("img", { alt: "", className: "dialog-banner", src: bannerSrc }),
-            actions: /* @__PURE__ */ jsx56(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx56(Button, { type: "submit", isDefault: true, loading, children: "OK" }) }),
+            banner: /* @__PURE__ */ jsx57("img", { alt: "", className: "dialog-banner", src: bannerSrc }),
+            actions: /* @__PURE__ */ jsx57(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx57(Button, { type: "submit", isDefault: true, loading, children: "OK" }) }),
             children: [
-              /* @__PURE__ */ jsx56(FieldRow, { children: /* @__PURE__ */ jsx56(
+              /* @__PURE__ */ jsx57(FieldRow, { children: /* @__PURE__ */ jsx57(
                 TextBox,
                 {
                   id: "email",
@@ -33243,7 +33326,7 @@ function LoginForm({
                   className: "w-window-xs"
                 }
               ) }),
-              /* @__PURE__ */ jsx56(FieldRow, { children: /* @__PURE__ */ jsx56(
+              /* @__PURE__ */ jsx57(FieldRow, { children: /* @__PURE__ */ jsx57(
                 TextBox,
                 {
                   id: "password",
@@ -33265,7 +33348,7 @@ function LoginForm({
 
 // src/admin/components/ControlPanel/ControlPanel.tsx
 import { useState as useState16 } from "react";
-import { jsx as jsx57, jsxs as jsxs32 } from "react/jsx-runtime";
+import { jsx as jsx58, jsxs as jsxs33 } from "react/jsx-runtime";
 var ICONS = [
   { kind: "sites", label: "Sites", description: "Manage sites and their contents." },
   { kind: "hosts", label: "Hosts", description: "Add, remove and verify domains." },
@@ -33295,7 +33378,7 @@ function ControlPanel({
   paneHeight = 300
 }) {
   const [selected, setSelected] = useState16(null);
-  return /* @__PURE__ */ jsx57(
+  return /* @__PURE__ */ jsx58(
     IconPanelWindow,
     {
       className,
@@ -33306,20 +33389,20 @@ function ControlPanel({
       paneHeight,
       title: "Control Panel",
       titleIcon: "control-panel",
-      titleBarControls: /* @__PURE__ */ jsxs32(TitleBarControls, { children: [
-        /* @__PURE__ */ jsx57(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-        resizable ? /* @__PURE__ */ jsx57(
+      titleBarControls: /* @__PURE__ */ jsxs33(TitleBarControls, { children: [
+        /* @__PURE__ */ jsx58(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+        resizable ? /* @__PURE__ */ jsx58(
           TitleBarControl,
           {
             action: maximized ? "Restore" : "Maximize",
             onClick: onMaximize
           }
         ) : null,
-        /* @__PURE__ */ jsx57(TitleBarControl, { action: "Close", onClick: onClose })
+        /* @__PURE__ */ jsx58(TitleBarControl, { action: "Close", onClick: onClose })
       ] }),
       onMouseDown: onActivate,
       infoUnselected: !selected,
-      info: selected ? /* @__PURE__ */ jsx57(
+      info: selected ? /* @__PURE__ */ jsx58(
         IconPanelSelectionInfo,
         {
           kind: selected.kind,
@@ -33327,17 +33410,17 @@ function ControlPanel({
           description: selected.description
         }
       ) : null,
-      statusBar: /* @__PURE__ */ jsxs32(StatusBar, { children: [
-        /* @__PURE__ */ jsxs32(StatusBarField, { children: [
+      statusBar: /* @__PURE__ */ jsxs33(StatusBar, { children: [
+        /* @__PURE__ */ jsxs33(StatusBarField, { children: [
           ICONS.length,
           " items"
         ] }),
-        /* @__PURE__ */ jsx57(StatusBarField, { className: "description", children: selected?.description ?? "" }),
-        /* @__PURE__ */ jsx57(StatusBarField, {})
+        /* @__PURE__ */ jsx58(StatusBarField, { className: "description", children: selected?.description ?? "" }),
+        /* @__PURE__ */ jsx58(StatusBarField, {})
       ] }),
       children: ICONS.map((icon) => {
         const onOpen = icon.kind === "sites" ? onOpenSites : icon.kind === "hosts" ? onOpenHosts : icon.kind === "settings" ? onOpenSettings : icon.kind === "permissions" ? onOpenPermissions : icon.kind === "roles" ? onOpenRoles : icon.kind === "users" ? onOpenUsers : void 0;
-        return /* @__PURE__ */ jsx57(
+        return /* @__PURE__ */ jsx58(
           SystemIcon,
           {
             kind: icon.kind,
@@ -33354,7 +33437,7 @@ function ControlPanel({
 }
 
 // src/admin/components/SitesWindow/SitesWindow.tsx
-import { useCallback as useCallback6, useEffect as useEffect18, useLayoutEffect as useLayoutEffect8, useRef as useRef8, useState as useState18 } from "react";
+import { useCallback as useCallback6, useEffect as useEffect18, useLayoutEffect as useLayoutEffect8, useRef as useRef9, useState as useState18 } from "react";
 
 // src/admin/lib/accessModeResetWarning.ts
 var ACCESS_MODE_RESET_WARNING = "This change will switch Admin access to path.\nUnfinished work in this session will be discarded, and you will need to sign in again on the path admin login page.";
@@ -33363,7 +33446,7 @@ Unfinished work in this session will be discarded, and you will need to sign in 
 This cannot be undone.`;
 
 // src/admin/components/SitesWindow/SiteFormDialog.tsx
-import { useEffect as useEffect17, useId as useId5, useMemo as useMemo10, useState as useState17 } from "react";
+import { useEffect as useEffect17, useId as useId6, useMemo as useMemo10, useState as useState17 } from "react";
 
 // src/admin/components/HostsWindow/hostFormAccess.ts
 var MAIN_SITE_SLUG = "main";
@@ -33414,7 +33497,7 @@ function wouldLoseDomainAdmin(options) {
 }
 
 // src/admin/components/SitesWindow/SiteFormDialog.tsx
-import { Fragment as Fragment15, jsx as jsx58, jsxs as jsxs33 } from "react/jsx-runtime";
+import { Fragment as Fragment15, jsx as jsx59, jsxs as jsxs34 } from "react/jsx-runtime";
 function SiteFormDialog({
   mode,
   initial,
@@ -33433,10 +33516,10 @@ function SiteFormDialog({
   onAccessModeResetUnassign,
   className
 }) {
-  const nameId = useId5();
-  const slugId = useId5();
-  const enabledId = useId5();
-  const assignSelectId = useId5();
+  const nameId = useId6();
+  const slugId = useId6();
+  const enabledId = useId6();
+  const assignSelectId = useId6();
   const [tab, setTab] = useState17("general");
   const [name, setName] = useState17(initial?.name ?? "");
   const [slug, setSlug] = useState17(initial?.slug ?? "");
@@ -33525,17 +33608,17 @@ function SiteFormDialog({
     }
     onAssignHost?.(assignHostId);
   };
-  return /* @__PURE__ */ jsx58(
+  return /* @__PURE__ */ jsx59(
     PaneWindowShell,
     {
       className: cn("site-form-dialog", className),
       width: 480,
       title,
       titleIcon: "sites",
-      titleBarControls: /* @__PURE__ */ jsx58(TitleBarControls, { children: /* @__PURE__ */ jsx58(TitleBarControl, { action: "Close", onClick: onClose }) }),
-      children: /* @__PURE__ */ jsxs33("form", { className: "site-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
-        /* @__PURE__ */ jsxs33(TabList, { children: [
-          /* @__PURE__ */ jsx58(
+      titleBarControls: /* @__PURE__ */ jsx59(TitleBarControls, { children: /* @__PURE__ */ jsx59(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      children: /* @__PURE__ */ jsxs34("form", { className: "site-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
+        /* @__PURE__ */ jsxs34(TabList, { children: [
+          /* @__PURE__ */ jsx59(
             Tab,
             {
               selected: tab === "general",
@@ -33547,7 +33630,7 @@ function SiteFormDialog({
               children: "General"
             }
           ),
-          /* @__PURE__ */ jsx58(
+          /* @__PURE__ */ jsx59(
             Tab,
             {
               selected: tab === "hosts",
@@ -33560,8 +33643,8 @@ function SiteFormDialog({
             }
           )
         ] }),
-        /* @__PURE__ */ jsx58(TabPanel, { children: /* @__PURE__ */ jsx58(WindowBody, { children: tab === "general" ? /* @__PURE__ */ jsxs33(Fragment15, { children: [
-          /* @__PURE__ */ jsx58(FieldRow, { children: /* @__PURE__ */ jsx58(
+        /* @__PURE__ */ jsx59(TabPanel, { children: /* @__PURE__ */ jsx59(WindowBody, { children: tab === "general" ? /* @__PURE__ */ jsxs34(Fragment15, { children: [
+          /* @__PURE__ */ jsx59(FieldRow, { children: /* @__PURE__ */ jsx59(
             TextBox,
             {
               id: nameId,
@@ -33573,7 +33656,7 @@ function SiteFormDialog({
               onChange: (event) => setName(event.target.value)
             }
           ) }),
-          /* @__PURE__ */ jsx58(FieldRow, { children: /* @__PURE__ */ jsx58(
+          /* @__PURE__ */ jsx59(FieldRow, { children: /* @__PURE__ */ jsx59(
             TextBox,
             {
               id: slugId,
@@ -33586,7 +33669,7 @@ function SiteFormDialog({
               onChange: (event) => setSlug(event.target.value)
             }
           ) }),
-          /* @__PURE__ */ jsx58(FieldRow, { children: /* @__PURE__ */ jsx58(
+          /* @__PURE__ */ jsx59(FieldRow, { children: /* @__PURE__ */ jsx59(
             Checkbox,
             {
               id: enabledId,
@@ -33598,20 +33681,20 @@ function SiteFormDialog({
               onChange: (event) => setEnabled(event.target.checked)
             }
           ) })
-        ] }) : /* @__PURE__ */ jsxs33(Fragment15, { children: [
-          /* @__PURE__ */ jsx58("p", { style: { marginTop: 0, marginBottom: 8 }, children: initial?.siteId == null ? "Save the site first, then assign verified hosts here or from Hosts." : "Assigned hosts below. Assign only verified, unassigned hosts; Remove unassigns without deleting." }),
-          /* @__PURE__ */ jsx58(
+        ] }) : /* @__PURE__ */ jsxs34(Fragment15, { children: [
+          /* @__PURE__ */ jsx59("p", { style: { marginTop: 0, marginBottom: 8 }, children: initial?.siteId == null ? "Save the site first, then assign verified hosts here or from Hosts." : "Assigned hosts below. Assign only verified, unassigned hosts; Remove unassigns without deleting." }),
+          /* @__PURE__ */ jsx59(
             SunkenPanel,
             {
               scrollable: true,
               tone: "white",
               className: "site-form-host-list",
-              children: assignedHosts.length === 0 ? /* @__PURE__ */ jsx58("p", { style: { margin: 8 }, children: initial?.siteId == null ? "No hosts until this site is saved." : "No hosts assigned." }) : /* @__PURE__ */ jsxs33(Table, { "aria-label": "Assigned hosts", children: [
-                /* @__PURE__ */ jsx58("thead", { children: /* @__PURE__ */ jsxs33("tr", { children: [
-                  /* @__PURE__ */ jsx58("th", { children: "Name" }),
-                  /* @__PURE__ */ jsx58("th", { children: "Verification" })
+              children: assignedHosts.length === 0 ? /* @__PURE__ */ jsx59("p", { style: { margin: 8 }, children: initial?.siteId == null ? "No hosts until this site is saved." : "No hosts assigned." }) : /* @__PURE__ */ jsxs34(Table, { "aria-label": "Assigned hosts", children: [
+                /* @__PURE__ */ jsx59("thead", { children: /* @__PURE__ */ jsxs34("tr", { children: [
+                  /* @__PURE__ */ jsx59("th", { children: "Name" }),
+                  /* @__PURE__ */ jsx59("th", { children: "Verification" })
                 ] }) }),
-                /* @__PURE__ */ jsx58("tbody", { children: assignedHosts.map((row) => /* @__PURE__ */ jsxs33(
+                /* @__PURE__ */ jsx59("tbody", { children: assignedHosts.map((row) => /* @__PURE__ */ jsxs34(
                   TableRow,
                   {
                     highlighted: selectedHostId === row.id,
@@ -33619,8 +33702,8 @@ function SiteFormDialog({
                       (current) => current === row.id ? null : row.id
                     ),
                     children: [
-                      /* @__PURE__ */ jsx58("td", { children: row.host }),
-                      /* @__PURE__ */ jsx58("td", { children: row.status })
+                      /* @__PURE__ */ jsx59("td", { children: row.host }),
+                      /* @__PURE__ */ jsx59("td", { children: row.status })
                     ]
                   },
                   row.id
@@ -33628,8 +33711,8 @@ function SiteFormDialog({
               ] })
             }
           ),
-          initial?.siteId != null ? /* @__PURE__ */ jsxs33(FieldRow, { style: { marginTop: 8 }, children: [
-            /* @__PURE__ */ jsxs33(
+          initial?.siteId != null ? /* @__PURE__ */ jsxs34(FieldRow, { style: { marginTop: 8 }, children: [
+            /* @__PURE__ */ jsxs34(
               Select,
               {
                 id: assignSelectId,
@@ -33643,12 +33726,12 @@ function SiteFormDialog({
                   setAssignHostId(value === "" ? null : Number(value));
                 },
                 children: [
-                  /* @__PURE__ */ jsx58("option", { value: "", children: assignableHosts.length === 0 ? "None available" : "Select a host\u2026" }),
-                  assignableHosts.map((host) => /* @__PURE__ */ jsx58("option", { value: host.id, children: host.host }, host.id))
+                  /* @__PURE__ */ jsx59("option", { value: "", children: assignableHosts.length === 0 ? "None available" : "Select a host\u2026" }),
+                  assignableHosts.map((host) => /* @__PURE__ */ jsx59("option", { value: host.id, children: host.host }, host.id))
                 ]
               }
             ),
-            /* @__PURE__ */ jsx58(
+            /* @__PURE__ */ jsx59(
               Button,
               {
                 type: "button",
@@ -33660,8 +33743,8 @@ function SiteFormDialog({
               }
             )
           ] }) : null,
-          /* @__PURE__ */ jsxs33(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: [
-            /* @__PURE__ */ jsx58(
+          /* @__PURE__ */ jsxs34(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: [
+            /* @__PURE__ */ jsx59(
               Button,
               {
                 type: "button",
@@ -33672,7 +33755,7 @@ function SiteFormDialog({
                 children: "Add\u2026"
               }
             ),
-            /* @__PURE__ */ jsx58(
+            /* @__PURE__ */ jsx59(
               Button,
               {
                 type: "button",
@@ -33685,9 +33768,9 @@ function SiteFormDialog({
             )
           ] })
         ] }) }) }),
-        /* @__PURE__ */ jsxs33(FieldRow, { className: "justify-end site-form-dialog-actions", children: [
-          /* @__PURE__ */ jsx58(Button, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
-          /* @__PURE__ */ jsx58(Button, { type: "button", accessKey: "c", disabled: busy, onClick: onClose, children: "Cancel" })
+        /* @__PURE__ */ jsxs34(FieldRow, { className: "justify-end site-form-dialog-actions", children: [
+          /* @__PURE__ */ jsx59(Button, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
+          /* @__PURE__ */ jsx59(Button, { type: "button", accessKey: "c", disabled: busy, onClick: onClose, children: "Cancel" })
         ] })
       ] })
     }
@@ -33695,7 +33778,7 @@ function SiteFormDialog({
 }
 
 // src/admin/components/SitesWindow/SitesWindow.tsx
-import { Fragment as Fragment16, jsx as jsx59, jsxs as jsxs34 } from "react/jsx-runtime";
+import { Fragment as Fragment16, jsx as jsx60, jsxs as jsxs35 } from "react/jsx-runtime";
 function formatSaveErrors(formError, fieldErrors) {
   const parts = [
     formError,
@@ -33751,11 +33834,11 @@ function SitesWindow({
   const [alert, setAlert] = useState18(null);
   const [confirmDelete, setConfirmDelete] = useState18(null);
   const [pendingAccessResetUnassign, setPendingAccessResetUnassign] = useState18(null);
-  const wasSavingRef = useRef8(false);
-  const alertSoundKeyRef = useRef8(null);
-  const confirmSoundKeyRef = useRef8(null);
-  const accessResetSoundKeyRef = useRef8(null);
-  const appliedPreferIdRef = useRef8(null);
+  const wasSavingRef = useRef9(false);
+  const alertSoundKeyRef = useRef9(null);
+  const confirmSoundKeyRef = useRef9(null);
+  const accessResetSoundKeyRef = useRef9(null);
+  const appliedPreferIdRef = useRef9(null);
   const showErrorAlert = useCallback6(
     (message, title = "Error") => {
       const key = `${title}\0${message}`;
@@ -33942,7 +34025,7 @@ function SitesWindow({
   };
   const statusLeft = loading ? "Loading\u2026" : `${sites.length} site${sites.length === 1 ? "" : "s"}`;
   const statusMid = statusMessage ?? (selected ? selected.name : canEdit ? "Select a site, or choose New." : "");
-  return /* @__PURE__ */ jsx59(
+  return /* @__PURE__ */ jsx60(
     HeadingPanelWindow,
     {
       className: cn("sites-window", className),
@@ -33951,21 +34034,21 @@ function SitesWindow({
       resizable,
       title: "Sites",
       titleIcon: "sites",
-      titleBarControls: /* @__PURE__ */ jsxs34(TitleBarControls, { children: [
-        /* @__PURE__ */ jsx59(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-        resizable ? /* @__PURE__ */ jsx59(
+      titleBarControls: /* @__PURE__ */ jsxs35(TitleBarControls, { children: [
+        /* @__PURE__ */ jsx60(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+        resizable ? /* @__PURE__ */ jsx60(
           TitleBarControl,
           {
             action: maximized ? "Restore" : "Maximize",
             onClick: onMaximize
           }
         ) : null,
-        /* @__PURE__ */ jsx59(TitleBarControl, { action: "Close", onClick: onClose })
+        /* @__PURE__ */ jsx60(TitleBarControl, { action: "Close", onClick: onClose })
       ] }),
       onMouseDown: onActivate,
-      heading: /* @__PURE__ */ jsx59("p", { style: { margin: 0 }, children: "Multi-tenant sites bound to one or more hostnames." }),
-      actions: canEdit ? /* @__PURE__ */ jsxs34(FieldRow, { className: "justify-end", children: [
-        /* @__PURE__ */ jsx59(
+      heading: /* @__PURE__ */ jsx60("p", { style: { margin: 0 }, children: "Multi-tenant sites bound to one or more hostnames." }),
+      actions: canEdit ? /* @__PURE__ */ jsxs35(FieldRow, { className: "justify-end", children: [
+        /* @__PURE__ */ jsx60(
           Button,
           {
             type: "button",
@@ -33976,7 +34059,7 @@ function SitesWindow({
             children: "New"
           }
         ),
-        /* @__PURE__ */ jsx59(
+        /* @__PURE__ */ jsx60(
           Button,
           {
             type: "button",
@@ -33986,7 +34069,7 @@ function SitesWindow({
             children: "Edit"
           }
         ),
-        /* @__PURE__ */ jsx59(
+        /* @__PURE__ */ jsx60(
           Button,
           {
             type: "button",
@@ -33997,38 +34080,38 @@ function SitesWindow({
             children: "Delete"
           }
         ),
-        /* @__PURE__ */ jsx59(Button, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" })
-      ] }) : /* @__PURE__ */ jsx59(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx59(Button, { type: "button", accessKey: "c", onClick: handleCancel, children: "Cancel" }) }),
-      statusBar: /* @__PURE__ */ jsxs34(StatusBar, { children: [
-        /* @__PURE__ */ jsx59(StatusBarField, { children: statusLeft }),
-        /* @__PURE__ */ jsx59(StatusBarField, { className: "description", children: statusMid }),
-        /* @__PURE__ */ jsx59(StatusBarField, {})
+        /* @__PURE__ */ jsx60(Button, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" })
+      ] }) : /* @__PURE__ */ jsx60(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx60(Button, { type: "button", accessKey: "c", onClick: handleCancel, children: "Cancel" }) }),
+      statusBar: /* @__PURE__ */ jsxs35(StatusBar, { children: [
+        /* @__PURE__ */ jsx60(StatusBarField, { children: statusLeft }),
+        /* @__PURE__ */ jsx60(StatusBarField, { className: "description", children: statusMid }),
+        /* @__PURE__ */ jsx60(StatusBarField, {})
       ] }),
-      children: /* @__PURE__ */ jsxs34(Fragment16, { children: [
-        /* @__PURE__ */ jsx59(
+      children: /* @__PURE__ */ jsxs35(Fragment16, { children: [
+        /* @__PURE__ */ jsx60(
           SunkenPanel,
           {
             scrollable: true,
             tone: "white",
             style: tableMinHeight != null ? { minHeight: tableMinHeight } : void 0,
-            children: loading && sites.length === 0 ? /* @__PURE__ */ jsx59("p", { style: { margin: 8 }, children: "Loading sites\u2026" }) : sites.length === 0 ? /* @__PURE__ */ jsx59("p", { style: { margin: 8 }, children: "No sites yet." }) : /* @__PURE__ */ jsxs34(Table, { "aria-label": "Sites", children: [
-              /* @__PURE__ */ jsx59("thead", { children: /* @__PURE__ */ jsxs34("tr", { children: [
-                /* @__PURE__ */ jsx59("th", { children: "Name" }),
-                /* @__PURE__ */ jsx59("th", { children: "Slug" }),
-                /* @__PURE__ */ jsx59("th", { children: "Hosts" }),
-                /* @__PURE__ */ jsx59("th", { children: "Status" })
+            children: loading && sites.length === 0 ? /* @__PURE__ */ jsx60("p", { style: { margin: 8 }, children: "Loading sites\u2026" }) : sites.length === 0 ? /* @__PURE__ */ jsx60("p", { style: { margin: 8 }, children: "No sites yet." }) : /* @__PURE__ */ jsxs35(Table, { "aria-label": "Sites", children: [
+              /* @__PURE__ */ jsx60("thead", { children: /* @__PURE__ */ jsxs35("tr", { children: [
+                /* @__PURE__ */ jsx60("th", { children: "Name" }),
+                /* @__PURE__ */ jsx60("th", { children: "Slug" }),
+                /* @__PURE__ */ jsx60("th", { children: "Hosts" }),
+                /* @__PURE__ */ jsx60("th", { children: "Status" })
               ] }) }),
-              /* @__PURE__ */ jsx59("tbody", { children: sites.map((site) => /* @__PURE__ */ jsxs34(
+              /* @__PURE__ */ jsx60("tbody", { children: sites.map((site) => /* @__PURE__ */ jsxs35(
                 TableRow,
                 {
                   highlighted: selectedId === site.id,
                   onClick: () => selectSite(site.id),
                   onDoubleClick: () => openEdit(site),
                   children: [
-                    /* @__PURE__ */ jsx59("td", { children: site.name }),
-                    /* @__PURE__ */ jsx59("td", { children: site.slug }),
-                    /* @__PURE__ */ jsx59("td", { children: site.hostCount }),
-                    /* @__PURE__ */ jsx59("td", { children: site.enabled ? "Enabled" : "Disabled" })
+                    /* @__PURE__ */ jsx60("td", { children: site.name }),
+                    /* @__PURE__ */ jsx60("td", { children: site.slug }),
+                    /* @__PURE__ */ jsx60("td", { children: site.hostCount }),
+                    /* @__PURE__ */ jsx60("td", { children: site.enabled ? "Enabled" : "Disabled" })
                   ]
                 },
                 site.id
@@ -34036,7 +34119,7 @@ function SitesWindow({
             ] })
           }
         ),
-        form.open ? /* @__PURE__ */ jsx59(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx59(
+        form.open ? /* @__PURE__ */ jsx60(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx60(
           SiteFormDialog,
           {
             mode: form.mode,
@@ -34064,7 +34147,7 @@ function SitesWindow({
           },
           `${form.mode}-${form.siteId ?? "new"}`
         ) }) : null,
-        pendingAccessResetUnassign != null ? /* @__PURE__ */ jsx59(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx59(
+        pendingAccessResetUnassign != null ? /* @__PURE__ */ jsx60(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx60(
           MessageDialog,
           {
             type: "warning",
@@ -34076,7 +34159,7 @@ function SitesWindow({
             onConfirm: confirmAccessResetUnassign
           }
         ) }) : null,
-        confirmDelete ? /* @__PURE__ */ jsx59(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx59(
+        confirmDelete ? /* @__PURE__ */ jsx60(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx60(
           MessageDialog,
           {
             type: "question",
@@ -34086,7 +34169,7 @@ function SitesWindow({
             onConfirm: confirmDeleteSite
           }
         ) }) : null,
-        alert ? /* @__PURE__ */ jsx59(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx59(
+        alert ? /* @__PURE__ */ jsx60(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx60(
           MessageDialog,
           {
             type: "error",
@@ -34101,11 +34184,11 @@ function SitesWindow({
 }
 
 // src/admin/components/HostsWindow/HostsWindow.tsx
-import { useCallback as useCallback7, useEffect as useEffect20, useLayoutEffect as useLayoutEffect9, useRef as useRef9, useState as useState20 } from "react";
+import { useCallback as useCallback7, useEffect as useEffect20, useLayoutEffect as useLayoutEffect9, useRef as useRef10, useState as useState20 } from "react";
 
 // src/admin/components/HostsWindow/HostFormDialog.tsx
-import { useEffect as useEffect19, useId as useId6, useState as useState19 } from "react";
-import { jsx as jsx60, jsxs as jsxs35 } from "react/jsx-runtime";
+import { useEffect as useEffect19, useId as useId7, useState as useState19 } from "react";
+import { jsx as jsx61, jsxs as jsxs36 } from "react/jsx-runtime";
 function HostFormDialog({
   mode,
   initial,
@@ -34120,10 +34203,10 @@ function HostFormDialog({
   onClose,
   className
 }) {
-  const hostId = useId6();
-  const siteSelectId = useId6();
-  const surfaceId = useId6();
-  const enabledId = useId6();
+  const hostId = useId7();
+  const siteSelectId = useId7();
+  const surfaceId = useId7();
+  const enabledId = useId7();
   const [host, setHost] = useState19(initial?.host ?? "");
   const [siteId, setSiteId] = useState19(initial?.siteId ?? null);
   const [surface, setSurface] = useState19(initial?.surface ?? "site");
@@ -34208,17 +34291,17 @@ function HostFormDialog({
     }
     onSave(payload);
   };
-  return /* @__PURE__ */ jsx60(
+  return /* @__PURE__ */ jsx61(
     PaneWindowShell,
     {
       className: cn("host-form-dialog", "site-form-dialog", className),
       width: 420,
       title,
       titleIcon: "hosts",
-      titleBarControls: /* @__PURE__ */ jsx60(TitleBarControls, { children: /* @__PURE__ */ jsx60(TitleBarControl, { action: "Close", onClick: onClose }) }),
-      children: /* @__PURE__ */ jsxs35("form", { className: "site-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
-        /* @__PURE__ */ jsxs35(WindowBody, { children: [
-          /* @__PURE__ */ jsx60(FieldRow, { children: /* @__PURE__ */ jsx60(
+      titleBarControls: /* @__PURE__ */ jsx61(TitleBarControls, { children: /* @__PURE__ */ jsx61(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      children: /* @__PURE__ */ jsxs36("form", { className: "site-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
+        /* @__PURE__ */ jsxs36(WindowBody, { children: [
+          /* @__PURE__ */ jsx61(FieldRow, { children: /* @__PURE__ */ jsx61(
             TextBox,
             {
               id: hostId,
@@ -34230,7 +34313,7 @@ function HostFormDialog({
               onChange: (event) => setHost(event.target.value)
             }
           ) }),
-          /* @__PURE__ */ jsx60(FieldRow, { children: /* @__PURE__ */ jsxs35(
+          /* @__PURE__ */ jsx61(FieldRow, { children: /* @__PURE__ */ jsxs36(
             Select,
             {
               id: siteSelectId,
@@ -34245,12 +34328,12 @@ function HostFormDialog({
                 setSiteId(value === "" ? null : Number(value));
               },
               children: [
-                /* @__PURE__ */ jsx60("option", { value: "", children: "None" }),
-                sites.map((site) => /* @__PURE__ */ jsx60("option", { value: site.id, children: site.name }, site.id))
+                /* @__PURE__ */ jsx61("option", { value: "", children: "None" }),
+                sites.map((site) => /* @__PURE__ */ jsx61("option", { value: site.id, children: site.name }, site.id))
               ]
             }
           ) }),
-          /* @__PURE__ */ jsx60(FieldRow, { children: /* @__PURE__ */ jsxs35(
+          /* @__PURE__ */ jsx61(FieldRow, { children: /* @__PURE__ */ jsxs36(
             Select,
             {
               id: surfaceId,
@@ -34262,12 +34345,12 @@ function HostFormDialog({
               "aria-invalid": Boolean(errors.surface) || void 0,
               onChange: (event) => setSurface(event.target.value),
               children: [
-                /* @__PURE__ */ jsx60("option", { value: "site", children: "site" }),
-                surfaceSelectable ? /* @__PURE__ */ jsx60("option", { value: "admin", children: "admin" }) : null
+                /* @__PURE__ */ jsx61("option", { value: "site", children: "site" }),
+                surfaceSelectable ? /* @__PURE__ */ jsx61("option", { value: "admin", children: "admin" }) : null
               ]
             }
           ) }),
-          /* @__PURE__ */ jsx60(FieldRow, { children: /* @__PURE__ */ jsx60(
+          /* @__PURE__ */ jsx61(FieldRow, { children: /* @__PURE__ */ jsx61(
             Checkbox,
             {
               id: enabledId,
@@ -34281,9 +34364,9 @@ function HostFormDialog({
             }
           ) })
         ] }),
-        /* @__PURE__ */ jsxs35(FieldRow, { className: "justify-end site-form-dialog-actions", children: [
-          /* @__PURE__ */ jsx60(Button, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
-          /* @__PURE__ */ jsx60(Button, { type: "button", accessKey: "c", disabled: saving, onClick: onClose, children: "Cancel" })
+        /* @__PURE__ */ jsxs36(FieldRow, { className: "justify-end site-form-dialog-actions", children: [
+          /* @__PURE__ */ jsx61(Button, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
+          /* @__PURE__ */ jsx61(Button, { type: "button", accessKey: "c", disabled: saving, onClick: onClose, children: "Cancel" })
         ] })
       ] })
     }
@@ -34291,7 +34374,7 @@ function HostFormDialog({
 }
 
 // src/admin/components/HostsWindow/HostsWindow.tsx
-import { Fragment as Fragment17, jsx as jsx61, jsxs as jsxs36 } from "react/jsx-runtime";
+import { Fragment as Fragment17, jsx as jsx62, jsxs as jsxs37 } from "react/jsx-runtime";
 function formatSaveErrors2(formError, fieldErrors) {
   const parts = [
     formError,
@@ -34346,11 +34429,11 @@ function HostsWindow({
   const [alert, setAlert] = useState20(null);
   const [confirmDelete, setConfirmDelete] = useState20(null);
   const [pendingAccessReset, setPendingAccessReset] = useState20(null);
-  const wasSavingRef = useRef9(false);
-  const alertSoundKeyRef = useRef9(null);
-  const confirmSoundKeyRef = useRef9(null);
-  const accessResetSoundKeyRef = useRef9(null);
-  const appliedPreferIdRef = useRef9(null);
+  const wasSavingRef = useRef10(false);
+  const alertSoundKeyRef = useRef10(null);
+  const confirmSoundKeyRef = useRef10(null);
+  const accessResetSoundKeyRef = useRef10(null);
+  const appliedPreferIdRef = useRef10(null);
   const showErrorAlert = useCallback7(
     (message, title = "Error") => {
       const key = `${title}\0${message}`;
@@ -34547,7 +34630,7 @@ function HostsWindow({
   };
   const statusLeft = loading ? "Loading\u2026" : `${hosts.length} host${hosts.length === 1 ? "" : "s"}`;
   const statusMid = statusMessage ?? (selected ? selected.host : canEdit ? "Select a host, or choose New." : "");
-  return /* @__PURE__ */ jsx61(
+  return /* @__PURE__ */ jsx62(
     HeadingPanelWindow,
     {
       className: cn("hosts-window", className),
@@ -34556,21 +34639,21 @@ function HostsWindow({
       resizable,
       title: "Hosts",
       titleIcon: "hosts",
-      titleBarControls: /* @__PURE__ */ jsxs36(TitleBarControls, { children: [
-        /* @__PURE__ */ jsx61(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-        resizable ? /* @__PURE__ */ jsx61(
+      titleBarControls: /* @__PURE__ */ jsxs37(TitleBarControls, { children: [
+        /* @__PURE__ */ jsx62(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+        resizable ? /* @__PURE__ */ jsx62(
           TitleBarControl,
           {
             action: maximized ? "Restore" : "Maximize",
             onClick: onMaximize
           }
         ) : null,
-        /* @__PURE__ */ jsx61(TitleBarControl, { action: "Close", onClick: onClose })
+        /* @__PURE__ */ jsx62(TitleBarControl, { action: "Close", onClick: onClose })
       ] }),
       onMouseDown: onActivate,
-      heading: /* @__PURE__ */ jsx61("p", { style: { margin: 0 }, children: "Domain names bound to sites (admin, site, or API surfaces)." }),
-      actions: canEdit ? /* @__PURE__ */ jsxs36(FieldRow, { className: "justify-end", children: [
-        /* @__PURE__ */ jsx61(
+      heading: /* @__PURE__ */ jsx62("p", { style: { margin: 0 }, children: "Domain names bound to sites (admin, site, or API surfaces)." }),
+      actions: canEdit ? /* @__PURE__ */ jsxs37(FieldRow, { className: "justify-end", children: [
+        /* @__PURE__ */ jsx62(
           Button,
           {
             type: "button",
@@ -34581,7 +34664,7 @@ function HostsWindow({
             children: "New"
           }
         ),
-        /* @__PURE__ */ jsx61(
+        /* @__PURE__ */ jsx62(
           Button,
           {
             type: "button",
@@ -34591,7 +34674,7 @@ function HostsWindow({
             children: "Edit"
           }
         ),
-        /* @__PURE__ */ jsx61(
+        /* @__PURE__ */ jsx62(
           Button,
           {
             type: "button",
@@ -34602,7 +34685,7 @@ function HostsWindow({
             children: "Verify"
           }
         ),
-        /* @__PURE__ */ jsx61(
+        /* @__PURE__ */ jsx62(
           Button,
           {
             type: "button",
@@ -34613,40 +34696,40 @@ function HostsWindow({
             children: "Delete"
           }
         ),
-        /* @__PURE__ */ jsx61(Button, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" })
-      ] }) : /* @__PURE__ */ jsx61(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx61(Button, { type: "button", accessKey: "c", onClick: handleCancel, children: "Cancel" }) }),
-      statusBar: /* @__PURE__ */ jsxs36(StatusBar, { children: [
-        /* @__PURE__ */ jsx61(StatusBarField, { children: statusLeft }),
-        /* @__PURE__ */ jsx61(StatusBarField, { className: "description", children: statusMid }),
-        /* @__PURE__ */ jsx61(StatusBarField, {})
+        /* @__PURE__ */ jsx62(Button, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" })
+      ] }) : /* @__PURE__ */ jsx62(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx62(Button, { type: "button", accessKey: "c", onClick: handleCancel, children: "Cancel" }) }),
+      statusBar: /* @__PURE__ */ jsxs37(StatusBar, { children: [
+        /* @__PURE__ */ jsx62(StatusBarField, { children: statusLeft }),
+        /* @__PURE__ */ jsx62(StatusBarField, { className: "description", children: statusMid }),
+        /* @__PURE__ */ jsx62(StatusBarField, {})
       ] }),
-      children: /* @__PURE__ */ jsxs36(Fragment17, { children: [
-        /* @__PURE__ */ jsx61(
+      children: /* @__PURE__ */ jsxs37(Fragment17, { children: [
+        /* @__PURE__ */ jsx62(
           SunkenPanel,
           {
             scrollable: true,
             tone: "white",
             style: tableMinHeight != null ? { minHeight: tableMinHeight } : void 0,
-            children: loading && hosts.length === 0 ? /* @__PURE__ */ jsx61("p", { style: { margin: 8 }, children: "Loading hosts\u2026" }) : hosts.length === 0 ? /* @__PURE__ */ jsx61("p", { style: { margin: 8 }, children: "No hosts yet." }) : /* @__PURE__ */ jsxs36(Table, { "aria-label": "Hosts", children: [
-              /* @__PURE__ */ jsx61("thead", { children: /* @__PURE__ */ jsxs36("tr", { children: [
-                /* @__PURE__ */ jsx61("th", { children: "Hostname" }),
-                /* @__PURE__ */ jsx61("th", { children: "Site" }),
-                /* @__PURE__ */ jsx61("th", { children: "Surface" }),
-                /* @__PURE__ */ jsx61("th", { children: "Verification" }),
-                /* @__PURE__ */ jsx61("th", { children: "Status" })
+            children: loading && hosts.length === 0 ? /* @__PURE__ */ jsx62("p", { style: { margin: 8 }, children: "Loading hosts\u2026" }) : hosts.length === 0 ? /* @__PURE__ */ jsx62("p", { style: { margin: 8 }, children: "No hosts yet." }) : /* @__PURE__ */ jsxs37(Table, { "aria-label": "Hosts", children: [
+              /* @__PURE__ */ jsx62("thead", { children: /* @__PURE__ */ jsxs37("tr", { children: [
+                /* @__PURE__ */ jsx62("th", { children: "Hostname" }),
+                /* @__PURE__ */ jsx62("th", { children: "Site" }),
+                /* @__PURE__ */ jsx62("th", { children: "Surface" }),
+                /* @__PURE__ */ jsx62("th", { children: "Verification" }),
+                /* @__PURE__ */ jsx62("th", { children: "Status" })
               ] }) }),
-              /* @__PURE__ */ jsx61("tbody", { children: hosts.map((row) => /* @__PURE__ */ jsxs36(
+              /* @__PURE__ */ jsx62("tbody", { children: hosts.map((row) => /* @__PURE__ */ jsxs37(
                 TableRow,
                 {
                   highlighted: selectedId === row.id,
                   onClick: () => selectHost(row.id),
                   onDoubleClick: () => openEdit(row),
                   children: [
-                    /* @__PURE__ */ jsx61("td", { children: row.host }),
-                    /* @__PURE__ */ jsx61("td", { children: row.siteName?.trim() ? row.siteName : "\u2014" }),
-                    /* @__PURE__ */ jsx61("td", { children: row.surface }),
-                    /* @__PURE__ */ jsx61("td", { children: row.verification }),
-                    /* @__PURE__ */ jsx61("td", { children: row.enabled ? "Enabled" : "Disabled" })
+                    /* @__PURE__ */ jsx62("td", { children: row.host }),
+                    /* @__PURE__ */ jsx62("td", { children: row.siteName?.trim() ? row.siteName : "\u2014" }),
+                    /* @__PURE__ */ jsx62("td", { children: row.surface }),
+                    /* @__PURE__ */ jsx62("td", { children: row.verification }),
+                    /* @__PURE__ */ jsx62("td", { children: row.enabled ? "Enabled" : "Disabled" })
                   ]
                 },
                 row.id
@@ -34654,7 +34737,7 @@ function HostsWindow({
             ] })
           }
         ),
-        form.open ? /* @__PURE__ */ jsx61(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx61(
+        form.open ? /* @__PURE__ */ jsx62(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx62(
           HostFormDialog,
           {
             mode: form.mode,
@@ -34680,7 +34763,7 @@ function HostsWindow({
           },
           `${form.mode}-${form.hostId ?? "new"}`
         ) }) : null,
-        pendingAccessReset ? /* @__PURE__ */ jsx61(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx61(
+        pendingAccessReset ? /* @__PURE__ */ jsx62(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx62(
           MessageDialog,
           {
             type: "warning",
@@ -34692,7 +34775,7 @@ function HostsWindow({
             onConfirm: confirmAccessResetSave
           }
         ) }) : null,
-        confirmDelete ? /* @__PURE__ */ jsx61(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx61(
+        confirmDelete ? /* @__PURE__ */ jsx62(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx62(
           MessageDialog,
           {
             type: confirmDelete.resetsAccessMode ? "warning" : "question",
@@ -34704,7 +34787,7 @@ ${DELETE_ADMIN_HOST_ACCESS_RESET_WARNING}` : `Delete host \u201C${confirmDelete.
             onConfirm: confirmDeleteHost
           }
         ) }) : null,
-        alert ? /* @__PURE__ */ jsx61(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx61(
+        alert ? /* @__PURE__ */ jsx62(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx62(
           MessageDialog,
           {
             type: "error",
@@ -34719,8 +34802,8 @@ ${DELETE_ADMIN_HOST_ACCESS_RESET_WARNING}` : `Delete host \u201C${confirmDelete.
 }
 
 // src/admin/components/SettingsWindow/SettingsWindow.tsx
-import { useEffect as useEffect21, useLayoutEffect as useLayoutEffect10, useRef as useRef10, useState as useState21 } from "react";
-import { jsx as jsx62, jsxs as jsxs37 } from "react/jsx-runtime";
+import { useEffect as useEffect21, useLayoutEffect as useLayoutEffect10, useRef as useRef11, useState as useState21 } from "react";
+import { jsx as jsx63, jsxs as jsxs38 } from "react/jsx-runtime";
 var ACCESS_SWITCH_WARNING = "Changing admin access mode will discard unfinished work in this session.\nYou will need to sign in again on the new admin login page.";
 function SettingsWindow({
   adminAccess = "path",
@@ -34755,8 +34838,8 @@ function SettingsWindow({
     null
   );
   const [alert, setAlert] = useState21(null);
-  const soundedFor = useRef10(null);
-  const warnedFor = useRef10(null);
+  const soundedFor = useRef11(null);
+  const warnedFor = useRef11(null);
   const handleCancel = onCancel ?? onClose;
   const busy = loading || saving;
   const showAlert = Boolean(alert);
@@ -34837,7 +34920,7 @@ function SettingsWindow({
     onSave?.({ symfonyDebugToolbar: next });
   };
   const domainDisabled = !domainAvailable || !canEdit || busy;
-  return /* @__PURE__ */ jsxs37(
+  return /* @__PURE__ */ jsxs38(
     HeadingPanelWindow,
     {
       className: cn("settings-window", className),
@@ -34847,27 +34930,27 @@ function SettingsWindow({
       resizable,
       title: "Settings",
       titleIcon: "settings",
-      titleBarControls: /* @__PURE__ */ jsxs37(TitleBarControls, { children: [
-        /* @__PURE__ */ jsx62(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-        resizable ? /* @__PURE__ */ jsx62(
+      titleBarControls: /* @__PURE__ */ jsxs38(TitleBarControls, { children: [
+        /* @__PURE__ */ jsx63(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+        resizable ? /* @__PURE__ */ jsx63(
           TitleBarControl,
           {
             action: maximized ? "Restore" : "Maximize",
             onClick: onMaximize
           }
         ) : null,
-        /* @__PURE__ */ jsx62(TitleBarControl, { action: "Close", onClick: onClose })
+        /* @__PURE__ */ jsx63(TitleBarControl, { action: "Close", onClick: onClose })
       ] }),
       onMouseDown: onActivate,
-      actions: /* @__PURE__ */ jsx62(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx62(Button, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" }) }),
-      statusBar: /* @__PURE__ */ jsxs37(StatusBar, { children: [
-        /* @__PURE__ */ jsx62(StatusBarField, { children: loading ? "Loading\u2026" : domainAvailable ? "Domain available" : "Path only" }),
-        /* @__PURE__ */ jsx62(StatusBarField, { className: "description", children: statusMessage ?? "" }),
-        /* @__PURE__ */ jsx62(StatusBarField, {})
+      actions: /* @__PURE__ */ jsx63(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx63(Button, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" }) }),
+      statusBar: /* @__PURE__ */ jsxs38(StatusBar, { children: [
+        /* @__PURE__ */ jsx63(StatusBarField, { children: loading ? "Loading\u2026" : domainAvailable ? "Domain available" : "Path only" }),
+        /* @__PURE__ */ jsx63(StatusBarField, { className: "description", children: statusMessage ?? "" }),
+        /* @__PURE__ */ jsx63(StatusBarField, {})
       ] }),
       children: [
-        /* @__PURE__ */ jsx62(GroupBox, { legend: "Admin access", children: /* @__PURE__ */ jsxs37(FieldRow, { children: [
-          /* @__PURE__ */ jsx62(
+        /* @__PURE__ */ jsx63(GroupBox, { legend: "Admin access", children: /* @__PURE__ */ jsxs38(FieldRow, { children: [
+          /* @__PURE__ */ jsx63(
             Radio,
             {
               id: "settings-admin-access-domain",
@@ -34878,7 +34961,7 @@ function SettingsWindow({
               onChange: () => requestAccessChange("domain")
             }
           ),
-          /* @__PURE__ */ jsx62(
+          /* @__PURE__ */ jsx63(
             Radio,
             {
               id: "settings-admin-access-path",
@@ -34890,7 +34973,7 @@ function SettingsWindow({
             }
           )
         ] }) }),
-        /* @__PURE__ */ jsx62(GroupBox, { legend: "Symfony", style: { marginTop: 12 }, children: /* @__PURE__ */ jsx62(FieldRow, { children: /* @__PURE__ */ jsx62(
+        /* @__PURE__ */ jsx63(GroupBox, { legend: "Symfony", style: { marginTop: 12 }, children: /* @__PURE__ */ jsx63(FieldRow, { children: /* @__PURE__ */ jsx63(
           Checkbox,
           {
             id: "settings-symfony-debug-toolbar",
@@ -34900,7 +34983,7 @@ function SettingsWindow({
             onChange: (event) => requestToolbarChange(event.target.checked)
           }
         ) }) }),
-        showSwitchWarning ? /* @__PURE__ */ jsx62(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx62(
+        showSwitchWarning ? /* @__PURE__ */ jsx63(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx63(
           MessageDialog,
           {
             type: "warning",
@@ -34912,7 +34995,7 @@ function SettingsWindow({
             onConfirm: confirmAccessChange
           }
         ) }) : null,
-        showAlert ? /* @__PURE__ */ jsx62(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx62(
+        showAlert ? /* @__PURE__ */ jsx63(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx63(
           MessageDialog,
           {
             type: "error",
@@ -34930,8 +35013,8 @@ function SettingsWindow({
 }
 
 // src/admin/components/SiteSettingsWindow/SiteSettingsWindow.tsx
-import { useEffect as useEffect22, useId as useId7, useState as useState22 } from "react";
-import { Fragment as Fragment18, jsx as jsx63, jsxs as jsxs38 } from "react/jsx-runtime";
+import { useEffect as useEffect22, useId as useId8, useState as useState22 } from "react";
+import { Fragment as Fragment18, jsx as jsx64, jsxs as jsxs39 } from "react/jsx-runtime";
 function SiteSettingsWindow({
   siteName,
   name: nameProp = "",
@@ -34967,9 +35050,9 @@ function SiteSettingsWindow({
   width
 }) {
   void dingSoundUrl;
-  const nameId = useId7();
-  const descriptionId = useId7();
-  const faviconId = useId7();
+  const nameId = useId8();
+  const descriptionId = useId8();
+  const faviconId = useId8();
   const [name, setName] = useState22(nameProp);
   const [description, setDescription] = useState22(descriptionProp ?? "");
   const [faviconIdInput, setFaviconIdInput] = useState22(
@@ -35021,8 +35104,8 @@ function SiteSettingsWindow({
     }
     onSave(patch);
   };
-  return /* @__PURE__ */ jsxs38(Fragment18, { children: [
-    /* @__PURE__ */ jsxs38(
+  return /* @__PURE__ */ jsxs39(Fragment18, { children: [
+    /* @__PURE__ */ jsxs39(
       HeadingPanelWindow,
       {
         className: cn("site-settings-window", maximized && "is-maximized", className),
@@ -35033,26 +35116,26 @@ function SiteSettingsWindow({
         width,
         style,
         onMouseDown: onActivate,
-        titleBarControls: /* @__PURE__ */ jsxs38(TitleBarControls, { children: [
-          /* @__PURE__ */ jsx63(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-          resizable ? /* @__PURE__ */ jsx63(
+        titleBarControls: /* @__PURE__ */ jsxs39(TitleBarControls, { children: [
+          /* @__PURE__ */ jsx64(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+          resizable ? /* @__PURE__ */ jsx64(
             TitleBarControl,
             {
               action: maximized ? "Restore" : "Maximize",
               onClick: onMaximize
             }
           ) : null,
-          /* @__PURE__ */ jsx63(TitleBarControl, { action: "Close", onClick: onClose })
+          /* @__PURE__ */ jsx64(TitleBarControl, { action: "Close", onClick: onClose })
         ] }),
-        statusBar: /* @__PURE__ */ jsxs38(StatusBar, { children: [
-          /* @__PURE__ */ jsx63(StatusBarField, { children: loading ? "Loading\u2026" : saving ? "Saving\u2026" : statusMessage ? statusMessage : dirty ? "Unsaved changes" : "Ready" }),
-          statusMessage ? /* @__PURE__ */ jsx63(StatusBarField, { children: /* @__PURE__ */ jsx63(Button, { type: "button", onClick: onClearStatusMessage, children: "Clear" }) }) : null
+        statusBar: /* @__PURE__ */ jsxs39(StatusBar, { children: [
+          /* @__PURE__ */ jsx64(StatusBarField, { children: loading ? "Loading\u2026" : saving ? "Saving\u2026" : statusMessage ? statusMessage : dirty ? "Unsaved changes" : "Ready" }),
+          statusMessage ? /* @__PURE__ */ jsx64(StatusBarField, { children: /* @__PURE__ */ jsx64(Button, { type: "button", onClick: onClearStatusMessage, children: "Clear" }) }) : null
         ] }),
         children: [
-          /* @__PURE__ */ jsxs38(GroupBox, { legend: "Identity", children: [
-            /* @__PURE__ */ jsxs38(FieldRow, { children: [
-              /* @__PURE__ */ jsx63("label", { htmlFor: nameId, children: "Name" }),
-              /* @__PURE__ */ jsx63(
+          /* @__PURE__ */ jsxs39(GroupBox, { legend: "Identity", children: [
+            /* @__PURE__ */ jsxs39(FieldRow, { children: [
+              /* @__PURE__ */ jsx64("label", { htmlFor: nameId, children: "Name" }),
+              /* @__PURE__ */ jsx64(
                 TextBox,
                 {
                   id: nameId,
@@ -35062,9 +35145,9 @@ function SiteSettingsWindow({
                 }
               )
             ] }),
-            /* @__PURE__ */ jsxs38(FieldRow, { children: [
-              /* @__PURE__ */ jsx63("label", { htmlFor: descriptionId, children: "Description" }),
-              /* @__PURE__ */ jsx63(
+            /* @__PURE__ */ jsxs39(FieldRow, { children: [
+              /* @__PURE__ */ jsx64("label", { htmlFor: descriptionId, children: "Description" }),
+              /* @__PURE__ */ jsx64(
                 TextBox,
                 {
                   id: descriptionId,
@@ -35074,19 +35157,19 @@ function SiteSettingsWindow({
                 }
               )
             ] }),
-            /* @__PURE__ */ jsxs38(FieldRow, { children: [
-              /* @__PURE__ */ jsx63("span", { children: "Theme" }),
-              /* @__PURE__ */ jsx63("span", { children: themeId })
+            /* @__PURE__ */ jsxs39(FieldRow, { children: [
+              /* @__PURE__ */ jsx64("span", { children: "Theme" }),
+              /* @__PURE__ */ jsx64("span", { children: themeId })
             ] }),
-            isProtected ? /* @__PURE__ */ jsxs38(FieldRow, { children: [
-              /* @__PURE__ */ jsx63("span", { children: "Protected" }),
-              /* @__PURE__ */ jsx63("span", { children: "Yes (Main site)" })
+            isProtected ? /* @__PURE__ */ jsxs39(FieldRow, { children: [
+              /* @__PURE__ */ jsx64("span", { children: "Protected" }),
+              /* @__PURE__ */ jsx64("span", { children: "Yes (Main site)" })
             ] }) : null
           ] }),
-          /* @__PURE__ */ jsxs38(GroupBox, { legend: "Favicon", children: [
-            /* @__PURE__ */ jsxs38(FieldRow, { children: [
-              /* @__PURE__ */ jsx63("label", { htmlFor: faviconId, children: "Media id" }),
-              /* @__PURE__ */ jsx63(
+          /* @__PURE__ */ jsxs39(GroupBox, { legend: "Favicon", children: [
+            /* @__PURE__ */ jsxs39(FieldRow, { children: [
+              /* @__PURE__ */ jsx64("label", { htmlFor: faviconId, children: "Media id" }),
+              /* @__PURE__ */ jsx64(
                 TextBox,
                 {
                   id: faviconId,
@@ -35097,9 +35180,9 @@ function SiteSettingsWindow({
                 }
               )
             ] }),
-            favicon ? /* @__PURE__ */ jsxs38(FieldRow, { children: [
-              /* @__PURE__ */ jsx63("span", { children: "Current" }),
-              /* @__PURE__ */ jsxs38("span", { children: [
+            favicon ? /* @__PURE__ */ jsxs39(FieldRow, { children: [
+              /* @__PURE__ */ jsx64("span", { children: "Current" }),
+              /* @__PURE__ */ jsxs39("span", { children: [
                 favicon.originalFilename,
                 " (",
                 favicon.mimeType,
@@ -35107,24 +35190,24 @@ function SiteSettingsWindow({
               ] })
             ] }) : null
           ] }),
-          /* @__PURE__ */ jsxs38(GroupBox, { legend: "Hosts", children: [
-            hosts.length === 0 ? /* @__PURE__ */ jsx63("p", { style: { margin: 0 }, children: "No hosts assigned." }) : /* @__PURE__ */ jsx63("ul", { style: { margin: 0, paddingLeft: 18 }, children: hosts.map((host) => /* @__PURE__ */ jsxs38("li", { children: [
+          /* @__PURE__ */ jsxs39(GroupBox, { legend: "Hosts", children: [
+            hosts.length === 0 ? /* @__PURE__ */ jsx64("p", { style: { margin: 0 }, children: "No hosts assigned." }) : /* @__PURE__ */ jsx64("ul", { style: { margin: 0, paddingLeft: 18 }, children: hosts.map((host) => /* @__PURE__ */ jsxs39("li", { children: [
               host.host,
               host.enabled ? "" : " (disabled)",
               host.protected ? " \xB7 protected" : ""
             ] }, host.id)) }),
-            capabilities.manageHosts && onManageHosts ? /* @__PURE__ */ jsx63(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx63(Button, { type: "button", onClick: onManageHosts, children: "Manage in Hosts\u2026" }) }) : null
+            capabilities.manageHosts && onManageHosts ? /* @__PURE__ */ jsx64(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx64(Button, { type: "button", onClick: onManageHosts, children: "Manage in Hosts\u2026" }) }) : null
           ] }),
-          /* @__PURE__ */ jsxs38(GroupBox, { legend: "Assigned users", children: [
-            assignments.length === 0 ? /* @__PURE__ */ jsx63("p", { style: { margin: 0 }, children: "No site assignments." }) : /* @__PURE__ */ jsx63("ul", { style: { margin: 0, paddingLeft: 18 }, children: assignments.map((row) => /* @__PURE__ */ jsxs38("li", { children: [
+          /* @__PURE__ */ jsxs39(GroupBox, { legend: "Assigned users", children: [
+            assignments.length === 0 ? /* @__PURE__ */ jsx64("p", { style: { margin: 0 }, children: "No site assignments." }) : /* @__PURE__ */ jsx64("ul", { style: { margin: 0, paddingLeft: 18 }, children: assignments.map((row) => /* @__PURE__ */ jsxs39("li", { children: [
               row.email,
               " \u2014 ",
               row.roleLabel
             ] }, row.id)) }),
-            capabilities.manageUsers && onManageUsers ? /* @__PURE__ */ jsx63(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx63(Button, { type: "button", onClick: onManageUsers, children: "Manage in Users\u2026" }) }) : null
+            capabilities.manageUsers && onManageUsers ? /* @__PURE__ */ jsx64(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx64(Button, { type: "button", onClick: onManageUsers, children: "Manage in Users\u2026" }) }) : null
           ] }),
-          /* @__PURE__ */ jsxs38(FieldRow, { className: "justify-end", children: [
-            /* @__PURE__ */ jsx63(
+          /* @__PURE__ */ jsxs39(FieldRow, { className: "justify-end", children: [
+            /* @__PURE__ */ jsx64(
               Button,
               {
                 type: "button",
@@ -35134,12 +35217,12 @@ function SiteSettingsWindow({
                 children: "OK"
               }
             ),
-            /* @__PURE__ */ jsx63(Button, { type: "button", onClick: onClose, children: "Cancel" })
+            /* @__PURE__ */ jsx64(Button, { type: "button", onClick: onClose, children: "Cancel" })
           ] })
         ]
       }
     ),
-    alertMessage ? /* @__PURE__ */ jsx63(DesktopModal, { children: /* @__PURE__ */ jsx63(
+    alertMessage ? /* @__PURE__ */ jsx64(DesktopModal, { children: /* @__PURE__ */ jsx64(
       MessageDialog,
       {
         type: "error",
@@ -35159,7 +35242,7 @@ import {
   useCallback as useCallback8,
   useEffect as useEffect24,
   useLayoutEffect as useLayoutEffect11,
-  useRef as useRef11,
+  useRef as useRef12,
   useState as useState24
 } from "react";
 
@@ -35173,8 +35256,8 @@ function truncateWithEllipsis(value, maxLength = 30) {
 }
 
 // src/admin/components/PermissionsWindow/PermissionFormDialog.tsx
-import { useEffect as useEffect23, useId as useId8, useState as useState23 } from "react";
-import { jsx as jsx64, jsxs as jsxs39 } from "react/jsx-runtime";
+import { useEffect as useEffect23, useId as useId9, useState as useState23 } from "react";
+import { jsx as jsx65, jsxs as jsxs40 } from "react/jsx-runtime";
 function PermissionFormDialog({
   mode,
   initial,
@@ -35185,9 +35268,9 @@ function PermissionFormDialog({
   onClose,
   className
 }) {
-  const nameId = useId8();
-  const labelId = useId8();
-  const descriptionId = useId8();
+  const nameId = useId9();
+  const labelId = useId9();
+  const descriptionId = useId9();
   const [name, setName] = useState23(initial?.name ?? "");
   const [label, setLabel] = useState23(initial?.label ?? "");
   const [description, setDescription] = useState23(initial?.description ?? "");
@@ -35232,16 +35315,16 @@ function PermissionFormDialog({
       description: description.trim()
     });
   };
-  return /* @__PURE__ */ jsx64(
+  return /* @__PURE__ */ jsx65(
     PaneWindowShell,
     {
       className: cn("permission-form-dialog", className),
       width: 420,
       title,
       titleIcon: "permissions",
-      titleBarControls: /* @__PURE__ */ jsx64(TitleBarControls, { children: /* @__PURE__ */ jsx64(TitleBarControl, { action: "Close", onClick: onClose }) }),
-      children: /* @__PURE__ */ jsxs39("form", { className: "permission-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
-        /* @__PURE__ */ jsx64(FieldRow, { children: /* @__PURE__ */ jsx64(
+      titleBarControls: /* @__PURE__ */ jsx65(TitleBarControls, { children: /* @__PURE__ */ jsx65(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      children: /* @__PURE__ */ jsxs40("form", { className: "permission-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
+        /* @__PURE__ */ jsx65(FieldRow, { children: /* @__PURE__ */ jsx65(
           TextBox,
           {
             id: nameId,
@@ -35254,7 +35337,7 @@ function PermissionFormDialog({
             autoFocus: true
           }
         ) }),
-        /* @__PURE__ */ jsx64(FieldRow, { children: /* @__PURE__ */ jsx64(
+        /* @__PURE__ */ jsx65(FieldRow, { children: /* @__PURE__ */ jsx65(
           TextBox,
           {
             id: labelId,
@@ -35266,7 +35349,7 @@ function PermissionFormDialog({
             disabled: saving
           }
         ) }),
-        /* @__PURE__ */ jsx64(FieldRow, { children: /* @__PURE__ */ jsx64(
+        /* @__PURE__ */ jsx65(FieldRow, { children: /* @__PURE__ */ jsx65(
           TextArea,
           {
             id: descriptionId,
@@ -35280,9 +35363,9 @@ function PermissionFormDialog({
             disabled: saving
           }
         ) }),
-        /* @__PURE__ */ jsxs39(FieldRow, { className: "justify-end", children: [
-          /* @__PURE__ */ jsx64(Button, { type: "submit", isDefault: true, accessKey: "o", disabled: saving, children: "OK" }),
-          /* @__PURE__ */ jsx64(Button, { type: "button", accessKey: "c", disabled: saving, onClick: onClose, children: "Cancel" })
+        /* @__PURE__ */ jsxs40(FieldRow, { className: "justify-end", children: [
+          /* @__PURE__ */ jsx65(Button, { type: "submit", isDefault: true, accessKey: "o", disabled: saving, children: "OK" }),
+          /* @__PURE__ */ jsx65(Button, { type: "button", accessKey: "c", disabled: saving, onClick: onClose, children: "Cancel" })
         ] })
       ] })
     }
@@ -35290,7 +35373,7 @@ function PermissionFormDialog({
 }
 
 // src/admin/components/PermissionsWindow/PermissionsWindow.tsx
-import { Fragment as Fragment19, jsx as jsx65, jsxs as jsxs40 } from "react/jsx-runtime";
+import { Fragment as Fragment19, jsx as jsx66, jsxs as jsxs41 } from "react/jsx-runtime";
 function formatSaveErrors3(formError, fieldErrors) {
   const parts = [
     formError,
@@ -35338,10 +35421,10 @@ function PermissionsWindow({
   const [showFormErrors, setShowFormErrors] = useState24(false);
   const [alert, setAlert] = useState24(null);
   const [confirmDelete, setConfirmDelete] = useState24(null);
-  const wasSavingRef = useRef11(false);
-  const alertSoundKeyRef = useRef11(null);
-  const confirmSoundKeyRef = useRef11(null);
-  const appliedPreferIdRef = useRef11(null);
+  const wasSavingRef = useRef12(false);
+  const alertSoundKeyRef = useRef12(null);
+  const confirmSoundKeyRef = useRef12(null);
+  const appliedPreferIdRef = useRef12(null);
   const showErrorAlert = useCallback8(
     (message, title = "Error") => {
       const key = `${title}\0${message}`;
@@ -35489,7 +35572,7 @@ function PermissionsWindow({
   };
   const statusLeft = loading ? "Loading\u2026" : `${permissions.length} permission${permissions.length === 1 ? "" : "s"}`;
   const statusMid = statusMessage ?? (selected ? selected.label : canEdit ? "Select a permission, or choose New." : "");
-  return /* @__PURE__ */ jsx65(
+  return /* @__PURE__ */ jsx66(
     HeadingPanelWindow,
     {
       className: cn("permissions-window", className),
@@ -35498,21 +35581,21 @@ function PermissionsWindow({
       resizable,
       title: "Permissions",
       titleIcon: "permissions",
-      titleBarControls: /* @__PURE__ */ jsxs40(TitleBarControls, { children: [
-        /* @__PURE__ */ jsx65(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-        resizable ? /* @__PURE__ */ jsx65(
+      titleBarControls: /* @__PURE__ */ jsxs41(TitleBarControls, { children: [
+        /* @__PURE__ */ jsx66(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+        resizable ? /* @__PURE__ */ jsx66(
           TitleBarControl,
           {
             action: maximized ? "Restore" : "Maximize",
             onClick: onMaximize
           }
         ) : null,
-        /* @__PURE__ */ jsx65(TitleBarControl, { action: "Close", onClick: onClose })
+        /* @__PURE__ */ jsx66(TitleBarControl, { action: "Close", onClick: onClose })
       ] }),
       onMouseDown: onActivate,
-      heading: /* @__PURE__ */ jsx65("p", { style: { margin: 0 }, children: "Permission codes used by roles. Empty at seed \u2014 add rows for testing." }),
-      actions: canEdit ? /* @__PURE__ */ jsxs40(FieldRow, { className: "justify-end", children: [
-        /* @__PURE__ */ jsx65(
+      heading: /* @__PURE__ */ jsx66("p", { style: { margin: 0 }, children: "Permission codes used by roles. Empty at seed \u2014 add rows for testing." }),
+      actions: canEdit ? /* @__PURE__ */ jsxs41(FieldRow, { className: "justify-end", children: [
+        /* @__PURE__ */ jsx66(
           Button,
           {
             type: "button",
@@ -35523,7 +35606,7 @@ function PermissionsWindow({
             children: "New"
           }
         ),
-        /* @__PURE__ */ jsx65(
+        /* @__PURE__ */ jsx66(
           Button,
           {
             type: "button",
@@ -35533,7 +35616,7 @@ function PermissionsWindow({
             children: "Edit"
           }
         ),
-        /* @__PURE__ */ jsx65(
+        /* @__PURE__ */ jsx66(
           Button,
           {
             type: "button",
@@ -35543,36 +35626,36 @@ function PermissionsWindow({
             children: "Delete"
           }
         ),
-        /* @__PURE__ */ jsx65(Button, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" })
-      ] }) : /* @__PURE__ */ jsx65(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx65(Button, { type: "button", accessKey: "c", onClick: handleCancel, children: "Cancel" }) }),
-      statusBar: /* @__PURE__ */ jsxs40(StatusBar, { children: [
-        /* @__PURE__ */ jsx65(StatusBarField, { children: statusLeft }),
-        /* @__PURE__ */ jsx65(StatusBarField, { className: "description", children: statusMid }),
-        /* @__PURE__ */ jsx65(StatusBarField, {})
+        /* @__PURE__ */ jsx66(Button, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" })
+      ] }) : /* @__PURE__ */ jsx66(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx66(Button, { type: "button", accessKey: "c", onClick: handleCancel, children: "Cancel" }) }),
+      statusBar: /* @__PURE__ */ jsxs41(StatusBar, { children: [
+        /* @__PURE__ */ jsx66(StatusBarField, { children: statusLeft }),
+        /* @__PURE__ */ jsx66(StatusBarField, { className: "description", children: statusMid }),
+        /* @__PURE__ */ jsx66(StatusBarField, {})
       ] }),
-      children: /* @__PURE__ */ jsxs40(Fragment19, { children: [
-        /* @__PURE__ */ jsx65(
+      children: /* @__PURE__ */ jsxs41(Fragment19, { children: [
+        /* @__PURE__ */ jsx66(
           SunkenPanel,
           {
             scrollable: true,
             tone: "white",
             style: tableMinHeight != null ? { minHeight: tableMinHeight } : void 0,
-            children: loading && permissions.length === 0 ? /* @__PURE__ */ jsx65("p", { style: { margin: 8 }, children: "Loading permissions\u2026" }) : permissions.length === 0 ? /* @__PURE__ */ jsx65("p", { style: { margin: 8 }, children: "No permissions yet." }) : /* @__PURE__ */ jsxs40(Table, { "aria-label": "Permissions", children: [
-              /* @__PURE__ */ jsx65("thead", { children: /* @__PURE__ */ jsxs40("tr", { children: [
-                /* @__PURE__ */ jsx65("th", { children: "Name" }),
-                /* @__PURE__ */ jsx65("th", { children: "Label" }),
-                /* @__PURE__ */ jsx65("th", { children: "Description" })
+            children: loading && permissions.length === 0 ? /* @__PURE__ */ jsx66("p", { style: { margin: 8 }, children: "Loading permissions\u2026" }) : permissions.length === 0 ? /* @__PURE__ */ jsx66("p", { style: { margin: 8 }, children: "No permissions yet." }) : /* @__PURE__ */ jsxs41(Table, { "aria-label": "Permissions", children: [
+              /* @__PURE__ */ jsx66("thead", { children: /* @__PURE__ */ jsxs41("tr", { children: [
+                /* @__PURE__ */ jsx66("th", { children: "Name" }),
+                /* @__PURE__ */ jsx66("th", { children: "Label" }),
+                /* @__PURE__ */ jsx66("th", { children: "Description" })
               ] }) }),
-              /* @__PURE__ */ jsx65("tbody", { children: permissions.map((permission) => /* @__PURE__ */ jsxs40(
+              /* @__PURE__ */ jsx66("tbody", { children: permissions.map((permission) => /* @__PURE__ */ jsxs41(
                 TableRow,
                 {
                   highlighted: selectedId === permission.id,
                   onClick: () => selectPermission(permission.id),
                   onDoubleClick: () => openEdit(permission),
                   children: [
-                    /* @__PURE__ */ jsx65("td", { children: permission.name }),
-                    /* @__PURE__ */ jsx65("td", { children: permission.label }),
-                    /* @__PURE__ */ jsx65("td", { children: permission.description ? truncateWithEllipsis(permission.description) : "\u2014" })
+                    /* @__PURE__ */ jsx66("td", { children: permission.name }),
+                    /* @__PURE__ */ jsx66("td", { children: permission.label }),
+                    /* @__PURE__ */ jsx66("td", { children: permission.description ? truncateWithEllipsis(permission.description) : "\u2014" })
                   ]
                 },
                 permission.id
@@ -35580,7 +35663,7 @@ function PermissionsWindow({
             ] })
           }
         ),
-        form.open ? /* @__PURE__ */ jsx65(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx65(
+        form.open ? /* @__PURE__ */ jsx66(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx66(
           PermissionFormDialog,
           {
             mode: form.mode,
@@ -35599,7 +35682,7 @@ function PermissionsWindow({
           },
           `${form.mode}-${form.permissionId ?? "new"}`
         ) }) : null,
-        confirmDelete ? /* @__PURE__ */ jsx65(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx65(
+        confirmDelete ? /* @__PURE__ */ jsx66(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx66(
           MessageDialog,
           {
             type: "question",
@@ -35609,7 +35692,7 @@ function PermissionsWindow({
             onConfirm: confirmDeletePermission
           }
         ) }) : null,
-        alert ? /* @__PURE__ */ jsx65(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx65(
+        alert ? /* @__PURE__ */ jsx66(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx66(
           MessageDialog,
           {
             type: "error",
@@ -35627,13 +35710,13 @@ function PermissionsWindow({
 import {
   useCallback as useCallback9,
   useEffect as useEffect26,
-  useRef as useRef12,
+  useRef as useRef13,
   useState as useState26
 } from "react";
 
 // src/admin/components/RolesWindow/RoleFormDialog.tsx
-import { useEffect as useEffect25, useId as useId9, useMemo as useMemo11, useState as useState25 } from "react";
-import { Fragment as Fragment20, jsx as jsx66, jsxs as jsxs41 } from "react/jsx-runtime";
+import { useEffect as useEffect25, useId as useId10, useMemo as useMemo11, useState as useState25 } from "react";
+import { Fragment as Fragment20, jsx as jsx67, jsxs as jsxs42 } from "react/jsx-runtime";
 var NAME_PATTERN = /^ROLE_[A-Z0-9]+(?:_[A-Z0-9]+)*$/;
 function RoleFormDialog({
   mode,
@@ -35647,10 +35730,10 @@ function RoleFormDialog({
   onAddPermission,
   className
 }) {
-  const nameId = useId9();
-  const labelId = useId9();
-  const descriptionId = useId9();
-  const assignSelectId = useId9();
+  const nameId = useId10();
+  const labelId = useId10();
+  const descriptionId = useId10();
+  const assignSelectId = useId10();
   const [tab, setTab] = useState25("general");
   const [name, setName] = useState25(initial?.name ?? "");
   const [label, setLabel] = useState25(initial?.label ?? "");
@@ -35745,17 +35828,17 @@ function RoleFormDialog({
     setPermissionIds((prev) => prev.filter((row) => row !== id));
     setSelectedPermissionId(null);
   };
-  return /* @__PURE__ */ jsx66(
+  return /* @__PURE__ */ jsx67(
     PaneWindowShell,
     {
       className: cn("role-form-dialog", className),
       width: 480,
       title,
       titleIcon: "roles",
-      titleBarControls: /* @__PURE__ */ jsx66(TitleBarControls, { children: /* @__PURE__ */ jsx66(TitleBarControl, { action: "Close", onClick: onClose }) }),
-      children: /* @__PURE__ */ jsxs41("form", { className: "role-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
-        /* @__PURE__ */ jsxs41(TabList, { children: [
-          /* @__PURE__ */ jsx66(
+      titleBarControls: /* @__PURE__ */ jsx67(TitleBarControls, { children: /* @__PURE__ */ jsx67(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      children: /* @__PURE__ */ jsxs42("form", { className: "role-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
+        /* @__PURE__ */ jsxs42(TabList, { children: [
+          /* @__PURE__ */ jsx67(
             Tab,
             {
               selected: tab === "general",
@@ -35767,7 +35850,7 @@ function RoleFormDialog({
               children: "General"
             }
           ),
-          /* @__PURE__ */ jsx66(
+          /* @__PURE__ */ jsx67(
             Tab,
             {
               selected: tab === "permissions",
@@ -35780,8 +35863,8 @@ function RoleFormDialog({
             }
           )
         ] }),
-        /* @__PURE__ */ jsx66(TabPanel, { children: /* @__PURE__ */ jsx66(WindowBody, { children: tab === "general" ? /* @__PURE__ */ jsxs41(Fragment20, { children: [
-          /* @__PURE__ */ jsx66(FieldRow, { children: /* @__PURE__ */ jsx66(
+        /* @__PURE__ */ jsx67(TabPanel, { children: /* @__PURE__ */ jsx67(WindowBody, { children: tab === "general" ? /* @__PURE__ */ jsxs42(Fragment20, { children: [
+          /* @__PURE__ */ jsx67(FieldRow, { children: /* @__PURE__ */ jsx67(
             TextBox,
             {
               id: nameId,
@@ -35794,7 +35877,7 @@ function RoleFormDialog({
               autoFocus: true
             }
           ) }),
-          /* @__PURE__ */ jsx66(FieldRow, { children: /* @__PURE__ */ jsx66(
+          /* @__PURE__ */ jsx67(FieldRow, { children: /* @__PURE__ */ jsx67(
             TextBox,
             {
               id: labelId,
@@ -35806,7 +35889,7 @@ function RoleFormDialog({
               disabled: busy
             }
           ) }),
-          /* @__PURE__ */ jsx66(FieldRow, { children: /* @__PURE__ */ jsx66(
+          /* @__PURE__ */ jsx67(FieldRow, { children: /* @__PURE__ */ jsx67(
             TextArea,
             {
               id: descriptionId,
@@ -35820,20 +35903,20 @@ function RoleFormDialog({
               disabled: busy
             }
           ) })
-        ] }) : /* @__PURE__ */ jsxs41(Fragment20, { children: [
-          /* @__PURE__ */ jsx66("p", { style: { marginTop: 0, marginBottom: 8 }, children: "Assigned permissions below. Assign from the catalog; Remove detaches without deleting the permission." }),
-          /* @__PURE__ */ jsx66(
+        ] }) : /* @__PURE__ */ jsxs42(Fragment20, { children: [
+          /* @__PURE__ */ jsx67("p", { style: { marginTop: 0, marginBottom: 8 }, children: "Assigned permissions below. Assign from the catalog; Remove detaches without deleting the permission." }),
+          /* @__PURE__ */ jsx67(
             SunkenPanel,
             {
               scrollable: true,
               tone: "white",
               className: "role-form-permission-list",
-              children: assignedPermissions.length === 0 ? /* @__PURE__ */ jsx66("p", { style: { margin: 8 }, children: "No permissions assigned." }) : /* @__PURE__ */ jsxs41(Table, { "aria-label": "Assigned permissions", children: [
-                /* @__PURE__ */ jsx66("thead", { children: /* @__PURE__ */ jsxs41("tr", { children: [
-                  /* @__PURE__ */ jsx66("th", { children: "Name" }),
-                  /* @__PURE__ */ jsx66("th", { children: "Label" })
+              children: assignedPermissions.length === 0 ? /* @__PURE__ */ jsx67("p", { style: { margin: 8 }, children: "No permissions assigned." }) : /* @__PURE__ */ jsxs42(Table, { "aria-label": "Assigned permissions", children: [
+                /* @__PURE__ */ jsx67("thead", { children: /* @__PURE__ */ jsxs42("tr", { children: [
+                  /* @__PURE__ */ jsx67("th", { children: "Name" }),
+                  /* @__PURE__ */ jsx67("th", { children: "Label" })
                 ] }) }),
-                /* @__PURE__ */ jsx66("tbody", { children: assignedPermissions.map((row) => /* @__PURE__ */ jsxs41(
+                /* @__PURE__ */ jsx67("tbody", { children: assignedPermissions.map((row) => /* @__PURE__ */ jsxs42(
                   TableRow,
                   {
                     highlighted: selectedPermissionId === row.id,
@@ -35841,8 +35924,8 @@ function RoleFormDialog({
                       (current) => current === row.id ? null : row.id
                     ),
                     children: [
-                      /* @__PURE__ */ jsx66("td", { children: row.name }),
-                      /* @__PURE__ */ jsx66("td", { children: row.label })
+                      /* @__PURE__ */ jsx67("td", { children: row.name }),
+                      /* @__PURE__ */ jsx67("td", { children: row.label })
                     ]
                   },
                   row.id
@@ -35850,8 +35933,8 @@ function RoleFormDialog({
               ] })
             }
           ),
-          /* @__PURE__ */ jsxs41(FieldRow, { style: { marginTop: 8 }, children: [
-            /* @__PURE__ */ jsxs41(
+          /* @__PURE__ */ jsxs42(FieldRow, { style: { marginTop: 8 }, children: [
+            /* @__PURE__ */ jsxs42(
               Select,
               {
                 id: assignSelectId,
@@ -35865,8 +35948,8 @@ function RoleFormDialog({
                   setAssignPermissionId(value === "" ? null : Number(value));
                 },
                 children: [
-                  /* @__PURE__ */ jsx66("option", { value: "", children: assignablePermissions.length === 0 ? "None available" : "Select a permission\u2026" }),
-                  assignablePermissions.map((permission) => /* @__PURE__ */ jsxs41("option", { value: permission.id, children: [
+                  /* @__PURE__ */ jsx67("option", { value: "", children: assignablePermissions.length === 0 ? "None available" : "Select a permission\u2026" }),
+                  assignablePermissions.map((permission) => /* @__PURE__ */ jsxs42("option", { value: permission.id, children: [
                     permission.label,
                     " (",
                     permission.name,
@@ -35875,7 +35958,7 @@ function RoleFormDialog({
                 ]
               }
             ),
-            /* @__PURE__ */ jsx66(
+            /* @__PURE__ */ jsx67(
               Button,
               {
                 type: "button",
@@ -35887,8 +35970,8 @@ function RoleFormDialog({
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs41(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: [
-            /* @__PURE__ */ jsx66(
+          /* @__PURE__ */ jsxs42(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: [
+            /* @__PURE__ */ jsx67(
               Button,
               {
                 type: "button",
@@ -35899,7 +35982,7 @@ function RoleFormDialog({
                 children: "Add\u2026"
               }
             ),
-            /* @__PURE__ */ jsx66(
+            /* @__PURE__ */ jsx67(
               Button,
               {
                 type: "button",
@@ -35912,9 +35995,9 @@ function RoleFormDialog({
             )
           ] })
         ] }) }) }),
-        /* @__PURE__ */ jsxs41(FieldRow, { className: "justify-end site-form-dialog-actions", children: [
-          /* @__PURE__ */ jsx66(Button, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
-          /* @__PURE__ */ jsx66(Button, { type: "button", accessKey: "c", disabled: busy, onClick: onClose, children: "Cancel" })
+        /* @__PURE__ */ jsxs42(FieldRow, { className: "justify-end site-form-dialog-actions", children: [
+          /* @__PURE__ */ jsx67(Button, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
+          /* @__PURE__ */ jsx67(Button, { type: "button", accessKey: "c", disabled: busy, onClick: onClose, children: "Cancel" })
         ] })
       ] })
     }
@@ -35922,7 +36005,7 @@ function RoleFormDialog({
 }
 
 // src/admin/components/RolesWindow/RolesWindow.tsx
-import { Fragment as Fragment21, jsx as jsx67, jsxs as jsxs42 } from "react/jsx-runtime";
+import { Fragment as Fragment21, jsx as jsx68, jsxs as jsxs43 } from "react/jsx-runtime";
 function formatSaveErrors4(formError, fieldErrors) {
   const parts = [
     formError,
@@ -35972,10 +36055,10 @@ function RolesWindow({
   const [showFormErrors, setShowFormErrors] = useState26(false);
   const [alert, setAlert] = useState26(null);
   const [confirmDelete, setConfirmDelete] = useState26(null);
-  const wasSavingRef = useRef12(false);
-  const alertSoundKeyRef = useRef12(null);
-  const confirmSoundKeyRef = useRef12(null);
-  const appliedPreferIdRef = useRef12(null);
+  const wasSavingRef = useRef13(false);
+  const alertSoundKeyRef = useRef13(null);
+  const confirmSoundKeyRef = useRef13(null);
+  const appliedPreferIdRef = useRef13(null);
   const showErrorAlert = useCallback9(
     (message, title = "Error") => {
       const key = `${title}\0${message}`;
@@ -36098,7 +36181,7 @@ function RolesWindow({
   };
   const statusLeft = loading ? "Loading\u2026" : `${roles.length} role${roles.length === 1 ? "" : "s"}`;
   const statusMid = statusMessage ?? (selected ? selected.label : canEdit ? "Select a role, or choose New." : "");
-  return /* @__PURE__ */ jsx67(
+  return /* @__PURE__ */ jsx68(
     HeadingPanelWindow,
     {
       className: cn("roles-window", className),
@@ -36107,21 +36190,21 @@ function RolesWindow({
       resizable,
       title: "Roles",
       titleIcon: "roles",
-      titleBarControls: /* @__PURE__ */ jsxs42(TitleBarControls, { children: [
-        /* @__PURE__ */ jsx67(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-        resizable ? /* @__PURE__ */ jsx67(
+      titleBarControls: /* @__PURE__ */ jsxs43(TitleBarControls, { children: [
+        /* @__PURE__ */ jsx68(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+        resizable ? /* @__PURE__ */ jsx68(
           TitleBarControl,
           {
             action: maximized ? "Restore" : "Maximize",
             onClick: onMaximize
           }
         ) : null,
-        /* @__PURE__ */ jsx67(TitleBarControl, { action: "Close", onClick: onClose })
+        /* @__PURE__ */ jsx68(TitleBarControl, { action: "Close", onClick: onClose })
       ] }),
       onMouseDown: onActivate,
-      heading: /* @__PURE__ */ jsx67("p", { style: { margin: 0 }, children: "System roles are locked. Custom roles may attach permissions." }),
-      actions: canEdit ? /* @__PURE__ */ jsxs42(FieldRow, { className: "justify-end", children: [
-        /* @__PURE__ */ jsx67(
+      heading: /* @__PURE__ */ jsx68("p", { style: { margin: 0 }, children: "System roles are locked. Custom roles may attach permissions." }),
+      actions: canEdit ? /* @__PURE__ */ jsxs43(FieldRow, { className: "justify-end", children: [
+        /* @__PURE__ */ jsx68(
           Button,
           {
             type: "button",
@@ -36132,7 +36215,7 @@ function RolesWindow({
             children: "New"
           }
         ),
-        /* @__PURE__ */ jsx67(
+        /* @__PURE__ */ jsx68(
           Button,
           {
             type: "button",
@@ -36142,7 +36225,7 @@ function RolesWindow({
             children: "Edit"
           }
         ),
-        /* @__PURE__ */ jsx67(
+        /* @__PURE__ */ jsx68(
           Button,
           {
             type: "button",
@@ -36152,40 +36235,40 @@ function RolesWindow({
             children: "Delete"
           }
         ),
-        /* @__PURE__ */ jsx67(Button, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" })
-      ] }) : /* @__PURE__ */ jsx67(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx67(Button, { type: "button", accessKey: "c", onClick: handleCancel, children: "Cancel" }) }),
-      statusBar: /* @__PURE__ */ jsxs42(StatusBar, { children: [
-        /* @__PURE__ */ jsx67(StatusBarField, { children: statusLeft }),
-        /* @__PURE__ */ jsx67(StatusBarField, { className: "description", children: statusMid }),
-        /* @__PURE__ */ jsx67(StatusBarField, {})
+        /* @__PURE__ */ jsx68(Button, { type: "button", accessKey: "c", disabled: busy, onClick: handleCancel, children: "Cancel" })
+      ] }) : /* @__PURE__ */ jsx68(FieldRow, { className: "justify-end", children: /* @__PURE__ */ jsx68(Button, { type: "button", accessKey: "c", onClick: handleCancel, children: "Cancel" }) }),
+      statusBar: /* @__PURE__ */ jsxs43(StatusBar, { children: [
+        /* @__PURE__ */ jsx68(StatusBarField, { children: statusLeft }),
+        /* @__PURE__ */ jsx68(StatusBarField, { className: "description", children: statusMid }),
+        /* @__PURE__ */ jsx68(StatusBarField, {})
       ] }),
-      children: /* @__PURE__ */ jsxs42(Fragment21, { children: [
-        /* @__PURE__ */ jsx67(
+      children: /* @__PURE__ */ jsxs43(Fragment21, { children: [
+        /* @__PURE__ */ jsx68(
           SunkenPanel,
           {
             scrollable: true,
             tone: "white",
             style: tableMinHeight != null ? { minHeight: tableMinHeight } : void 0,
-            children: loading && roles.length === 0 ? /* @__PURE__ */ jsx67("p", { style: { margin: 8 }, children: "Loading roles\u2026" }) : roles.length === 0 ? /* @__PURE__ */ jsx67("p", { style: { margin: 8 }, children: "No roles yet." }) : /* @__PURE__ */ jsxs42(Table, { "aria-label": "Roles", children: [
-              /* @__PURE__ */ jsx67("thead", { children: /* @__PURE__ */ jsxs42("tr", { children: [
-                /* @__PURE__ */ jsx67("th", { children: "Name" }),
-                /* @__PURE__ */ jsx67("th", { children: "Label" }),
-                /* @__PURE__ */ jsx67("th", { children: "Description" }),
-                /* @__PURE__ */ jsx67("th", { children: "Permissions" }),
-                /* @__PURE__ */ jsx67("th", { children: "Protected" })
+            children: loading && roles.length === 0 ? /* @__PURE__ */ jsx68("p", { style: { margin: 8 }, children: "Loading roles\u2026" }) : roles.length === 0 ? /* @__PURE__ */ jsx68("p", { style: { margin: 8 }, children: "No roles yet." }) : /* @__PURE__ */ jsxs43(Table, { "aria-label": "Roles", children: [
+              /* @__PURE__ */ jsx68("thead", { children: /* @__PURE__ */ jsxs43("tr", { children: [
+                /* @__PURE__ */ jsx68("th", { children: "Name" }),
+                /* @__PURE__ */ jsx68("th", { children: "Label" }),
+                /* @__PURE__ */ jsx68("th", { children: "Description" }),
+                /* @__PURE__ */ jsx68("th", { children: "Permissions" }),
+                /* @__PURE__ */ jsx68("th", { children: "Protected" })
               ] }) }),
-              /* @__PURE__ */ jsx67("tbody", { children: roles.map((role) => /* @__PURE__ */ jsxs42(
+              /* @__PURE__ */ jsx68("tbody", { children: roles.map((role) => /* @__PURE__ */ jsxs43(
                 TableRow,
                 {
                   highlighted: selectedId === role.id,
                   onClick: () => selectRole(role.id),
                   onDoubleClick: () => openEdit(role),
                   children: [
-                    /* @__PURE__ */ jsx67("td", { children: role.name }),
-                    /* @__PURE__ */ jsx67("td", { children: role.label }),
-                    /* @__PURE__ */ jsx67("td", { children: role.description ? truncateWithEllipsis(role.description) : "\u2014" }),
-                    /* @__PURE__ */ jsx67("td", { children: role.permissionCount }),
-                    /* @__PURE__ */ jsx67("td", { children: role.protected ? "Yes" : "No" })
+                    /* @__PURE__ */ jsx68("td", { children: role.name }),
+                    /* @__PURE__ */ jsx68("td", { children: role.label }),
+                    /* @__PURE__ */ jsx68("td", { children: role.description ? truncateWithEllipsis(role.description) : "\u2014" }),
+                    /* @__PURE__ */ jsx68("td", { children: role.permissionCount }),
+                    /* @__PURE__ */ jsx68("td", { children: role.protected ? "Yes" : "No" })
                   ]
                 },
                 role.id
@@ -36193,7 +36276,7 @@ function RolesWindow({
             ] })
           }
         ),
-        form.open ? /* @__PURE__ */ jsx67(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx67(
+        form.open ? /* @__PURE__ */ jsx68(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx68(
           RoleFormDialog,
           {
             mode: form.mode,
@@ -36215,7 +36298,7 @@ function RolesWindow({
           },
           `${form.mode}-${form.roleId ?? "new"}`
         ) }) : null,
-        confirmDelete ? /* @__PURE__ */ jsx67(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx67(
+        confirmDelete ? /* @__PURE__ */ jsx68(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx68(
           MessageDialog,
           {
             type: "question",
@@ -36225,7 +36308,7 @@ function RolesWindow({
             onConfirm: confirmDeleteRole
           }
         ) }) : null,
-        alert ? /* @__PURE__ */ jsx67(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx67(
+        alert ? /* @__PURE__ */ jsx68(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx68(
           MessageDialog,
           {
             type: "error",
@@ -36243,13 +36326,13 @@ function RolesWindow({
 import {
   useCallback as useCallback10,
   useEffect as useEffect29,
-  useRef as useRef13,
+  useRef as useRef14,
   useState as useState29
 } from "react";
 
 // src/admin/components/UsersWindow/UserFormDialog.tsx
-import { useEffect as useEffect27, useId as useId10, useMemo as useMemo12, useState as useState27 } from "react";
-import { Fragment as Fragment22, jsx as jsx68, jsxs as jsxs43 } from "react/jsx-runtime";
+import { useEffect as useEffect27, useId as useId11, useMemo as useMemo12, useState as useState27 } from "react";
+import { Fragment as Fragment22, jsx as jsx69, jsxs as jsxs44 } from "react/jsx-runtime";
 var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function UserFormDialog({
   mode,
@@ -36259,20 +36342,34 @@ function UserFormDialog({
   fieldErrors,
   saving = false,
   readOnly = false,
+  isSelf = false,
   onSave,
   onError: onError2,
   onClose,
+  onOpenMyAccount,
   onAddRole,
   className
 }) {
-  const emailId = useId10();
-  const passwordId = useId10();
-  const assignRoleSelectId = useId10();
-  const assignSiteSelectId = useId10();
-  const assignSiteRoleSelectId = useId10();
+  const nameId = useId11();
+  const emailId = useId11();
+  const passwordId = useId11();
+  const telId = useId11();
+  const addressId = useId11();
+  const zipId = useId11();
+  const cityId = useId11();
+  const countryId = useId11();
+  const assignRoleSelectId = useId11();
+  const assignSiteSelectId = useId11();
+  const assignSiteRoleSelectId = useId11();
   const [tab, setTab] = useState27("general");
+  const [displayName, setDisplayName] = useState27(initial?.displayName ?? "");
   const [email, setEmail] = useState27(initial?.email ?? "");
   const [password, setPassword] = useState27(initial?.password ?? "");
+  const [telephone, setTelephone] = useState27(initial?.telephone ?? "");
+  const [address, setAddress] = useState27(initial?.address ?? "");
+  const [zip, setZip] = useState27(initial?.zip ?? "");
+  const [city, setCity] = useState27(initial?.city ?? "");
+  const [country, setCountry] = useState27(initial?.country ?? "");
   const [roleIds, setRoleIds] = useState27(initial?.roleIds ?? []);
   const [siteAssignments, setSiteAssignments] = useState27(
     initial?.siteAssignments ?? []
@@ -36348,11 +36445,24 @@ function UserFormDialog({
   );
   const busy = saving || readOnly;
   const canAssignRole = !busy && !readOnly && assignRoleId != null && assignableRoles.length > 0;
-  const canRemoveRole = !busy && !readOnly && selectedRoleId != null && roleIds.includes(selectedRoleId);
+  const canRemoveRole = !busy && !readOnly && selectedRoleId != null && roleIds.includes(selectedRoleId) && roleIds.length > 1;
   const canAssignSite = !busy && !readOnly && assignSiteId != null && assignSiteRoleId != null && assignableSites.length > 0 && siteRoleOptions.length > 0;
   const canRemoveSite = !busy && !readOnly && selectedSiteId != null && siteAssignments.some((row) => row.siteId === selectedSiteId);
   const validate = () => {
+    if (isSelf) {
+      setLocalErrors({});
+      if (roleIds.length < 1) {
+        setTab("roles");
+        onError2?.("At least one role is required.");
+        return false;
+      }
+      return true;
+    }
     const next = {};
+    const trimmedName = displayName.trim();
+    if (!trimmedName) {
+      next.displayName = "Name is required.";
+    }
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) {
       next.email = "Email is required.";
@@ -36366,9 +36476,16 @@ function UserFormDialog({
         next.password = "Password must be at least 8 characters.";
       }
     }
+    if (roleIds.length < 1) {
+      next.roleIds = "At least one role is required.";
+    }
     setLocalErrors(next);
     if (Object.keys(next).length > 0) {
-      setTab("general");
+      if (next.roleIds && !next.displayName && !next.email && !next.password) {
+        setTab("roles");
+      } else {
+        setTab("general");
+      }
       onError2?.(Object.values(next).join("\n"));
       return false;
     }
@@ -36379,10 +36496,29 @@ function UserFormDialog({
     if (readOnly || saving || !validate()) {
       return;
     }
+    if (isSelf) {
+      onSave({
+        mode,
+        userId: initial?.userId,
+        email: (initial?.email ?? email).trim().toLowerCase(),
+        roleIds: [...roleIds],
+        siteAssignments: siteAssignments.map((row) => ({
+          siteId: row.siteId,
+          roleId: row.roleId
+        }))
+      });
+      return;
+    }
     onSave({
       mode,
       userId: initial?.userId,
       email: email.trim().toLowerCase(),
+      displayName: displayName.trim(),
+      telephone: telephone.trim(),
+      address: address.trim(),
+      zip: zip.trim(),
+      city: city.trim(),
+      country: country.trim(),
       ...mode === "new" ? { password } : {},
       roleIds: [...roleIds],
       siteAssignments: siteAssignments.map((row) => ({
@@ -36429,17 +36565,17 @@ function UserFormDialog({
     setSiteAssignments((prev) => prev.filter((row) => row.siteId !== siteId));
     setSelectedSiteId(null);
   };
-  return /* @__PURE__ */ jsx68(
+  return /* @__PURE__ */ jsx69(
     PaneWindowShell,
     {
       className: cn("user-form-dialog", className),
       width: 520,
       title,
       titleIcon: "users",
-      titleBarControls: /* @__PURE__ */ jsx68(TitleBarControls, { children: /* @__PURE__ */ jsx68(TitleBarControl, { action: "Close", onClick: onClose }) }),
-      children: /* @__PURE__ */ jsxs43("form", { className: "user-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
-        /* @__PURE__ */ jsxs43(TabList, { children: [
-          /* @__PURE__ */ jsx68(
+      titleBarControls: /* @__PURE__ */ jsx69(TitleBarControls, { children: /* @__PURE__ */ jsx69(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      children: /* @__PURE__ */ jsxs44("form", { className: "user-form-dialog-form", onSubmit: handleSubmit, noValidate: true, children: [
+        /* @__PURE__ */ jsxs44(TabList, { children: [
+          /* @__PURE__ */ jsx69(
             Tab,
             {
               selected: tab === "general",
@@ -36451,7 +36587,7 @@ function UserFormDialog({
               children: "General"
             }
           ),
-          /* @__PURE__ */ jsx68(
+          /* @__PURE__ */ jsx69(
             Tab,
             {
               selected: tab === "roles",
@@ -36463,7 +36599,7 @@ function UserFormDialog({
               children: "Roles"
             }
           ),
-          /* @__PURE__ */ jsx68(
+          /* @__PURE__ */ jsx69(
             Tab,
             {
               selected: tab === "sites",
@@ -36476,8 +36612,40 @@ function UserFormDialog({
             }
           )
         ] }),
-        /* @__PURE__ */ jsx68(TabPanel, { children: /* @__PURE__ */ jsx68(WindowBody, { children: tab === "general" ? /* @__PURE__ */ jsxs43(Fragment22, { children: [
-          /* @__PURE__ */ jsx68(FieldRow, { children: /* @__PURE__ */ jsx68(
+        /* @__PURE__ */ jsx69(TabPanel, { children: /* @__PURE__ */ jsx69(WindowBody, { children: tab === "general" ? isSelf ? /* @__PURE__ */ jsxs44(Fragment22, { children: [
+          /* @__PURE__ */ jsxs44(FieldRow, { className: "info-icon-row", children: [
+            /* @__PURE__ */ jsx69("span", { className: "info-icon dialog-info", "aria-hidden": true }),
+            /* @__PURE__ */ jsxs44("p", { style: { margin: 0, flex: "1 1 auto" }, children: [
+              "Your personal profile (name, email, avatar, password, and more) is edited in ",
+              /* @__PURE__ */ jsx69("strong", { children: "My Account" }),
+              ". Use the button below to open it. Roles and Sites on the other tabs still apply here."
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx69(FieldRow, { style: { marginTop: 12 }, children: /* @__PURE__ */ jsx69(
+            Button,
+            {
+              type: "button",
+              accessKey: "m",
+              disabled: !onOpenMyAccount,
+              onClick: () => onOpenMyAccount?.(),
+              children: "My Account\u2026"
+            }
+          ) })
+        ] }) : /* @__PURE__ */ jsxs44("div", { className: "stack user-form-general-fields", style: { gap: 8 }, children: [
+          /* @__PURE__ */ jsx69(
+            TextBox,
+            {
+              id: nameId,
+              label: "Name:",
+              accessKey: "n",
+              value: displayName,
+              onChange: (event) => setDisplayName(event.target.value),
+              "aria-invalid": Boolean(mergedErrors.displayName) || void 0,
+              disabled: busy,
+              autoFocus: true
+            }
+          ),
+          /* @__PURE__ */ jsx69(
             TextBox,
             {
               id: emailId,
@@ -36487,11 +36655,10 @@ function UserFormDialog({
               value: email,
               onChange: (event) => setEmail(event.target.value),
               "aria-invalid": Boolean(mergedErrors.email) || void 0,
-              disabled: busy,
-              autoFocus: true
+              disabled: busy
             }
-          ) }),
-          mode === "new" ? /* @__PURE__ */ jsx68(FieldRow, { children: /* @__PURE__ */ jsx68(
+          ),
+          mode === "new" ? /* @__PURE__ */ jsx69(
             TextBox,
             {
               id: passwordId,
@@ -36503,21 +36670,76 @@ function UserFormDialog({
               "aria-invalid": Boolean(mergedErrors.password) || void 0,
               disabled: busy
             }
-          ) }) : /* @__PURE__ */ jsx68("p", { style: { marginTop: 0, marginBottom: 0 }, children: "To change the password, use Set Password\u2026 on the Users window." })
-        ] }) : tab === "roles" ? /* @__PURE__ */ jsxs43(Fragment22, { children: [
-          /* @__PURE__ */ jsx68("p", { style: { marginTop: 0, marginBottom: 8 }, children: "Global roles below. Site Admin is assigned per site on the Sites tab." }),
-          /* @__PURE__ */ jsx68(
+          ) : null,
+          /* @__PURE__ */ jsx69(
+            TextBox,
+            {
+              id: telId,
+              label: "Telephone:",
+              value: telephone,
+              onChange: (event) => setTelephone(event.target.value),
+              "aria-invalid": Boolean(mergedErrors.telephone) || void 0,
+              disabled: busy
+            }
+          ),
+          /* @__PURE__ */ jsx69(
+            TextBox,
+            {
+              id: addressId,
+              label: "Address:",
+              value: address,
+              onChange: (event) => setAddress(event.target.value),
+              "aria-invalid": Boolean(mergedErrors.address) || void 0,
+              disabled: busy
+            }
+          ),
+          /* @__PURE__ */ jsx69(
+            TextBox,
+            {
+              id: zipId,
+              label: "ZIP:",
+              value: zip,
+              onChange: (event) => setZip(event.target.value),
+              "aria-invalid": Boolean(mergedErrors.zip) || void 0,
+              disabled: busy
+            }
+          ),
+          /* @__PURE__ */ jsx69(
+            TextBox,
+            {
+              id: cityId,
+              label: "City:",
+              value: city,
+              onChange: (event) => setCity(event.target.value),
+              "aria-invalid": Boolean(mergedErrors.city) || void 0,
+              disabled: busy
+            }
+          ),
+          /* @__PURE__ */ jsx69(
+            TextBox,
+            {
+              id: countryId,
+              label: "Country:",
+              value: country,
+              onChange: (event) => setCountry(event.target.value),
+              "aria-invalid": Boolean(mergedErrors.country) || void 0,
+              disabled: busy
+            }
+          )
+        ] }) : tab === "roles" ? /* @__PURE__ */ jsxs44(Fragment22, { children: [
+          /* @__PURE__ */ jsx69("p", { style: { marginTop: 0, marginBottom: 8 }, children: "Global roles below. Site Admin is assigned per site on the Sites tab." }),
+          /* @__PURE__ */ jsx69(
             SunkenPanel,
             {
               scrollable: true,
               tone: "white",
               className: "user-form-role-list",
-              children: assignedRoles.length === 0 ? /* @__PURE__ */ jsx68("p", { style: { margin: 8 }, children: "No roles assigned." }) : /* @__PURE__ */ jsxs43(Table, { "aria-label": "Assigned roles", children: [
-                /* @__PURE__ */ jsx68("thead", { children: /* @__PURE__ */ jsxs43("tr", { children: [
-                  /* @__PURE__ */ jsx68("th", { children: "Name" }),
-                  /* @__PURE__ */ jsx68("th", { children: "Label" })
+              children: assignedRoles.length === 0 ? /* @__PURE__ */ jsx69("p", { style: { margin: 8 }, children: "No roles assigned." }) : /* @__PURE__ */ jsxs44(Table, { "aria-label": "Assigned roles", children: [
+                /* @__PURE__ */ jsx69("thead", { children: /* @__PURE__ */ jsxs44("tr", { children: [
+                  /* @__PURE__ */ jsx69("th", { children: "Name" }),
+                  /* @__PURE__ */ jsx69("th", { children: "Label" })
                 ] }) }),
-                /* @__PURE__ */ jsx68("tbody", { children: assignedRoles.map((row) => /* @__PURE__ */ jsxs43(
+                /* @__PURE__ */ jsx69("tbody", { children: assignedRoles.map((row) => /* @__PURE__ */ jsxs44(
                   TableRow,
                   {
                     highlighted: selectedRoleId === row.id,
@@ -36525,8 +36747,8 @@ function UserFormDialog({
                       (current) => current === row.id ? null : row.id
                     ),
                     children: [
-                      /* @__PURE__ */ jsx68("td", { children: row.name }),
-                      /* @__PURE__ */ jsx68("td", { children: row.label })
+                      /* @__PURE__ */ jsx69("td", { children: row.name }),
+                      /* @__PURE__ */ jsx69("td", { children: row.label })
                     ]
                   },
                   row.id
@@ -36534,8 +36756,8 @@ function UserFormDialog({
               ] })
             }
           ),
-          /* @__PURE__ */ jsxs43(FieldRow, { style: { marginTop: 8 }, children: [
-            /* @__PURE__ */ jsxs43(
+          /* @__PURE__ */ jsxs44(FieldRow, { style: { marginTop: 8 }, children: [
+            /* @__PURE__ */ jsxs44(
               Select,
               {
                 id: assignRoleSelectId,
@@ -36548,8 +36770,8 @@ function UserFormDialog({
                   setAssignRoleId(value === "" ? null : Number(value));
                 },
                 children: [
-                  /* @__PURE__ */ jsx68("option", { value: "", children: assignableRoles.length === 0 ? "None available" : "Select a role\u2026" }),
-                  assignableRoles.map((role) => /* @__PURE__ */ jsxs43("option", { value: role.id, children: [
+                  /* @__PURE__ */ jsx69("option", { value: "", children: assignableRoles.length === 0 ? "None available" : "Select a role\u2026" }),
+                  assignableRoles.map((role) => /* @__PURE__ */ jsxs44("option", { value: role.id, children: [
                     role.label,
                     " (",
                     role.name,
@@ -36558,7 +36780,7 @@ function UserFormDialog({
                 ]
               }
             ),
-            /* @__PURE__ */ jsx68(
+            /* @__PURE__ */ jsx69(
               Button,
               {
                 type: "button",
@@ -36569,8 +36791,8 @@ function UserFormDialog({
               }
             )
           ] }),
-          /* @__PURE__ */ jsxs43(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: [
-            /* @__PURE__ */ jsx68(
+          /* @__PURE__ */ jsxs44(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: [
+            /* @__PURE__ */ jsx69(
               Button,
               {
                 type: "button",
@@ -36580,7 +36802,7 @@ function UserFormDialog({
                 children: "Add\u2026"
               }
             ),
-            /* @__PURE__ */ jsx68(
+            /* @__PURE__ */ jsx69(
               Button,
               {
                 type: "button",
@@ -36591,20 +36813,20 @@ function UserFormDialog({
               }
             )
           ] })
-        ] }) : /* @__PURE__ */ jsxs43(Fragment22, { children: [
-          /* @__PURE__ */ jsx68("p", { style: { marginTop: 0, marginBottom: 8 }, children: "One role per site. Administrator cannot be used as a site role." }),
-          /* @__PURE__ */ jsx68(
+        ] }) : /* @__PURE__ */ jsxs44(Fragment22, { children: [
+          /* @__PURE__ */ jsx69("p", { style: { marginTop: 0, marginBottom: 8 }, children: "One role per site. Administrator cannot be used as a site role." }),
+          /* @__PURE__ */ jsx69(
             SunkenPanel,
             {
               scrollable: true,
               tone: "white",
               className: "user-form-site-list",
-              children: assignedSites.length === 0 ? /* @__PURE__ */ jsx68("p", { style: { margin: 8 }, children: "No site assignments." }) : /* @__PURE__ */ jsxs43(Table, { "aria-label": "Site assignments", children: [
-                /* @__PURE__ */ jsx68("thead", { children: /* @__PURE__ */ jsxs43("tr", { children: [
-                  /* @__PURE__ */ jsx68("th", { children: "Site" }),
-                  /* @__PURE__ */ jsx68("th", { children: "Role" })
+              children: assignedSites.length === 0 ? /* @__PURE__ */ jsx69("p", { style: { margin: 8 }, children: "No site assignments." }) : /* @__PURE__ */ jsxs44(Table, { "aria-label": "Site assignments", children: [
+                /* @__PURE__ */ jsx69("thead", { children: /* @__PURE__ */ jsxs44("tr", { children: [
+                  /* @__PURE__ */ jsx69("th", { children: "Site" }),
+                  /* @__PURE__ */ jsx69("th", { children: "Role" })
                 ] }) }),
-                /* @__PURE__ */ jsx68("tbody", { children: assignedSites.map((row) => /* @__PURE__ */ jsxs43(
+                /* @__PURE__ */ jsx69("tbody", { children: assignedSites.map((row) => /* @__PURE__ */ jsxs44(
                   TableRow,
                   {
                     highlighted: selectedSiteId === row.siteId,
@@ -36612,8 +36834,8 @@ function UserFormDialog({
                       (current) => current === row.siteId ? null : row.siteId
                     ),
                     children: [
-                      /* @__PURE__ */ jsx68("td", { children: row.siteName }),
-                      /* @__PURE__ */ jsxs43("td", { children: [
+                      /* @__PURE__ */ jsx69("td", { children: row.siteName }),
+                      /* @__PURE__ */ jsxs44("td", { children: [
                         row.role.label,
                         " (",
                         row.role.name,
@@ -36626,7 +36848,7 @@ function UserFormDialog({
               ] })
             }
           ),
-          /* @__PURE__ */ jsx68(FieldRow, { style: { marginTop: 8 }, children: /* @__PURE__ */ jsxs43(
+          /* @__PURE__ */ jsx69(FieldRow, { style: { marginTop: 8 }, children: /* @__PURE__ */ jsxs44(
             Select,
             {
               id: assignSiteSelectId,
@@ -36639,13 +36861,13 @@ function UserFormDialog({
                 setAssignSiteId(value === "" ? null : Number(value));
               },
               children: [
-                /* @__PURE__ */ jsx68("option", { value: "", children: assignableSites.length === 0 ? "None available" : "Select a site\u2026" }),
-                assignableSites.map((site) => /* @__PURE__ */ jsx68("option", { value: site.id, children: site.name }, site.id))
+                /* @__PURE__ */ jsx69("option", { value: "", children: assignableSites.length === 0 ? "None available" : "Select a site\u2026" }),
+                assignableSites.map((site) => /* @__PURE__ */ jsx69("option", { value: site.id, children: site.name }, site.id))
               ]
             }
           ) }),
-          /* @__PURE__ */ jsxs43(FieldRow, { style: { marginTop: 8 }, children: [
-            /* @__PURE__ */ jsxs43(
+          /* @__PURE__ */ jsxs44(FieldRow, { style: { marginTop: 8 }, children: [
+            /* @__PURE__ */ jsxs44(
               Select,
               {
                 id: assignSiteRoleSelectId,
@@ -36658,8 +36880,8 @@ function UserFormDialog({
                   setAssignSiteRoleId(value === "" ? null : Number(value));
                 },
                 children: [
-                  /* @__PURE__ */ jsx68("option", { value: "", children: siteRoleOptions.length === 0 ? "None available" : "Select a role\u2026" }),
-                  siteRoleOptions.map((role) => /* @__PURE__ */ jsxs43("option", { value: role.id, children: [
+                  /* @__PURE__ */ jsx69("option", { value: "", children: siteRoleOptions.length === 0 ? "None available" : "Select a role\u2026" }),
+                  siteRoleOptions.map((role) => /* @__PURE__ */ jsxs44("option", { value: role.id, children: [
                     role.label,
                     " (",
                     role.name,
@@ -36668,7 +36890,7 @@ function UserFormDialog({
                 ]
               }
             ),
-            /* @__PURE__ */ jsx68(
+            /* @__PURE__ */ jsx69(
               Button,
               {
                 type: "button",
@@ -36679,7 +36901,7 @@ function UserFormDialog({
               }
             )
           ] }),
-          /* @__PURE__ */ jsx68(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: /* @__PURE__ */ jsx68(
+          /* @__PURE__ */ jsx69(FieldRow, { className: "justify-end", style: { marginTop: 8 }, children: /* @__PURE__ */ jsx69(
             Button,
             {
               type: "button",
@@ -36690,9 +36912,9 @@ function UserFormDialog({
             }
           ) })
         ] }) }) }),
-        /* @__PURE__ */ jsx68(FieldRow, { className: "justify-end site-form-dialog-actions", children: readOnly ? /* @__PURE__ */ jsx68(Button, { type: "button", isDefault: true, accessKey: "c", onClick: onClose, children: "Close" }) : /* @__PURE__ */ jsxs43(Fragment22, { children: [
-          /* @__PURE__ */ jsx68(Button, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
-          /* @__PURE__ */ jsx68(
+        /* @__PURE__ */ jsx69(FieldRow, { className: "justify-end site-form-dialog-actions", children: readOnly ? /* @__PURE__ */ jsx69(Button, { type: "button", isDefault: true, accessKey: "c", onClick: onClose, children: "Close" }) : /* @__PURE__ */ jsxs44(Fragment22, { children: [
+          /* @__PURE__ */ jsx69(Button, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
+          /* @__PURE__ */ jsx69(
             Button,
             {
               type: "button",
@@ -36709,8 +36931,8 @@ function UserFormDialog({
 }
 
 // src/admin/components/UsersWindow/SetPasswordDialog.tsx
-import { useEffect as useEffect28, useId as useId11, useState as useState28 } from "react";
-import { jsx as jsx69, jsxs as jsxs44 } from "react/jsx-runtime";
+import { useEffect as useEffect28, useId as useId12, useState as useState28 } from "react";
+import { jsx as jsx70, jsxs as jsxs45 } from "react/jsx-runtime";
 function SetPasswordDialog({
   userId,
   userEmail,
@@ -36722,9 +36944,9 @@ function SetPasswordDialog({
   onClose,
   className
 }) {
-  const currentId = useId11();
-  const passwordId = useId11();
-  const confirmId = useId11();
+  const currentId = useId12();
+  const passwordId = useId12();
+  const confirmId = useId12();
   const [currentPassword, setCurrentPassword] = useState28("");
   const [password, setPassword] = useState28("");
   const [confirmPassword, setConfirmPassword] = useState28("");
@@ -36762,7 +36984,15 @@ function SetPasswordDialog({
   };
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (saving || !validate()) {
+    if (saving) {
+      return;
+    }
+    if (!password && !confirmPassword) {
+      setLocalErrors({});
+      onClose();
+      return;
+    }
+    if (!validate()) {
       return;
     }
     onSave({
@@ -36771,28 +37001,28 @@ function SetPasswordDialog({
       password
     });
   };
-  return /* @__PURE__ */ jsx69(
+  return /* @__PURE__ */ jsx70(
     PaneWindowShell,
     {
       className: cn("set-password-dialog", className),
       width: 420,
       title: "Set Password",
       titleIcon: "users",
-      titleBarControls: /* @__PURE__ */ jsx69(TitleBarControls, { children: /* @__PURE__ */ jsx69(TitleBarControl, { action: "Close", onClick: onClose }) }),
-      children: /* @__PURE__ */ jsx69("form", { onSubmit: handleSubmit, noValidate: true, children: /* @__PURE__ */ jsxs44(WindowBody, { children: [
-        /* @__PURE__ */ jsxs44("p", { style: { marginTop: 0 }, children: [
+      titleBarControls: /* @__PURE__ */ jsx70(TitleBarControls, { children: /* @__PURE__ */ jsx70(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      children: /* @__PURE__ */ jsx70("form", { onSubmit: handleSubmit, noValidate: true, children: /* @__PURE__ */ jsxs45(WindowBody, { children: [
+        /* @__PURE__ */ jsxs45("p", { style: { marginTop: 0 }, children: [
           "Set a new password for ",
-          /* @__PURE__ */ jsx69("strong", { children: userEmail }),
+          /* @__PURE__ */ jsx70("strong", { children: userEmail }),
           "."
         ] }),
-        /* @__PURE__ */ jsxs44(FieldRow, { style: { alignItems: "flex-start" }, children: [
-          /* @__PURE__ */ jsxs44(
+        /* @__PURE__ */ jsxs45(FieldRow, { style: { alignItems: "flex-start" }, children: [
+          /* @__PURE__ */ jsxs45(
             "div",
             {
               className: "stack",
               style: { flex: "1 1 auto", minWidth: 0, gap: 8 },
               children: [
-                requireCurrent ? /* @__PURE__ */ jsx69(FieldRow, { children: /* @__PURE__ */ jsx69(
+                requireCurrent ? /* @__PURE__ */ jsx70(FieldRow, { children: /* @__PURE__ */ jsx70(
                   TextBox,
                   {
                     id: currentId,
@@ -36806,7 +37036,7 @@ function SetPasswordDialog({
                     autoFocus: true
                   }
                 ) }) : null,
-                /* @__PURE__ */ jsx69(FieldRow, { children: /* @__PURE__ */ jsx69(
+                /* @__PURE__ */ jsx70(FieldRow, { children: /* @__PURE__ */ jsx70(
                   TextBox,
                   {
                     id: passwordId,
@@ -36820,7 +37050,7 @@ function SetPasswordDialog({
                     autoFocus: !requireCurrent
                   }
                 ) }),
-                /* @__PURE__ */ jsx69(FieldRow, { children: /* @__PURE__ */ jsx69(
+                /* @__PURE__ */ jsx70(FieldRow, { children: /* @__PURE__ */ jsx70(
                   TextBox,
                   {
                     id: confirmId,
@@ -36836,13 +37066,13 @@ function SetPasswordDialog({
               ]
             }
           ),
-          /* @__PURE__ */ jsxs44(
+          /* @__PURE__ */ jsxs45(
             "div",
             {
               className: "stack",
               style: { flex: "0 0 auto", width: "5.5em", gap: 8 },
               children: [
-                /* @__PURE__ */ jsx69(
+                /* @__PURE__ */ jsx70(
                   Button,
                   {
                     type: "submit",
@@ -36853,7 +37083,7 @@ function SetPasswordDialog({
                     children: "OK"
                   }
                 ),
-                /* @__PURE__ */ jsx69(
+                /* @__PURE__ */ jsx70(
                   Button,
                   {
                     type: "button",
@@ -36874,7 +37104,7 @@ function SetPasswordDialog({
 }
 
 // src/admin/components/UsersWindow/UsersWindow.tsx
-import { Fragment as Fragment23, jsx as jsx70, jsxs as jsxs45 } from "react/jsx-runtime";
+import { Fragment as Fragment23, jsx as jsx71, jsxs as jsxs46 } from "react/jsx-runtime";
 var DEFAULT_CAPABILITIES = {
   listUsers: false,
   viewUser: false,
@@ -36887,6 +37117,12 @@ function formatSaveErrors5(formError, fieldErrors) {
     formError,
     fieldErrors?.email,
     fieldErrors?.password,
+    fieldErrors?.displayName,
+    fieldErrors?.telephone,
+    fieldErrors?.address,
+    fieldErrors?.zip,
+    fieldErrors?.city,
+    fieldErrors?.country,
     fieldErrors?.roleIds,
     fieldErrors?.siteAssignments
   ].filter((part) => Boolean(part && part.trim()));
@@ -36929,6 +37165,7 @@ function UsersWindow({
   onDelete,
   onSetPassword,
   onAddRole,
+  onOpenMyAccount,
   errorSoundUrl,
   dingSoundUrl,
   onAlertClose,
@@ -36959,11 +37196,11 @@ function UsersWindow({
   const [showPasswordErrors, setShowPasswordErrors] = useState29(false);
   const [alert, setAlert] = useState29(null);
   const [confirmDelete, setConfirmDelete] = useState29(null);
-  const wasSavingRef = useRef13(false);
-  const wasSettingPasswordRef = useRef13(false);
-  const alertSoundKeyRef = useRef13(null);
-  const confirmSoundKeyRef = useRef13(null);
-  const appliedPreferIdRef = useRef13(null);
+  const wasSavingRef = useRef14(false);
+  const wasSettingPasswordRef = useRef14(false);
+  const alertSoundKeyRef = useRef14(null);
+  const confirmSoundKeyRef = useRef14(null);
+  const appliedPreferIdRef = useRef14(null);
   const showErrorAlert = useCallback10(
     (message, title = "Error") => {
       const key = `${title}\0${message}`;
@@ -37067,14 +37304,22 @@ function UsersWindow({
     if (!canCreate) {
       return;
     }
+    const guestRole = roles.find((row) => row.name === "ROLE_GUEST");
     setShowFormErrors(false);
     setForm({
       open: true,
       mode: "new",
       readOnly: false,
+      isSelf: false,
       email: "",
       password: "",
-      roleIds: [],
+      displayName: "",
+      telephone: "",
+      address: "",
+      zip: "",
+      city: "",
+      country: "",
+      roleIds: guestRole ? [guestRole.id] : [],
       siteAssignments: [],
       title: "New User"
     });
@@ -37097,15 +37342,22 @@ function UsersWindow({
       open: true,
       mode: "edit",
       readOnly,
+      isSelf: self,
       userId: user.id,
       email: user.email,
       password: "",
+      displayName: user.displayName ?? "",
+      telephone: user.telephone ?? "",
+      address: user.address ?? "",
+      zip: user.zip ?? "",
+      city: user.city ?? "",
+      country: user.country ?? "",
       roleIds: [...user.roleIds],
       siteAssignments: user.siteAssignments.map((row) => ({
         siteId: row.siteId,
         roleId: row.roleId
       })),
-      title: readOnly ? `User Settings \u2014 ${user.email}` : `Change Settings \u2014 ${user.email}`
+      title: readOnly ? `User Settings \u2014 ${user.displayName?.trim() || user.email}` : `Change Settings \u2014 ${user.displayName?.trim() || user.email}`
     });
   };
   const openSetPassword = (user = selected) => {
@@ -37145,7 +37397,7 @@ function UsersWindow({
   const handleCancel = () => {
     (onCancel ?? onClose)();
   };
-  return /* @__PURE__ */ jsx70(
+  return /* @__PURE__ */ jsx71(
     HeadingPanelWindow,
     {
       className: cn("users-window", className),
@@ -37154,17 +37406,17 @@ function UsersWindow({
       resizable: false,
       title: "Users",
       titleIcon: "users",
-      titleBarControls: /* @__PURE__ */ jsxs45(TitleBarControls, { children: [
-        /* @__PURE__ */ jsx70(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
-        /* @__PURE__ */ jsx70(TitleBarControl, { action: "Close", onClick: onClose })
+      titleBarControls: /* @__PURE__ */ jsxs46(TitleBarControls, { children: [
+        /* @__PURE__ */ jsx71(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+        /* @__PURE__ */ jsx71(TitleBarControl, { action: "Close", onClick: onClose })
       ] }),
       onMouseDown: onActivate,
-      actions: /* @__PURE__ */ jsxs45(FieldRow, { className: "justify-end", children: [
-        /* @__PURE__ */ jsx70(Button, { type: "button", isDefault: true, accessKey: "c", onClick: onClose, children: "Close" }),
-        /* @__PURE__ */ jsx70(Button, { type: "button", accessKey: "a", disabled: true, onClick: handleCancel, children: "Cancel" })
+      actions: /* @__PURE__ */ jsxs46(FieldRow, { className: "justify-end", children: [
+        /* @__PURE__ */ jsx71(Button, { type: "button", isDefault: true, accessKey: "c", onClick: onClose, children: "Close" }),
+        /* @__PURE__ */ jsx71(Button, { type: "button", accessKey: "a", disabled: true, onClick: handleCancel, children: "Cancel" })
       ] }),
-      children: /* @__PURE__ */ jsxs45(Fragment23, { children: [
-        /* @__PURE__ */ jsx70(TabList, { children: /* @__PURE__ */ jsx70(
+      children: /* @__PURE__ */ jsxs46(Fragment23, { children: [
+        /* @__PURE__ */ jsx71(TabList, { children: /* @__PURE__ */ jsx71(
           Tab,
           {
             selected: true,
@@ -37173,14 +37425,14 @@ function UsersWindow({
             children: "User List"
           }
         ) }),
-        /* @__PURE__ */ jsx70(TabPanel, { children: /* @__PURE__ */ jsxs45(WindowBody, { children: [
-          /* @__PURE__ */ jsxs45(FieldRow, { className: "info-icon-row", style: { alignItems: "flex-start" }, children: [
-            /* @__PURE__ */ jsx70("span", { className: "info-icon user-list", "aria-hidden": true }),
-            /* @__PURE__ */ jsx70("p", { style: { margin: 0, flex: "1 1 auto" }, children: "The list below shows all the users set up for this computer. Each user can be assigned global roles and per-site roles." })
+        /* @__PURE__ */ jsx71(TabPanel, { children: /* @__PURE__ */ jsxs46(WindowBody, { children: [
+          /* @__PURE__ */ jsxs46(FieldRow, { className: "info-icon-row", style: { alignItems: "flex-start" }, children: [
+            /* @__PURE__ */ jsx71("span", { className: "info-icon user-list", "aria-hidden": true }),
+            /* @__PURE__ */ jsx71("p", { style: { margin: 0, flex: "1 1 auto" }, children: "The list below shows all the users set up for this computer. Each user can be assigned global roles and per-site roles." })
           ] }),
-          /* @__PURE__ */ jsx70("p", { style: { margin: "20px 0 0" }, children: "Users" }),
-          /* @__PURE__ */ jsxs45(FieldRow, { style: { alignItems: "stretch", marginTop: 4 }, children: [
-            /* @__PURE__ */ jsx70(
+          /* @__PURE__ */ jsx71("p", { style: { margin: "20px 0 0" }, children: "Users" }),
+          /* @__PURE__ */ jsxs46(FieldRow, { style: { alignItems: "stretch", marginTop: 4 }, children: [
+            /* @__PURE__ */ jsx71(
               SunkenPanel,
               {
                 scrollable: true,
@@ -37191,25 +37443,38 @@ function UsersWindow({
                   height: listHeight,
                   boxSizing: "border-box"
                 },
-                children: loading && users.length === 0 ? /* @__PURE__ */ jsx70("p", { style: { margin: 8 }, children: "Loading users\u2026" }) : users.length === 0 ? /* @__PURE__ */ jsx70("p", { style: { margin: 8 }, children: "No users yet." }) : /* @__PURE__ */ jsx70(Table, { "aria-label": "Users", children: /* @__PURE__ */ jsx70("tbody", { children: users.map((user) => /* @__PURE__ */ jsx70(
-                  TableRow,
-                  {
-                    highlighted: selectedId === user.id,
-                    onClick: () => selectUser(user.id),
-                    onDoubleClick: () => openChangeSettings(user),
-                    children: /* @__PURE__ */ jsx70("td", { children: user.email })
-                  },
-                  user.id
-                )) }) })
+                children: loading && users.length === 0 ? /* @__PURE__ */ jsx71("p", { style: { margin: 8 }, children: "Loading users\u2026" }) : users.length === 0 ? /* @__PURE__ */ jsx71("p", { style: { margin: 8 }, children: "No users yet." }) : /* @__PURE__ */ jsxs46(Table, { "aria-label": "Users", className: "users-list-table", children: [
+                  /* @__PURE__ */ jsx71("thead", { children: /* @__PURE__ */ jsxs46("tr", { children: [
+                    /* @__PURE__ */ jsx71("th", { children: "Name" }),
+                    /* @__PURE__ */ jsx71("th", { children: "Roles" })
+                  ] }) }),
+                  /* @__PURE__ */ jsx71("tbody", { children: users.map((user) => {
+                    const name = user.displayName?.trim() || user.email;
+                    const roleNames = user.roles.map((role) => role.name).join(", ");
+                    return /* @__PURE__ */ jsxs46(
+                      TableRow,
+                      {
+                        highlighted: selectedId === user.id,
+                        onClick: () => selectUser(user.id),
+                        onDoubleClick: () => openChangeSettings(user),
+                        children: [
+                          /* @__PURE__ */ jsx71("td", { title: name, children: name }),
+                          /* @__PURE__ */ jsx71("td", { title: roleNames, children: roleNames || "\u2014" })
+                        ]
+                      },
+                      user.id
+                    );
+                  }) })
+                ] })
               }
             ),
-            showManageButtons ? /* @__PURE__ */ jsxs45(
+            showManageButtons ? /* @__PURE__ */ jsxs46(
               "div",
               {
                 className: "stack",
                 style: { flex: "0 0 auto", width: "7.5em", gap: 8 },
                 children: [
-                  caps.createUser ? /* @__PURE__ */ jsx70(
+                  caps.createUser ? /* @__PURE__ */ jsx71(
                     Button,
                     {
                       type: "button",
@@ -37220,7 +37485,7 @@ function UsersWindow({
                       children: "New User\u2026"
                     }
                   ) : null,
-                  caps.deleteUser ? /* @__PURE__ */ jsx70(
+                  caps.deleteUser ? /* @__PURE__ */ jsx71(
                     Button,
                     {
                       type: "button",
@@ -37235,13 +37500,13 @@ function UsersWindow({
               }
             ) : null
           ] }),
-          /* @__PURE__ */ jsxs45(GroupBox, { legend: settingsLegend, style: { marginTop: 20 }, children: [
-            /* @__PURE__ */ jsxs45(FieldRow, { className: "info-icon-row", style: { alignItems: "flex-start", marginBottom: 10 }, children: [
-              /* @__PURE__ */ jsx70("span", { className: "info-icon change-password", "aria-hidden": true }),
-              /* @__PURE__ */ jsx70("p", { style: { margin: 0, flex: "1 1 auto" }, children: "Use these buttons to specify a password or to change a user's roles and site assignments." })
+          /* @__PURE__ */ jsxs46(GroupBox, { legend: settingsLegend, style: { marginTop: 20 }, children: [
+            /* @__PURE__ */ jsxs46(FieldRow, { className: "info-icon-row", style: { alignItems: "flex-start", marginBottom: 10 }, children: [
+              /* @__PURE__ */ jsx71("span", { className: "info-icon change-password", "aria-hidden": true }),
+              /* @__PURE__ */ jsx71("p", { style: { margin: 0, flex: "1 1 auto" }, children: "Use these buttons to specify a password or to change a user's roles and site assignments." })
             ] }),
-            /* @__PURE__ */ jsxs45(FieldRow, { children: [
-              /* @__PURE__ */ jsx70(
+            /* @__PURE__ */ jsxs46(FieldRow, { children: [
+              /* @__PURE__ */ jsx71(
                 Button,
                 {
                   type: "button",
@@ -37251,7 +37516,7 @@ function UsersWindow({
                   children: "Set Password\u2026"
                 }
               ),
-              /* @__PURE__ */ jsx70(
+              /* @__PURE__ */ jsx71(
                 Button,
                 {
                   type: "button",
@@ -37264,15 +37529,22 @@ function UsersWindow({
             ] })
           ] })
         ] }) }),
-        form.open ? /* @__PURE__ */ jsx70(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx70(
+        form.open ? /* @__PURE__ */ jsx71(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx71(
           UserFormDialog,
           {
             mode: form.mode,
             readOnly: form.readOnly,
+            isSelf: form.isSelf,
             initial: {
               userId: form.userId,
               email: form.email,
               password: form.password,
+              displayName: form.displayName,
+              telephone: form.telephone,
+              address: form.address,
+              zip: form.zip,
+              city: form.city,
+              country: form.country,
               roleIds: form.roleIds,
               siteAssignments: form.siteAssignments,
               title: form.title
@@ -37284,11 +37556,15 @@ function UsersWindow({
             onSave: (payload) => onSave?.(payload),
             onError: showErrorAlert,
             onClose: closeForm,
+            onOpenMyAccount: form.isSelf && onOpenMyAccount ? () => {
+              closeForm();
+              onOpenMyAccount();
+            } : void 0,
             onAddRole: form.readOnly ? void 0 : onAddRole
           },
-          `${form.mode}-${form.userId ?? "new"}-${form.readOnly}`
+          `${form.mode}-${form.userId ?? "new"}-${form.readOnly}-${form.isSelf}`
         ) }) : null,
-        passwordDialog.open ? /* @__PURE__ */ jsx70(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx70(
+        passwordDialog.open ? /* @__PURE__ */ jsx71(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx71(
           SetPasswordDialog,
           {
             userId: passwordDialog.userId,
@@ -37302,7 +37578,7 @@ function UsersWindow({
           },
           `${passwordDialog.userId}-${passwordDialog.mode}`
         ) }) : null,
-        confirmDelete ? /* @__PURE__ */ jsx70(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx70(
+        confirmDelete ? /* @__PURE__ */ jsx71(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx71(
           MessageDialog,
           {
             type: "question",
@@ -37312,7 +37588,7 @@ function UsersWindow({
             onConfirm: confirmDeleteUser
           }
         ) }) : null,
-        alert ? /* @__PURE__ */ jsx70(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx70(
+        alert ? /* @__PURE__ */ jsx71(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx71(
           MessageDialog,
           {
             type: "error",
@@ -37326,9 +37602,1372 @@ function UsersWindow({
   );
 }
 
+// src/admin/components/MyAccount/MyAccountWindow.tsx
+import { useEffect as useEffect30, useId as useId14, useMemo as useMemo13, useState as useState32 } from "react";
+
+// src/admin/components/MyAccount/AvatarCropModal.tsx
+import { useRef as useRef15, useState as useState30 } from "react";
+
+// node_modules/react-image-crop/dist/index.js
+import e2, { PureComponent as t2, createRef as n2 } from "react";
+var r3 = {
+  x: 0,
+  y: 0,
+  width: 0,
+  height: 0,
+  unit: "px"
+};
+var i2 = (e3, t3, n3) => Math.min(Math.max(e3, t3), n3);
+var a2 = (...e3) => e3.filter((e4) => e4 && typeof e4 == "string").join(" ");
+var o2 = (e3, t3) => e3 === t3 || e3.width === t3.width && e3.height === t3.height && e3.x === t3.x && e3.y === t3.y && e3.unit === t3.unit;
+function s2(e3, t3, n3, r4) {
+  let i3 = u2(e3, n3, r4);
+  return e3.width && (i3.height = i3.width / t3), e3.height && (i3.width = i3.height * t3), i3.y + i3.height > r4 && (i3.height = r4 - i3.y, i3.width = i3.height * t3), i3.x + i3.width > n3 && (i3.width = n3 - i3.x, i3.height = i3.width / t3), e3.unit === "%" ? l2(i3, n3, r4) : i3;
+}
+function c2(e3, t3, n3) {
+  let r4 = u2(e3, t3, n3);
+  return r4.x = (t3 - r4.width) / 2, r4.y = (n3 - r4.height) / 2, e3.unit === "%" ? l2(r4, t3, n3) : r4;
+}
+function l2(e3, t3, n3) {
+  return e3.unit === "%" ? {
+    ...r3,
+    ...e3,
+    unit: "%"
+  } : {
+    unit: "%",
+    x: e3.x ? e3.x / t3 * 100 : 0,
+    y: e3.y ? e3.y / n3 * 100 : 0,
+    width: e3.width ? e3.width / t3 * 100 : 0,
+    height: e3.height ? e3.height / n3 * 100 : 0
+  };
+}
+function u2(e3, t3, n3) {
+  return !e3.unit || e3.unit === "px" ? {
+    ...r3,
+    ...e3,
+    unit: "px"
+  } : {
+    unit: "px",
+    x: e3.x ? e3.x * t3 / 100 : 0,
+    y: e3.y ? e3.y * n3 / 100 : 0,
+    width: e3.width ? e3.width * t3 / 100 : 0,
+    height: e3.height ? e3.height * n3 / 100 : 0
+  };
+}
+function d2(e3, t3, n3, r4, i3, a3 = 0, o3 = 0, s4 = r4, c3 = i3) {
+  let l3 = { ...e3 }, u3 = Math.min(a3, r4), d3 = Math.min(o3, i3), f2 = Math.min(s4, r4), p3 = Math.min(c3, i3);
+  t3 && (t3 > 1 ? (u3 = o3 ? o3 * t3 : u3, d3 = u3 / t3, f2 = s4 * t3) : (d3 = a3 ? a3 / t3 : d3, u3 = d3 * t3, p3 = c3 / t3)), l3.y < 0 && (l3.height = Math.max(l3.height + l3.y, d3), l3.y = 0), l3.x < 0 && (l3.width = Math.max(l3.width + l3.x, u3), l3.x = 0);
+  let m3 = r4 - (l3.x + l3.width);
+  m3 < 0 && (l3.x = Math.min(l3.x, r4 - u3), l3.width += m3);
+  let h3 = i3 - (l3.y + l3.height);
+  if (h3 < 0 && (l3.y = Math.min(l3.y, i3 - d3), l3.height += h3), l3.width < u3 && ((n3 === "sw" || n3 == "nw") && (l3.x -= u3 - l3.width), l3.width = u3), l3.height < d3 && ((n3 === "nw" || n3 == "ne") && (l3.y -= d3 - l3.height), l3.height = d3), l3.width > f2 && ((n3 === "sw" || n3 == "nw") && (l3.x -= f2 - l3.width), l3.width = f2), l3.height > p3 && ((n3 === "nw" || n3 == "ne") && (l3.y -= p3 - l3.height), l3.height = p3), t3) {
+    let e4 = l3.width / l3.height;
+    if (e4 < t3) {
+      let e5 = Math.max(l3.width / t3, d3);
+      (n3 === "nw" || n3 == "ne") && (l3.y -= e5 - l3.height), l3.height = e5;
+    } else if (e4 > t3) {
+      let e5 = Math.max(l3.height * t3, u3);
+      (n3 === "sw" || n3 == "nw") && (l3.x -= e5 - l3.width), l3.width = e5;
+    }
+  }
+  return l3;
+}
+function f(e3, t3, n3, r4) {
+  let i3 = { ...e3 };
+  return t3 === "ArrowLeft" ? r4 === "nw" ? (i3.x -= n3, i3.y -= n3, i3.width += n3, i3.height += n3) : r4 === "w" ? (i3.x -= n3, i3.width += n3) : r4 === "sw" ? (i3.x -= n3, i3.width += n3, i3.height += n3) : r4 === "ne" ? (i3.y += n3, i3.width -= n3, i3.height -= n3) : r4 === "e" ? i3.width -= n3 : r4 === "se" && (i3.width -= n3, i3.height -= n3) : t3 === "ArrowRight" && (r4 === "nw" ? (i3.x += n3, i3.y += n3, i3.width -= n3, i3.height -= n3) : r4 === "w" ? (i3.x += n3, i3.width -= n3) : r4 === "sw" ? (i3.x += n3, i3.width -= n3, i3.height -= n3) : r4 === "ne" ? (i3.y -= n3, i3.width += n3, i3.height += n3) : r4 === "e" ? i3.width += n3 : r4 === "se" && (i3.width += n3, i3.height += n3)), t3 === "ArrowUp" ? r4 === "nw" ? (i3.x -= n3, i3.y -= n3, i3.width += n3, i3.height += n3) : r4 === "n" ? (i3.y -= n3, i3.height += n3) : r4 === "ne" ? (i3.y -= n3, i3.width += n3, i3.height += n3) : r4 === "sw" ? (i3.x += n3, i3.width -= n3, i3.height -= n3) : r4 === "s" ? i3.height -= n3 : r4 === "se" && (i3.width -= n3, i3.height -= n3) : t3 === "ArrowDown" && (r4 === "nw" ? (i3.x += n3, i3.y += n3, i3.width -= n3, i3.height -= n3) : r4 === "n" ? (i3.y += n3, i3.height -= n3) : r4 === "ne" ? (i3.y += n3, i3.width -= n3, i3.height -= n3) : r4 === "sw" ? (i3.x -= n3, i3.width += n3, i3.height += n3) : r4 === "s" ? i3.height += n3 : r4 === "se" && (i3.width += n3, i3.height += n3)), i3;
+}
+var p2 = {
+  capture: true,
+  passive: false
+};
+var m2 = 0;
+var h2 = class s3 extends t2 {
+  static xOrds = ["e", "w"];
+  static yOrds = ["n", "s"];
+  static xyOrds = [
+    "nw",
+    "ne",
+    "se",
+    "sw"
+  ];
+  static nudgeStep = 1;
+  static nudgeStepMedium = 10;
+  static nudgeStepLarge = 100;
+  static defaultProps = { ariaLabels: {
+    cropArea: "Use the arrow keys to move the crop selection area",
+    nwDragHandle: "Use the arrow keys to move the north west drag handle to change the crop selection area",
+    nDragHandle: "Use the up and down arrow keys to move the north drag handle to change the crop selection area",
+    neDragHandle: "Use the arrow keys to move the north east drag handle to change the crop selection area",
+    eDragHandle: "Use the up and down arrow keys to move the east drag handle to change the crop selection area",
+    seDragHandle: "Use the arrow keys to move the south east drag handle to change the crop selection area",
+    sDragHandle: "Use the up and down arrow keys to move the south drag handle to change the crop selection area",
+    swDragHandle: "Use the arrow keys to move the south west drag handle to change the crop selection area",
+    wDragHandle: "Use the up and down arrow keys to move the west drag handle to change the crop selection area"
+  } };
+  get document() {
+    return document;
+  }
+  docMoveBound = false;
+  mouseDownOnCrop = false;
+  dragStarted = false;
+  evData = {
+    startClientX: 0,
+    startClientY: 0,
+    startCropX: 0,
+    startCropY: 0,
+    clientX: 0,
+    clientY: 0,
+    isResize: true
+  };
+  componentRef = n2();
+  mediaRef = n2();
+  resizeObserver;
+  initChangeCalled = false;
+  instanceId = `rc-${m2++}`;
+  state = {
+    cropIsActive: false,
+    newCropIsBeingDrawn: false
+  };
+  getBox() {
+    let e3 = this.mediaRef.current;
+    if (!e3) return {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0
+    };
+    let { x: t3, y: n3, width: r4, height: i3 } = e3.getBoundingClientRect();
+    return {
+      x: t3,
+      y: n3,
+      width: r4,
+      height: i3
+    };
+  }
+  componentDidUpdate(e3) {
+    let { crop: t3, onComplete: n3 } = this.props;
+    if (n3 && !e3.crop && t3) {
+      let { width: e4, height: r4 } = this.getBox();
+      e4 && r4 && n3(u2(t3, e4, r4), l2(t3, e4, r4));
+    }
+  }
+  componentWillUnmount() {
+    this.resizeObserver && this.resizeObserver.disconnect(), this.unbindDocMove();
+  }
+  bindDocMove() {
+    this.docMoveBound ||= (this.document.addEventListener("pointermove", this.onDocPointerMove, p2), this.document.addEventListener("pointerup", this.onDocPointerDone, p2), this.document.addEventListener("pointercancel", this.onDocPointerDone, p2), true);
+  }
+  unbindDocMove() {
+    this.docMoveBound &&= (this.document.removeEventListener("pointermove", this.onDocPointerMove, p2), this.document.removeEventListener("pointerup", this.onDocPointerDone, p2), this.document.removeEventListener("pointercancel", this.onDocPointerDone, p2), false);
+  }
+  onCropPointerDown = (e3) => {
+    let { crop: t3, disabled: n3 } = this.props, r4 = this.getBox();
+    if (!t3) return;
+    let i3 = u2(t3, r4.width, r4.height);
+    if (n3) return;
+    e3.cancelable && e3.preventDefault(), this.bindDocMove(), this.componentRef.current.focus({ preventScroll: true });
+    let a3 = e3.target.dataset.ord, o3 = !!a3, s4 = e3.clientX, c3 = e3.clientY, l3 = i3.x, d3 = i3.y;
+    if (a3) {
+      let t4 = e3.clientX - r4.x, n4 = e3.clientY - r4.y, o4 = 0, u3 = 0;
+      a3 === "ne" || a3 == "e" ? (o4 = t4 - (i3.x + i3.width), u3 = n4 - i3.y, l3 = i3.x, d3 = i3.y + i3.height) : a3 === "se" || a3 === "s" ? (o4 = t4 - (i3.x + i3.width), u3 = n4 - (i3.y + i3.height), l3 = i3.x, d3 = i3.y) : a3 === "sw" || a3 == "w" ? (o4 = t4 - i3.x, u3 = n4 - (i3.y + i3.height), l3 = i3.x + i3.width, d3 = i3.y) : (a3 === "nw" || a3 == "n") && (o4 = t4 - i3.x, u3 = n4 - i3.y, l3 = i3.x + i3.width, d3 = i3.y + i3.height), s4 = l3 + r4.x + o4, c3 = d3 + r4.y + u3;
+    }
+    this.evData = {
+      startClientX: s4,
+      startClientY: c3,
+      startCropX: l3,
+      startCropY: d3,
+      clientX: e3.clientX,
+      clientY: e3.clientY,
+      isResize: o3,
+      ord: a3
+    }, this.mouseDownOnCrop = true, this.setState({ cropIsActive: true });
+  };
+  onComponentPointerDown = (e3) => {
+    let { crop: t3, disabled: n3, locked: r4, keepSelection: i3, onChange: a3 } = this.props, o3 = this.getBox();
+    if (n3 || r4 || i3 && t3) return;
+    e3.cancelable && e3.preventDefault(), this.bindDocMove(), this.componentRef.current.focus({ preventScroll: true });
+    let s4 = e3.clientX - o3.x, c3 = e3.clientY - o3.y, d3 = {
+      unit: "px",
+      x: s4,
+      y: c3,
+      width: 0,
+      height: 0
+    };
+    this.evData = {
+      startClientX: e3.clientX,
+      startClientY: e3.clientY,
+      startCropX: s4,
+      startCropY: c3,
+      clientX: e3.clientX,
+      clientY: e3.clientY,
+      isResize: true
+    }, this.mouseDownOnCrop = true, a3(u2(d3, o3.width, o3.height), l2(d3, o3.width, o3.height)), this.setState({
+      cropIsActive: true,
+      newCropIsBeingDrawn: true
+    });
+  };
+  onDocPointerMove = (e3) => {
+    let { crop: t3, disabled: n3, onChange: r4, onDragStart: i3 } = this.props, a3 = this.getBox();
+    if (n3 || !t3 || !this.mouseDownOnCrop) return;
+    e3.cancelable && e3.preventDefault(), this.dragStarted || (this.dragStarted = true, i3 && i3(e3));
+    let { evData: s4 } = this;
+    s4.clientX = e3.clientX, s4.clientY = e3.clientY;
+    let c3;
+    c3 = s4.isResize ? this.resizeCrop() : this.dragCrop(), o2(t3, c3) || r4(u2(c3, a3.width, a3.height), l2(c3, a3.width, a3.height));
+  };
+  onComponentKeyDown = (e3) => {
+    let { crop: t3, disabled: n3, onChange: r4, onComplete: a3 } = this.props;
+    if (n3) return;
+    let o3 = e3.key, c3 = false;
+    if (!t3) return;
+    let d3 = this.getBox(), f2 = this.makePixelCrop(d3), p3 = (navigator.platform.match("Mac") ? e3.metaKey : e3.ctrlKey) ? s3.nudgeStepLarge : e3.shiftKey ? s3.nudgeStepMedium : s3.nudgeStep;
+    if (o3 === "ArrowLeft" ? (f2.x -= p3, c3 = true) : o3 === "ArrowRight" ? (f2.x += p3, c3 = true) : o3 === "ArrowUp" ? (f2.y -= p3, c3 = true) : o3 === "ArrowDown" && (f2.y += p3, c3 = true), c3) {
+      e3.cancelable && e3.preventDefault(), f2.x = i2(f2.x, 0, d3.width - f2.width), f2.y = i2(f2.y, 0, d3.height - f2.height);
+      let t4 = u2(f2, d3.width, d3.height), n4 = l2(f2, d3.width, d3.height);
+      r4(t4, n4), a3 && a3(t4, n4);
+    }
+  };
+  onHandlerKeyDown = (e3, t3) => {
+    let { aspect: n3 = 0, crop: r4, disabled: i3, minWidth: a3 = 0, minHeight: c3 = 0, maxWidth: p3, maxHeight: m3, onChange: h3, onComplete: g3 } = this.props, _2 = this.getBox();
+    if (i3 || !r4) return;
+    if (e3.key === "ArrowUp" || e3.key === "ArrowDown" || e3.key === "ArrowLeft" || e3.key === "ArrowRight") e3.stopPropagation(), e3.preventDefault();
+    else return;
+    let v2 = (navigator.platform.match("Mac") ? e3.metaKey : e3.ctrlKey) ? s3.nudgeStepLarge : e3.shiftKey ? s3.nudgeStepMedium : s3.nudgeStep, y2 = d2(f(u2(r4, _2.width, _2.height), e3.key, v2, t3), n3, t3, _2.width, _2.height, a3, c3, p3, m3);
+    if (!o2(r4, y2)) {
+      let e4 = l2(y2, _2.width, _2.height);
+      h3(y2, e4), g3 && g3(y2, e4);
+    }
+  };
+  onDocPointerDone = (e3) => {
+    let { crop: t3, disabled: n3, onComplete: r4, onDragEnd: i3 } = this.props, a3 = this.getBox();
+    this.unbindDocMove(), !(n3 || !t3) && this.mouseDownOnCrop && (this.mouseDownOnCrop = false, this.dragStarted = false, i3 && i3(e3), r4 && r4(u2(t3, a3.width, a3.height), l2(t3, a3.width, a3.height)), this.setState({
+      cropIsActive: false,
+      newCropIsBeingDrawn: false
+    }));
+  };
+  onDragFocus = () => {
+    this.componentRef.current?.scrollTo(0, 0);
+  };
+  getCropStyle() {
+    let { crop: e3 } = this.props;
+    if (e3) return {
+      top: `${e3.y}${e3.unit}`,
+      left: `${e3.x}${e3.unit}`,
+      width: `${e3.width}${e3.unit}`,
+      height: `${e3.height}${e3.unit}`
+    };
+  }
+  dragCrop() {
+    let { evData: e3 } = this, t3 = this.getBox(), n3 = this.makePixelCrop(t3), r4 = e3.clientX - e3.startClientX, a3 = e3.clientY - e3.startClientY;
+    return n3.x = i2(e3.startCropX + r4, 0, t3.width - n3.width), n3.y = i2(e3.startCropY + a3, 0, t3.height - n3.height), n3;
+  }
+  getPointRegion(e3, t3, n3, r4) {
+    let { evData: i3 } = this, a3 = i3.clientX - e3.x, o3 = i3.clientY - e3.y, s4;
+    s4 = r4 && t3 ? t3 === "nw" || t3 === "n" || t3 === "ne" : o3 < i3.startCropY;
+    let c3;
+    return c3 = n3 && t3 ? t3 === "nw" || t3 === "w" || t3 === "sw" : a3 < i3.startCropX, c3 ? s4 ? "nw" : "sw" : s4 ? "ne" : "se";
+  }
+  resolveMinDimensions(e3, t3, n3 = 0, r4 = 0) {
+    let i3 = Math.min(n3, e3.width), a3 = Math.min(r4, e3.height);
+    return !t3 || !i3 && !a3 ? [i3, a3] : t3 > 1 ? i3 ? [i3, i3 / t3] : [a3 * t3, a3] : a3 ? [a3 * t3, a3] : [i3, i3 / t3];
+  }
+  resizeCrop() {
+    let { evData: e3 } = this, { aspect: t3 = 0, maxWidth: n3, maxHeight: r4 } = this.props, a3 = this.getBox(), [o3, c3] = this.resolveMinDimensions(a3, t3, this.props.minWidth, this.props.minHeight), l3 = this.makePixelCrop(a3), u3 = this.getPointRegion(a3, e3.ord, o3, c3), f2 = e3.ord || u3, p3 = e3.clientX - e3.startClientX, m3 = e3.clientY - e3.startClientY;
+    (o3 && f2 === "nw" || f2 === "w" || f2 === "sw") && (p3 = Math.min(p3, -o3)), (c3 && f2 === "nw" || f2 === "n" || f2 === "ne") && (m3 = Math.min(m3, -c3));
+    let h3 = {
+      unit: "px",
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0
+    };
+    u3 === "ne" ? (h3.x = e3.startCropX, h3.width = p3, t3 ? (h3.height = h3.width / t3, h3.y = e3.startCropY - h3.height) : (h3.height = Math.abs(m3), h3.y = e3.startCropY - h3.height)) : u3 === "se" ? (h3.x = e3.startCropX, h3.y = e3.startCropY, h3.width = p3, t3 ? h3.height = h3.width / t3 : h3.height = m3) : u3 === "sw" ? (h3.x = e3.startCropX + p3, h3.y = e3.startCropY, h3.width = Math.abs(p3), t3 ? h3.height = h3.width / t3 : h3.height = m3) : u3 === "nw" && (h3.x = e3.startCropX + p3, h3.width = Math.abs(p3), t3 ? (h3.height = h3.width / t3, h3.y = e3.startCropY - h3.height) : (h3.height = Math.abs(m3), h3.y = e3.startCropY + m3));
+    let g3 = d2(h3, t3, u3, a3.width, a3.height, o3, c3, n3, r4);
+    return t3 || s3.xyOrds.indexOf(f2) > -1 ? l3 = g3 : s3.xOrds.indexOf(f2) > -1 ? (l3.x = g3.x, l3.width = g3.width) : s3.yOrds.indexOf(f2) > -1 && (l3.y = g3.y, l3.height = g3.height), l3.x = i2(l3.x, 0, a3.width - l3.width), l3.y = i2(l3.y, 0, a3.height - l3.height), l3;
+  }
+  renderCropSelection() {
+    let { ariaLabels: t3 = s3.defaultProps.ariaLabels, disabled: n3, locked: r4, renderSelectionAddon: i3, ruleOfThirds: a3, crop: o3 } = this.props, c3 = this.getCropStyle();
+    if (o3) return /* @__PURE__ */ e2.createElement("div", {
+      style: c3,
+      className: "ReactCrop__crop-selection",
+      onPointerDown: this.onCropPointerDown,
+      "aria-label": t3.cropArea,
+      tabIndex: 0,
+      onKeyDown: this.onComponentKeyDown,
+      role: "group"
+    }, !n3 && !r4 && /* @__PURE__ */ e2.createElement("div", {
+      className: "ReactCrop__drag-elements",
+      onFocus: this.onDragFocus
+    }, /* @__PURE__ */ e2.createElement("div", {
+      className: "ReactCrop__drag-bar ord-n",
+      "data-ord": "n"
+    }), /* @__PURE__ */ e2.createElement("div", {
+      className: "ReactCrop__drag-bar ord-e",
+      "data-ord": "e"
+    }), /* @__PURE__ */ e2.createElement("div", {
+      className: "ReactCrop__drag-bar ord-s",
+      "data-ord": "s"
+    }), /* @__PURE__ */ e2.createElement("div", {
+      className: "ReactCrop__drag-bar ord-w",
+      "data-ord": "w"
+    }), /* @__PURE__ */ e2.createElement("div", {
+      className: "ReactCrop__drag-handle ord-nw",
+      "data-ord": "nw",
+      tabIndex: 0,
+      "aria-label": t3.nwDragHandle,
+      onKeyDown: (e3) => this.onHandlerKeyDown(e3, "nw"),
+      role: "button"
+    }), /* @__PURE__ */ e2.createElement("div", {
+      className: "ReactCrop__drag-handle ord-n",
+      "data-ord": "n",
+      tabIndex: 0,
+      "aria-label": t3.nDragHandle,
+      onKeyDown: (e3) => this.onHandlerKeyDown(e3, "n"),
+      role: "button"
+    }), /* @__PURE__ */ e2.createElement("div", {
+      className: "ReactCrop__drag-handle ord-ne",
+      "data-ord": "ne",
+      tabIndex: 0,
+      "aria-label": t3.neDragHandle,
+      onKeyDown: (e3) => this.onHandlerKeyDown(e3, "ne"),
+      role: "button"
+    }), /* @__PURE__ */ e2.createElement("div", {
+      className: "ReactCrop__drag-handle ord-e",
+      "data-ord": "e",
+      tabIndex: 0,
+      "aria-label": t3.eDragHandle,
+      onKeyDown: (e3) => this.onHandlerKeyDown(e3, "e"),
+      role: "button"
+    }), /* @__PURE__ */ e2.createElement("div", {
+      className: "ReactCrop__drag-handle ord-se",
+      "data-ord": "se",
+      tabIndex: 0,
+      "aria-label": t3.seDragHandle,
+      onKeyDown: (e3) => this.onHandlerKeyDown(e3, "se"),
+      role: "button"
+    }), /* @__PURE__ */ e2.createElement("div", {
+      className: "ReactCrop__drag-handle ord-s",
+      "data-ord": "s",
+      tabIndex: 0,
+      "aria-label": t3.sDragHandle,
+      onKeyDown: (e3) => this.onHandlerKeyDown(e3, "s"),
+      role: "button"
+    }), /* @__PURE__ */ e2.createElement("div", {
+      className: "ReactCrop__drag-handle ord-sw",
+      "data-ord": "sw",
+      tabIndex: 0,
+      "aria-label": t3.swDragHandle,
+      onKeyDown: (e3) => this.onHandlerKeyDown(e3, "sw"),
+      role: "button"
+    }), /* @__PURE__ */ e2.createElement("div", {
+      className: "ReactCrop__drag-handle ord-w",
+      "data-ord": "w",
+      tabIndex: 0,
+      "aria-label": t3.wDragHandle,
+      onKeyDown: (e3) => this.onHandlerKeyDown(e3, "w"),
+      role: "button"
+    })), i3 && /* @__PURE__ */ e2.createElement("div", {
+      className: "ReactCrop__selection-addon",
+      onPointerDown: (e3) => e3.stopPropagation()
+    }, i3(this.state)), a3 && /* @__PURE__ */ e2.createElement(e2.Fragment, null, /* @__PURE__ */ e2.createElement("div", { className: "ReactCrop__rule-of-thirds-hz" }), /* @__PURE__ */ e2.createElement("div", { className: "ReactCrop__rule-of-thirds-vt" })));
+  }
+  makePixelCrop(e3) {
+    return u2({
+      ...r3,
+      ...this.props.crop || {}
+    }, e3.width, e3.height);
+  }
+  render() {
+    let { aspect: t3, children: n3, circularCrop: r4, className: i3, crop: o3, disabled: s4, locked: c3, style: l3, ruleOfThirds: u3 } = this.props, { cropIsActive: d3, newCropIsBeingDrawn: f2 } = this.state, p3 = o3 ? this.renderCropSelection() : null, m3 = a2("ReactCrop", i3, d3 && "ReactCrop--active", s4 && "ReactCrop--disabled", c3 && "ReactCrop--locked", f2 && "ReactCrop--new-crop", o3 && t3 && "ReactCrop--fixed-aspect", o3 && r4 && "ReactCrop--circular-crop", o3 && u3 && "ReactCrop--rule-of-thirds", !this.dragStarted && o3 && !o3.width && !o3.height && "ReactCrop--invisible-crop", r4 && "ReactCrop--no-animate");
+    return /* @__PURE__ */ e2.createElement("div", {
+      ref: this.componentRef,
+      className: m3,
+      style: l3
+    }, /* @__PURE__ */ e2.createElement("div", {
+      ref: this.mediaRef,
+      className: "ReactCrop__child-wrapper",
+      onPointerDown: this.onComponentPointerDown
+    }, n3), o3 ? /* @__PURE__ */ e2.createElement("svg", {
+      className: "ReactCrop__crop-mask",
+      width: "100%",
+      height: "100%"
+    }, /* @__PURE__ */ e2.createElement("defs", null, /* @__PURE__ */ e2.createElement("mask", { id: `hole-${this.instanceId}` }, /* @__PURE__ */ e2.createElement("rect", {
+      width: "100%",
+      height: "100%",
+      fill: "white"
+    }), r4 ? /* @__PURE__ */ e2.createElement("ellipse", {
+      cx: `${o3.x + o3.width / 2}${o3.unit}`,
+      cy: `${o3.y + o3.height / 2}${o3.unit}`,
+      rx: `${o3.width / 2}${o3.unit}`,
+      ry: `${o3.height / 2}${o3.unit}`,
+      fill: "black"
+    }) : /* @__PURE__ */ e2.createElement("rect", {
+      x: `${o3.x}${o3.unit}`,
+      y: `${o3.y}${o3.unit}`,
+      width: `${o3.width}${o3.unit}`,
+      height: `${o3.height}${o3.unit}`,
+      fill: "black"
+    }))), /* @__PURE__ */ e2.createElement("rect", {
+      fill: "black",
+      fillOpacity: 0.5,
+      width: "100%",
+      height: "100%",
+      mask: `url(#hole-${this.instanceId})`
+    })) : void 0, p3);
+  }
+};
+var g2 = Math.PI / 180;
+
+// src/admin/components/MyAccount/avatarCrop.ts
+var MAX_SIZE = 256;
+async function cropImageToJpegBlob(image, crop, maxSize = MAX_SIZE) {
+  if (crop.width < 1 || crop.height < 1) {
+    throw new Error("Crop area is empty.");
+  }
+  const scaleX = image.naturalWidth / image.width;
+  const scaleY = image.naturalHeight / image.height;
+  const srcW = crop.width * scaleX;
+  const srcH = crop.height * scaleY;
+  const side = Math.min(maxSize, Math.round(Math.max(srcW, srcH)));
+  const canvas = document.createElement("canvas");
+  canvas.width = side;
+  canvas.height = side;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Could not create canvas.");
+  }
+  ctx.drawImage(
+    image,
+    crop.x * scaleX,
+    crop.y * scaleY,
+    srcW,
+    srcH,
+    0,
+    0,
+    side,
+    side
+  );
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("Could not encode JPEG."));
+          return;
+        }
+        resolve(blob);
+      },
+      "image/jpeg",
+      0.92
+    );
+  });
+}
+function gravatarUrlFromEmail(email, size = 150) {
+  const normalized = email.trim().toLowerCase();
+  return `https://gravatar.com/avatar/${md5Hex(normalized)}?s=${size}&d=identicon`;
+}
+function md5Hex(input) {
+  return md5(input);
+}
+function md5(str) {
+  function cmn(q, a4, b3, x2, s4, t3) {
+    a4 = a4 + q + x2 + t3 | 0;
+    return (a4 << s4 | a4 >>> 32 - s4) + b3 | 0;
+  }
+  function ff(a4, b3, c4, d4, x2, s4, t3) {
+    return cmn(b3 & c4 | ~b3 & d4, a4, b3, x2, s4, t3);
+  }
+  function gg(a4, b3, c4, d4, x2, s4, t3) {
+    return cmn(b3 & d4 | c4 & ~d4, a4, b3, x2, s4, t3);
+  }
+  function hh(a4, b3, c4, d4, x2, s4, t3) {
+    return cmn(b3 ^ c4 ^ d4, a4, b3, x2, s4, t3);
+  }
+  function ii(a4, b3, c4, d4, x2, s4, t3) {
+    return cmn(c4 ^ (b3 | ~d4), a4, b3, x2, s4, t3);
+  }
+  const msg = unescape(encodeURIComponent(str));
+  const n3 = msg.length;
+  const nBlocks = (n3 + 8 >> 6) + 1;
+  const words = new Array(nBlocks * 16).fill(0);
+  for (let i3 = 0; i3 < n3; i3 += 1) {
+    words[i3 >> 2] |= msg.charCodeAt(i3) << i3 % 4 * 8;
+  }
+  words[n3 >> 2] |= 128 << n3 % 4 * 8;
+  words[nBlocks * 16 - 2] = n3 * 8;
+  let a3 = 1732584193;
+  let b2 = -271733879;
+  let c3 = -1732584194;
+  let d3 = 271733878;
+  for (let i3 = 0; i3 < words.length; i3 += 16) {
+    const oa = a3;
+    const ob = b2;
+    const oc = c3;
+    const od = d3;
+    a3 = ff(a3, b2, c3, d3, words[i3], 7, -680876936);
+    d3 = ff(d3, a3, b2, c3, words[i3 + 1], 12, -389564586);
+    c3 = ff(c3, d3, a3, b2, words[i3 + 2], 17, 606105819);
+    b2 = ff(b2, c3, d3, a3, words[i3 + 3], 22, -1044525330);
+    a3 = ff(a3, b2, c3, d3, words[i3 + 4], 7, -176418897);
+    d3 = ff(d3, a3, b2, c3, words[i3 + 5], 12, 1200080426);
+    c3 = ff(c3, d3, a3, b2, words[i3 + 6], 17, -1473231341);
+    b2 = ff(b2, c3, d3, a3, words[i3 + 7], 22, -45705983);
+    a3 = ff(a3, b2, c3, d3, words[i3 + 8], 7, 1770035416);
+    d3 = ff(d3, a3, b2, c3, words[i3 + 9], 12, -1958414417);
+    c3 = ff(c3, d3, a3, b2, words[i3 + 10], 17, -42063);
+    b2 = ff(b2, c3, d3, a3, words[i3 + 11], 22, -1990404162);
+    a3 = ff(a3, b2, c3, d3, words[i3 + 12], 7, 1804603682);
+    d3 = ff(d3, a3, b2, c3, words[i3 + 13], 12, -40341101);
+    c3 = ff(c3, d3, a3, b2, words[i3 + 14], 17, -1502002290);
+    b2 = ff(b2, c3, d3, a3, words[i3 + 15], 22, 1236535329);
+    a3 = gg(a3, b2, c3, d3, words[i3 + 1], 5, -165796510);
+    d3 = gg(d3, a3, b2, c3, words[i3 + 6], 9, -1069501632);
+    c3 = gg(c3, d3, a3, b2, words[i3 + 11], 14, 643717713);
+    b2 = gg(b2, c3, d3, a3, words[i3], 20, -373897302);
+    a3 = gg(a3, b2, c3, d3, words[i3 + 5], 5, -701558691);
+    d3 = gg(d3, a3, b2, c3, words[i3 + 10], 9, 38016083);
+    c3 = gg(c3, d3, a3, b2, words[i3 + 15], 14, -660478335);
+    b2 = gg(b2, c3, d3, a3, words[i3 + 4], 20, -405537848);
+    a3 = gg(a3, b2, c3, d3, words[i3 + 9], 5, 568446438);
+    d3 = gg(d3, a3, b2, c3, words[i3 + 14], 9, -1019803690);
+    c3 = gg(c3, d3, a3, b2, words[i3 + 3], 14, -187363961);
+    b2 = gg(b2, c3, d3, a3, words[i3 + 8], 20, 1163531501);
+    a3 = gg(a3, b2, c3, d3, words[i3 + 13], 5, -1444681467);
+    d3 = gg(d3, a3, b2, c3, words[i3 + 2], 9, -51403784);
+    c3 = gg(c3, d3, a3, b2, words[i3 + 7], 14, 1735328473);
+    b2 = gg(b2, c3, d3, a3, words[i3 + 12], 20, -1926607734);
+    a3 = hh(a3, b2, c3, d3, words[i3 + 5], 4, -378558);
+    d3 = hh(d3, a3, b2, c3, words[i3 + 8], 11, -2022574463);
+    c3 = hh(c3, d3, a3, b2, words[i3 + 11], 16, 1839030562);
+    b2 = hh(b2, c3, d3, a3, words[i3 + 14], 23, -35309556);
+    a3 = hh(a3, b2, c3, d3, words[i3 + 1], 4, -1530992060);
+    d3 = hh(d3, a3, b2, c3, words[i3 + 4], 11, 1272893353);
+    c3 = hh(c3, d3, a3, b2, words[i3 + 7], 16, -155497632);
+    b2 = hh(b2, c3, d3, a3, words[i3 + 10], 23, -1094730640);
+    a3 = hh(a3, b2, c3, d3, words[i3 + 13], 4, 681279174);
+    d3 = hh(d3, a3, b2, c3, words[i3], 11, -358537222);
+    c3 = hh(c3, d3, a3, b2, words[i3 + 3], 16, -722521979);
+    b2 = hh(b2, c3, d3, a3, words[i3 + 6], 23, 76029189);
+    a3 = hh(a3, b2, c3, d3, words[i3 + 9], 4, -640364487);
+    d3 = hh(d3, a3, b2, c3, words[i3 + 12], 11, -421815835);
+    c3 = hh(c3, d3, a3, b2, words[i3 + 15], 16, 530742520);
+    b2 = hh(b2, c3, d3, a3, words[i3 + 2], 23, -995338651);
+    a3 = ii(a3, b2, c3, d3, words[i3], 6, -198630844);
+    d3 = ii(d3, a3, b2, c3, words[i3 + 7], 10, 1126891415);
+    c3 = ii(c3, d3, a3, b2, words[i3 + 14], 15, -1416354905);
+    b2 = ii(b2, c3, d3, a3, words[i3 + 5], 21, -57434055);
+    a3 = ii(a3, b2, c3, d3, words[i3 + 12], 6, 1700485571);
+    d3 = ii(d3, a3, b2, c3, words[i3 + 3], 10, -1894986606);
+    c3 = ii(c3, d3, a3, b2, words[i3 + 10], 15, -1051523);
+    b2 = ii(b2, c3, d3, a3, words[i3 + 1], 21, -2054922799);
+    a3 = ii(a3, b2, c3, d3, words[i3 + 8], 6, 1873313359);
+    d3 = ii(d3, a3, b2, c3, words[i3 + 15], 10, -30611744);
+    c3 = ii(c3, d3, a3, b2, words[i3 + 6], 15, -1560198380);
+    b2 = ii(b2, c3, d3, a3, words[i3 + 13], 21, 1309151649);
+    a3 = ii(a3, b2, c3, d3, words[i3 + 4], 6, -145523070);
+    d3 = ii(d3, a3, b2, c3, words[i3 + 11], 10, -1120210379);
+    c3 = ii(c3, d3, a3, b2, words[i3 + 2], 15, 718787259);
+    b2 = ii(b2, c3, d3, a3, words[i3 + 9], 21, -343485551);
+    a3 = a3 + oa | 0;
+    b2 = b2 + ob | 0;
+    c3 = c3 + oc | 0;
+    d3 = d3 + od | 0;
+  }
+  function hex(n4) {
+    let s4 = "";
+    for (let j2 = 0; j2 < 4; j2 += 1) {
+      s4 += `0${(n4 >> j2 * 8 & 255).toString(16)}`.slice(-2);
+    }
+    return s4;
+  }
+  return hex(a3) + hex(b2) + hex(c3) + hex(d3);
+}
+
+// src/admin/components/MyAccount/AvatarCropModal.tsx
+import { jsx as jsx72, jsxs as jsxs47 } from "react/jsx-runtime";
+function initialCrop(mediaWidth, mediaHeight) {
+  return c2(
+    s2({ unit: "%", width: 90 }, 1, mediaWidth, mediaHeight),
+    mediaWidth,
+    mediaHeight
+  );
+}
+function AvatarCropModal({
+  imageUrl,
+  onConfirm,
+  onClose,
+  onError: onError2
+}) {
+  const imgRef = useRef15(null);
+  const [crop, setCrop] = useState30();
+  const [completed, setCompleted] = useState30();
+  const [busy, setBusy] = useState30(false);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const image = imgRef.current;
+    if (!image || !completed) {
+      onError2?.("Select a crop area.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const blob = await cropImageToJpegBlob(image, completed);
+      onConfirm(blob);
+    } catch (err) {
+      onError2?.(err instanceof Error ? err.message : "Could not crop image.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return /* @__PURE__ */ jsx72(
+    PaneWindowShell,
+    {
+      className: "avatar-crop-dialog",
+      width: 420,
+      title: "Crop Avatar",
+      titleIcon: "users",
+      titleBarControls: /* @__PURE__ */ jsx72(TitleBarControls, { children: /* @__PURE__ */ jsx72(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      children: /* @__PURE__ */ jsx72("form", { onSubmit: (e3) => void handleSubmit(e3), children: /* @__PURE__ */ jsxs47(WindowBody, { children: [
+        /* @__PURE__ */ jsx72("p", { style: { marginTop: 0 }, children: "Drag to select a square area." }),
+        /* @__PURE__ */ jsx72(
+          "div",
+          {
+            style: {
+              maxHeight: 280,
+              overflow: "auto",
+              background: "#000",
+              textAlign: "center"
+            },
+            children: /* @__PURE__ */ jsx72(
+              h2,
+              {
+                crop,
+                aspect: 1,
+                onChange: (c3) => setCrop(c3),
+                onComplete: (c3) => setCompleted(c3),
+                children: /* @__PURE__ */ jsx72(
+                  "img",
+                  {
+                    ref: imgRef,
+                    src: imageUrl,
+                    alt: "",
+                    style: { maxWidth: "100%" },
+                    onLoad: (event) => {
+                      const { naturalWidth, naturalHeight } = event.currentTarget;
+                      setCrop(initialCrop(naturalWidth, naturalHeight));
+                    }
+                  }
+                )
+              }
+            )
+          }
+        ),
+        /* @__PURE__ */ jsxs47(FieldRow, { className: "justify-end", style: { marginTop: 12 }, children: [
+          /* @__PURE__ */ jsx72(Button, { type: "submit", isDefault: true, accessKey: "k", loading: busy, children: "OK" }),
+          /* @__PURE__ */ jsx72(Button, { type: "button", accessKey: "a", disabled: busy, onClick: onClose, children: "Cancel" })
+        ] })
+      ] }) })
+    }
+  );
+}
+
+// src/admin/components/MyAccount/LinkFormModal.tsx
+import { useId as useId13, useState as useState31 } from "react";
+import { jsx as jsx73, jsxs as jsxs48 } from "react/jsx-runtime";
+function LinkFormModal({
+  mode,
+  initial,
+  onSave,
+  onClose,
+  onError: onError2
+}) {
+  const nameId = useId13();
+  const urlId = useId13();
+  const [name, setName] = useState31(initial?.name ?? "");
+  const [url, setUrl] = useState31(initial?.url ?? "");
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const nextName = name.trim();
+    const nextUrl = url.trim();
+    if (!nextName) {
+      onError2?.("Link name is required.");
+      return;
+    }
+    if (!nextUrl) {
+      onError2?.("Link URL is required.");
+      return;
+    }
+    try {
+      new URL(nextUrl);
+    } catch {
+      onError2?.("Link URL must be a valid URL (include https://).");
+      return;
+    }
+    onSave({ id: initial?.id, name: nextName, url: nextUrl });
+  };
+  return /* @__PURE__ */ jsx73(
+    PaneWindowShell,
+    {
+      className: "link-form-dialog",
+      width: 360,
+      title: mode === "add" ? "Add Link" : "Edit Link",
+      titleIcon: "external-link",
+      titleBarControls: /* @__PURE__ */ jsx73(TitleBarControls, { children: /* @__PURE__ */ jsx73(TitleBarControl, { action: "Close", onClick: onClose }) }),
+      children: /* @__PURE__ */ jsx73("form", { onSubmit: handleSubmit, noValidate: true, children: /* @__PURE__ */ jsxs48(WindowBody, { children: [
+        /* @__PURE__ */ jsx73(FieldRow, { children: /* @__PURE__ */ jsx73(
+          TextBox,
+          {
+            id: nameId,
+            label: "Name:",
+            accessKey: "n",
+            value: name,
+            onChange: (e3) => setName(e3.target.value),
+            autoFocus: true
+          }
+        ) }),
+        /* @__PURE__ */ jsx73(FieldRow, { children: /* @__PURE__ */ jsx73(
+          TextBox,
+          {
+            id: urlId,
+            label: "URL:",
+            accessKey: "u",
+            value: url,
+            onChange: (e3) => setUrl(e3.target.value)
+          }
+        ) }),
+        /* @__PURE__ */ jsxs48(FieldRow, { className: "justify-end", style: { marginTop: 12 }, children: [
+          /* @__PURE__ */ jsx73(Button, { type: "submit", isDefault: true, accessKey: "k", children: "OK" }),
+          /* @__PURE__ */ jsx73(Button, { type: "button", accessKey: "a", onClick: onClose, children: "Cancel" })
+        ] })
+      ] }) })
+    }
+  );
+}
+
+// src/admin/components/MyAccount/MyAccountWindow.tsx
+import { Fragment as Fragment24, jsx as jsx74, jsxs as jsxs49 } from "react/jsx-runtime";
+var EMAIL_PATTERN2 = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function MyAccountWindow({
+  api,
+  userId,
+  defaultAvatarUrl = adminAsset("system/avatar_default.svg"),
+  errorSoundUrl,
+  dingSoundUrl,
+  onClose,
+  onMinimize,
+  onActivate,
+  inactive = false,
+  onSaved,
+  className
+}) {
+  const [tab, setTab] = useState32("personal");
+  const [loading, setLoading] = useState32(true);
+  const [saving, setSaving] = useState32(false);
+  const [alert, setAlert] = useState32(null);
+  const [email, setEmail] = useState32("");
+  const [displayName, setDisplayName] = useState32("");
+  const [telephone, setTelephone] = useState32("");
+  const [address, setAddress] = useState32("");
+  const [zip, setZip] = useState32("");
+  const [city, setCity] = useState32("");
+  const [country, setCountry] = useState32("");
+  const [bio, setBio] = useState32("");
+  const [avatarType, setAvatarType] = useState32("default");
+  const [serverAvatarUrl, setServerAvatarUrl] = useState32(null);
+  const [links, setLinks] = useState32([]);
+  const [selectedLinkIndex, setSelectedLinkIndex] = useState32(null);
+  const [fileName, setFileName] = useState32("");
+  const [tempImageUrl, setTempImageUrl] = useState32(null);
+  const [cropOpen, setCropOpen] = useState32(false);
+  const [pendingJpeg, setPendingJpeg] = useState32(null);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState32(null);
+  const [currentPassword, setCurrentPassword] = useState32("");
+  const [password, setPassword] = useState32("");
+  const [confirmPassword, setConfirmPassword] = useState32("");
+  const [linkForm, setLinkForm] = useState32(null);
+  const ids = {
+    name: useId14(),
+    email: useId14(),
+    tel: useId14(),
+    address: useId14(),
+    zip: useId14(),
+    city: useId14(),
+    country: useId14(),
+    bio: useId14(),
+    avDefault: useId14(),
+    avGravatar: useId14(),
+    avUpload: useId14(),
+    cur: useId14(),
+    pw: useId14(),
+    conf: useId14()
+  };
+  useEffect30(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const result = await api.getMyProfile();
+      if (cancelled) {
+        return;
+      }
+      if (!result.ok) {
+        setAlert(result.error.message);
+        playAdminSound("chord", errorSoundUrl);
+        setLoading(false);
+        return;
+      }
+      const p3 = result.data;
+      setEmail(p3.email);
+      setDisplayName(p3.displayName ?? "");
+      setTelephone(p3.telephone ?? "");
+      setAddress(p3.address ?? "");
+      setZip(p3.zip ?? "");
+      setCity(p3.city ?? "");
+      setCountry(p3.country ?? "");
+      setBio(p3.bio ?? "");
+      setAvatarType(p3.avatarType);
+      setServerAvatarUrl(p3.avatarUrl);
+      setLinks(p3.links.map((l3) => ({ id: l3.id, name: l3.name, url: l3.url })));
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [api, errorSoundUrl]);
+  useEffect30(() => {
+    return () => {
+      if (tempImageUrl) {
+        URL.revokeObjectURL(tempImageUrl);
+      }
+      if (pendingPreviewUrl) {
+        URL.revokeObjectURL(pendingPreviewUrl);
+      }
+    };
+  }, [tempImageUrl, pendingPreviewUrl]);
+  const showError = (message) => {
+    setAlert(message);
+    playAdminSound("chord", errorSoundUrl);
+  };
+  const previewUrl = useMemo13(() => {
+    if (avatarType === "upload" && pendingPreviewUrl) {
+      return pendingPreviewUrl;
+    }
+    if (avatarType === "upload" && serverAvatarUrl) {
+      return serverAvatarUrl;
+    }
+    if (avatarType === "gravatar" && EMAIL_PATTERN2.test(email.trim())) {
+      return gravatarUrlFromEmail(email);
+    }
+    if (avatarType === "gravatar") {
+      return gravatarUrlFromEmail("preview@example.com");
+    }
+    return defaultAvatarUrl;
+  }, [
+    avatarType,
+    pendingPreviewUrl,
+    serverAvatarUrl,
+    email,
+    defaultAvatarUrl
+  ]);
+  const handleFile = (file) => {
+    if (!file) {
+      return;
+    }
+    if (tempImageUrl) {
+      URL.revokeObjectURL(tempImageUrl);
+    }
+    const url = URL.createObjectURL(file);
+    setTempImageUrl(url);
+    setFileName(file.name);
+    setAvatarType("upload");
+    setCropOpen(true);
+  };
+  const handleCropConfirm = (blob) => {
+    if (pendingPreviewUrl) {
+      URL.revokeObjectURL(pendingPreviewUrl);
+    }
+    setPendingJpeg(blob);
+    setPendingPreviewUrl(URL.createObjectURL(blob));
+    setCropOpen(false);
+    if (tempImageUrl) {
+      URL.revokeObjectURL(tempImageUrl);
+      setTempImageUrl(null);
+    }
+  };
+  const validatePersonal = () => {
+    if (!EMAIL_PATTERN2.test(email.trim())) {
+      return "A valid email is required.";
+    }
+    return null;
+  };
+  const validatePasswordIfAny = () => {
+    if (!password && !confirmPassword) {
+      return null;
+    }
+    if (!currentPassword) {
+      return "Current password is required.";
+    }
+    if (!password) {
+      return "New password is required.";
+    }
+    if (password.length < 8) {
+      return "Password must be at least 8 characters.";
+    }
+    if (!confirmPassword) {
+      return "Confirm the new password.";
+    }
+    if (password !== confirmPassword) {
+      return "Passwords do not match.";
+    }
+    return null;
+  };
+  const handleOk = async (event) => {
+    event.preventDefault();
+    if (saving || loading) {
+      return;
+    }
+    const personalErr = validatePersonal();
+    if (personalErr) {
+      showError(personalErr);
+      setTab("personal");
+      return;
+    }
+    const pwErr = validatePasswordIfAny();
+    if (pwErr) {
+      showError(pwErr);
+      setTab("security");
+      return;
+    }
+    setSaving(true);
+    try {
+      if (password) {
+        const pwResult = await api.setUserPassword(userId, {
+          currentPassword,
+          password,
+          confirmPassword: password
+        });
+        if (!pwResult.ok) {
+          showError(pwResult.error.message);
+          setTab("security");
+          return;
+        }
+      }
+      if (avatarType === "upload" && pendingJpeg) {
+        const up = await api.uploadMyAvatar(pendingJpeg);
+        if (!up.ok) {
+          showError(up.error.message);
+          setTab("personal");
+          return;
+        }
+      }
+      const patch = await api.updateMyProfile({
+        email: email.trim(),
+        displayName: displayName.trim() || null,
+        telephone: telephone.trim() || null,
+        address: address.trim() || null,
+        zip: zip.trim() || null,
+        city: city.trim() || null,
+        country: country.trim() || null,
+        bio: bio.trim() || null,
+        avatarType,
+        links: links.map((l3) => ({ name: l3.name, url: l3.url }))
+      });
+      if (!patch.ok) {
+        showError(patch.error.message);
+        setTab("personal");
+        return;
+      }
+      onSaved?.(patch.data);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+  return /* @__PURE__ */ jsxs49(Fragment24, { children: [
+    /* @__PURE__ */ jsx74(
+      PaneWindowShell,
+      {
+        className: cn("my-account-window", className),
+        width: 520,
+        title: "My Account",
+        titleIcon: "my-account",
+        inactive,
+        onMouseDown: onActivate,
+        titleBarControls: /* @__PURE__ */ jsxs49(TitleBarControls, { children: [
+          /* @__PURE__ */ jsx74(TitleBarControl, { action: "Minimize", onClick: onMinimize }),
+          /* @__PURE__ */ jsx74(TitleBarControl, { action: "Close", onClick: onClose })
+        ] }),
+        children: /* @__PURE__ */ jsxs49("form", { onSubmit: (e3) => void handleOk(e3), children: [
+          /* @__PURE__ */ jsxs49(TabList, { children: [
+            /* @__PURE__ */ jsx74(
+              Tab,
+              {
+                selected: tab === "personal",
+                href: "#my-account-personal",
+                onClick: (e3) => {
+                  e3.preventDefault();
+                  setTab("personal");
+                },
+                children: "Personal data"
+              }
+            ),
+            /* @__PURE__ */ jsx74(
+              Tab,
+              {
+                selected: tab === "security",
+                href: "#my-account-security",
+                onClick: (e3) => {
+                  e3.preventDefault();
+                  setTab("security");
+                },
+                children: "Security"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsx74(TabPanel, { children: /* @__PURE__ */ jsxs49(WindowBody, { children: [
+            loading ? /* @__PURE__ */ jsx74("p", { style: { margin: 0 }, children: "Loading\u2026" }) : tab === "personal" ? /* @__PURE__ */ jsxs49(Fragment24, { children: [
+              /* @__PURE__ */ jsx74(GroupBox, { legend: "Avatar", children: /* @__PURE__ */ jsxs49(FieldRow, { style: { alignItems: "flex-start" }, children: [
+                /* @__PURE__ */ jsx74(
+                  "img",
+                  {
+                    src: previewUrl,
+                    alt: "",
+                    width: 64,
+                    height: 64,
+                    style: {
+                      width: 64,
+                      height: 64,
+                      objectFit: "cover",
+                      border: "1px solid #808080",
+                      background: "#fff",
+                      flex: "0 0 auto"
+                    }
+                  }
+                ),
+                /* @__PURE__ */ jsxs49("div", { className: "stack", style: { gap: 4, flex: "1 1 auto" }, children: [
+                  /* @__PURE__ */ jsx74(
+                    Radio,
+                    {
+                      id: ids.avDefault,
+                      name: "avatar-type",
+                      label: "Default",
+                      checked: avatarType === "default",
+                      onChange: () => setAvatarType("default")
+                    }
+                  ),
+                  /* @__PURE__ */ jsx74(
+                    Radio,
+                    {
+                      id: ids.avGravatar,
+                      name: "avatar-type",
+                      label: "Gravatar",
+                      checked: avatarType === "gravatar",
+                      onChange: () => setAvatarType("gravatar")
+                    }
+                  ),
+                  /* @__PURE__ */ jsx74(
+                    Radio,
+                    {
+                      id: ids.avUpload,
+                      name: "avatar-type",
+                      label: "Upload",
+                      checked: avatarType === "upload",
+                      onChange: () => setAvatarType("upload")
+                    }
+                  ),
+                  avatarType === "upload" ? /* @__PURE__ */ jsx74(
+                    FileInput,
+                    {
+                      value: fileName,
+                      onFileChange: handleFile,
+                      pathClassName: "w-window-xs",
+                      disabled: saving
+                    }
+                  ) : null
+                ] })
+              ] }) }),
+              /* @__PURE__ */ jsx74(GroupBox, { legend: "Personal information", style: { marginTop: 12 }, children: /* @__PURE__ */ jsxs49(FieldRow, { style: { alignItems: "flex-start", gap: 12 }, children: [
+                /* @__PURE__ */ jsxs49(
+                  "div",
+                  {
+                    className: "stack my-account-fields",
+                    style: { flex: "1 1 50%", minWidth: 0, gap: 8 },
+                    children: [
+                      /* @__PURE__ */ jsx74(
+                        TextBox,
+                        {
+                          id: ids.name,
+                          label: "Name:",
+                          value: displayName,
+                          onChange: (e3) => setDisplayName(e3.target.value),
+                          disabled: saving
+                        }
+                      ),
+                      /* @__PURE__ */ jsx74(
+                        TextBox,
+                        {
+                          id: ids.email,
+                          label: "Email:",
+                          type: "email",
+                          value: email,
+                          onChange: (e3) => setEmail(e3.target.value),
+                          disabled: saving
+                        }
+                      ),
+                      /* @__PURE__ */ jsx74(
+                        TextBox,
+                        {
+                          id: ids.tel,
+                          label: "Telephone:",
+                          value: telephone,
+                          onChange: (e3) => setTelephone(e3.target.value),
+                          disabled: saving
+                        }
+                      ),
+                      /* @__PURE__ */ jsx74(
+                        TextBox,
+                        {
+                          id: ids.address,
+                          label: "Address:",
+                          value: address,
+                          onChange: (e3) => setAddress(e3.target.value),
+                          disabled: saving
+                        }
+                      ),
+                      /* @__PURE__ */ jsx74(
+                        TextBox,
+                        {
+                          id: ids.zip,
+                          label: "ZIP:",
+                          value: zip,
+                          onChange: (e3) => setZip(e3.target.value),
+                          disabled: saving
+                        }
+                      ),
+                      /* @__PURE__ */ jsx74(
+                        TextBox,
+                        {
+                          id: ids.city,
+                          label: "City:",
+                          value: city,
+                          onChange: (e3) => setCity(e3.target.value),
+                          disabled: saving
+                        }
+                      ),
+                      /* @__PURE__ */ jsx74(
+                        TextBox,
+                        {
+                          id: ids.country,
+                          label: "Country:",
+                          value: country,
+                          onChange: (e3) => setCountry(e3.target.value),
+                          disabled: saving
+                        }
+                      )
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ jsxs49("div", { className: "stack", style: { flex: "1 1 50%", gap: 8 }, children: [
+                  /* @__PURE__ */ jsx74(
+                    TextArea,
+                    {
+                      id: ids.bio,
+                      label: "Bio:",
+                      labelPosition: "above",
+                      value: bio,
+                      onChange: (e3) => setBio(e3.target.value),
+                      disabled: saving,
+                      rows: 6
+                    }
+                  ),
+                  /* @__PURE__ */ jsxs49("div", { children: [
+                    /* @__PURE__ */ jsx74("p", { style: { margin: "0 0 4px" }, children: "Links" }),
+                    /* @__PURE__ */ jsxs49(FieldRow, { style: { alignItems: "stretch" }, children: [
+                      /* @__PURE__ */ jsx74(
+                        SunkenPanel,
+                        {
+                          scrollable: true,
+                          tone: "white",
+                          style: {
+                            flex: "1 1 auto",
+                            height: 100,
+                            boxSizing: "border-box"
+                          },
+                          children: links.length === 0 ? /* @__PURE__ */ jsx74("p", { style: { margin: 8 }, children: "No links." }) : /* @__PURE__ */ jsx74(Table, { "aria-label": "Links", children: /* @__PURE__ */ jsx74("tbody", { children: links.map((link, index) => /* @__PURE__ */ jsx74(
+                            TableRow,
+                            {
+                              highlighted: selectedLinkIndex === index,
+                              title: link.url,
+                              onClick: () => setSelectedLinkIndex(index),
+                              onDoubleClick: () => setLinkForm({
+                                mode: "edit",
+                                index,
+                                initial: link
+                              }),
+                              children: /* @__PURE__ */ jsx74("td", { children: link.name })
+                            },
+                            `${link.name}-${index}`
+                          )) }) })
+                        }
+                      ),
+                      /* @__PURE__ */ jsxs49(
+                        "div",
+                        {
+                          className: "stack",
+                          style: { flex: "0 0 auto", width: "5.5em", gap: 8 },
+                          children: [
+                            /* @__PURE__ */ jsx74(
+                              Button,
+                              {
+                                type: "button",
+                                disabled: saving,
+                                onClick: () => setLinkForm({ mode: "add" }),
+                                style: { width: "100%" },
+                                children: "Add"
+                              }
+                            ),
+                            /* @__PURE__ */ jsx74(
+                              Button,
+                              {
+                                type: "button",
+                                disabled: saving || selectedLinkIndex == null,
+                                onClick: () => {
+                                  if (selectedLinkIndex == null) {
+                                    return;
+                                  }
+                                  setLinkForm({
+                                    mode: "edit",
+                                    index: selectedLinkIndex,
+                                    initial: links[selectedLinkIndex]
+                                  });
+                                },
+                                style: { width: "100%" },
+                                children: "Edit"
+                              }
+                            ),
+                            /* @__PURE__ */ jsx74(
+                              Button,
+                              {
+                                type: "button",
+                                disabled: saving || selectedLinkIndex == null,
+                                onClick: () => {
+                                  if (selectedLinkIndex == null) {
+                                    return;
+                                  }
+                                  setLinks(
+                                    (prev) => prev.filter((_2, i3) => i3 !== selectedLinkIndex)
+                                  );
+                                  setSelectedLinkIndex(null);
+                                },
+                                style: { width: "100%" },
+                                children: "Delete"
+                              }
+                            )
+                          ]
+                        }
+                      )
+                    ] })
+                  ] })
+                ] })
+              ] }) })
+            ] }) : /* @__PURE__ */ jsxs49(
+              "div",
+              {
+                className: "stack my-account-security-fields",
+                style: { gap: 8, maxWidth: 360, width: "100%" },
+                children: [
+                  /* @__PURE__ */ jsx74(
+                    TextBox,
+                    {
+                      id: ids.cur,
+                      label: "Old password:",
+                      type: "password",
+                      value: currentPassword,
+                      onChange: (e3) => setCurrentPassword(e3.target.value),
+                      disabled: saving,
+                      autoFocus: true
+                    }
+                  ),
+                  /* @__PURE__ */ jsx74(
+                    TextBox,
+                    {
+                      id: ids.pw,
+                      label: "New password:",
+                      type: "password",
+                      value: password,
+                      onChange: (e3) => setPassword(e3.target.value),
+                      disabled: saving
+                    }
+                  ),
+                  /* @__PURE__ */ jsx74(
+                    TextBox,
+                    {
+                      id: ids.conf,
+                      label: "Confirm new password:",
+                      type: "password",
+                      value: confirmPassword,
+                      onChange: (e3) => setConfirmPassword(e3.target.value),
+                      disabled: saving
+                    }
+                  )
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxs49(FieldRow, { className: "justify-end", style: { marginTop: 16 }, children: [
+              /* @__PURE__ */ jsx74(Button, { type: "submit", isDefault: true, accessKey: "k", loading: saving, disabled: loading, children: "OK" }),
+              /* @__PURE__ */ jsx74(Button, { type: "button", accessKey: "a", disabled: saving, onClick: onClose, children: "Cancel" })
+            ] })
+          ] }) })
+        ] })
+      }
+    ),
+    linkForm ? /* @__PURE__ */ jsx74(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx74(
+      LinkFormModal,
+      {
+        mode: linkForm.mode,
+        initial: linkForm.initial,
+        onClose: () => setLinkForm(null),
+        onError: showError,
+        onSave: (link) => {
+          if (linkForm.mode === "add") {
+            setLinks((prev) => [...prev, link]);
+          } else if (linkForm.index != null) {
+            setLinks(
+              (prev) => prev.map((row, i3) => i3 === linkForm.index ? link : row)
+            );
+          }
+          setLinkForm(null);
+        }
+      }
+    ) }) : null,
+    cropOpen && tempImageUrl ? /* @__PURE__ */ jsx74(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx74(
+      AvatarCropModal,
+      {
+        imageUrl: tempImageUrl,
+        onClose: () => {
+          setCropOpen(false);
+          if (tempImageUrl) {
+            URL.revokeObjectURL(tempImageUrl);
+            setTempImageUrl(null);
+          }
+        },
+        onError: showError,
+        onConfirm: handleCropConfirm
+      }
+    ) }) : null,
+    alert ? /* @__PURE__ */ jsx74(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx74(
+      MessageDialog,
+      {
+        type: "error",
+        title: "Error",
+        message: alert,
+        onClose: () => setAlert(null)
+      }
+    ) }) : null
+  ] });
+}
+
 // src/admin/pages/LoginPage.tsx
-import { useEffect as useEffect30, useLayoutEffect as useLayoutEffect12, useRef as useRef14, useState as useState30 } from "react";
-import { jsx as jsx71, jsxs as jsxs46 } from "react/jsx-runtime";
+import { useEffect as useEffect31, useLayoutEffect as useLayoutEffect12, useRef as useRef16, useState as useState33 } from "react";
+import { jsx as jsx75, jsxs as jsxs50 } from "react/jsx-runtime";
 function normalizeError(error) {
   if (typeof error === "string") {
     const trimmed = error.trim();
@@ -37352,20 +38991,20 @@ function LoginPage({
   errorSoundUrl,
   dingSoundUrl
 }) {
-  const dashboardRef = useRef14(null);
-  const modalRootRef = useRef14(null);
-  const soundedFor = useRef14(null);
+  const dashboardRef = useRef16(null);
+  const modalRootRef = useRef16(null);
+  const soundedFor = useRef16(null);
   const message = normalizeError(error);
-  const [dismissed, setDismissed] = useState30(false);
-  const [boundsEl, setBoundsEl] = useState30(null);
+  const [dismissed, setDismissed] = useState33(false);
+  const [boundsEl, setBoundsEl] = useState33(null);
   const showAlert = Boolean(message && !dismissed);
   useLayoutEffect12(() => {
     setBoundsEl(dashboardRef.current);
   }, []);
-  useEffect30(() => {
+  useEffect31(() => {
     setDismissed(false);
   }, [message]);
-  useEffect30(() => {
+  useEffect31(() => {
     if (!message || dismissed) {
       if (!message) {
         soundedFor.current = null;
@@ -37378,9 +39017,9 @@ function LoginPage({
     soundedFor.current = message;
     playAdminSound("chord", errorSoundUrl);
   }, [message, dismissed, errorSoundUrl]);
-  return /* @__PURE__ */ jsxs46("div", { ref: dashboardRef, className: "dashboard login-desktop", children: [
-    /* @__PURE__ */ jsxs46("div", { className: "login-host", children: [
-      /* @__PURE__ */ jsx71(
+  return /* @__PURE__ */ jsxs50("div", { ref: dashboardRef, className: "dashboard login-desktop", children: [
+    /* @__PURE__ */ jsxs50("div", { className: "login-host", children: [
+      /* @__PURE__ */ jsx75(
         LoginForm,
         {
           action,
@@ -37390,7 +39029,7 @@ function LoginPage({
           bannerUrl
         }
       ),
-      showAlert ? /* @__PURE__ */ jsx71(
+      showAlert ? /* @__PURE__ */ jsx75(
         "div",
         {
           className: "modal-blocker",
@@ -37406,7 +39045,7 @@ function LoginPage({
         }
       ) : null
     ] }),
-    showAlert ? /* @__PURE__ */ jsx71("div", { className: "desktop-modal-layer is-alert", children: /* @__PURE__ */ jsx71(FloatingModal, { boundsEl, rootRef: modalRootRef, children: /* @__PURE__ */ jsx71(
+    showAlert ? /* @__PURE__ */ jsx75("div", { className: "desktop-modal-layer is-alert", children: /* @__PURE__ */ jsx75(FloatingModal, { boundsEl, rootRef: modalRootRef, children: /* @__PURE__ */ jsx75(
       MessageDialog,
       {
         type: "error",
@@ -37421,11 +39060,11 @@ function LoginPage({
 // src/admin/pages/AdminDesktop.tsx
 import {
   useCallback as useCallback11,
-  useEffect as useEffect34,
+  useEffect as useEffect35,
   useLayoutEffect as useLayoutEffect13,
-  useMemo as useMemo13,
-  useRef as useRef17,
-  useState as useState32
+  useMemo as useMemo14,
+  useRef as useRef19,
+  useState as useState35
 } from "react";
 
 // src/admin/lib/siteIcon.ts
@@ -37478,6 +39117,7 @@ var SETTINGS_WINDOW_ID = "settings";
 var PERMISSIONS_WINDOW_ID = "permissions";
 var ROLES_WINDOW_ID = "roles";
 var USERS_WINDOW_ID = "users";
+var MY_ACCOUNT_WINDOW_ID = "my-account";
 function siteWindowId(siteId) {
   return `site-${siteId}`;
 }
@@ -37505,8 +39145,8 @@ function parseDocumentEditorWindowId(id) {
 
 // src/admin/shell/DesktopWindow.tsx
 import {
-  useEffect as useEffect31,
-  useRef as useRef15
+  useEffect as useEffect32,
+  useRef as useRef17
 } from "react";
 
 // src/admin/shell/resize.ts
@@ -37531,7 +39171,9 @@ var DEFAULT_WINDOW_SIZE = {
   permissions: { width: 560, height: 480 },
   roles: { width: 640, height: 480 },
   /** Height is unused for Users (content-sized shell); width is applied. */
-  users: { width: 480, height: 420 }
+  users: { width: 480, height: 420 },
+  /** Height unused (content-sized); width matches My Account dialog. */
+  "my-account": { width: 520, height: 480 }
 };
 function computeResizeBounds(dashboard, edge, start, pointer, minWidth = SHELL_MIN_WIDTH, minHeight = SHELL_MIN_HEIGHT) {
   const dx = pointer.clientX - pointer.startX;
@@ -37581,7 +39223,7 @@ function computeResizeBounds(dashboard, edge, start, pointer, minWidth = SHELL_M
 }
 
 // src/admin/shell/DesktopWindow.tsx
-import { jsx as jsx72, jsxs as jsxs47 } from "react/jsx-runtime";
+import { jsx as jsx76, jsxs as jsxs51 } from "react/jsx-runtime";
 function DesktopWindow({
   windowId,
   left,
@@ -37602,26 +39244,26 @@ function DesktopWindow({
   onPointerDown: onPointerDown2,
   ...rest
 }) {
-  const rootRef = useRef15(null);
-  const dragRef = useRef15(null);
-  const resizeRef = useRef15(null);
-  const onPositionChangeRef = useRef15(onPositionChange);
-  const onBoundsChangeRef = useRef15(onBoundsChange);
-  const dragDisabledRef = useRef15(dragDisabled);
-  const maximizedRef = useRef15(maximized);
-  useEffect31(() => {
+  const rootRef = useRef17(null);
+  const dragRef = useRef17(null);
+  const resizeRef = useRef17(null);
+  const onPositionChangeRef = useRef17(onPositionChange);
+  const onBoundsChangeRef = useRef17(onBoundsChange);
+  const dragDisabledRef = useRef17(dragDisabled);
+  const maximizedRef = useRef17(maximized);
+  useEffect32(() => {
     onPositionChangeRef.current = onPositionChange;
   }, [onPositionChange]);
-  useEffect31(() => {
+  useEffect32(() => {
     onBoundsChangeRef.current = onBoundsChange;
   }, [onBoundsChange]);
-  useEffect31(() => {
+  useEffect32(() => {
     dragDisabledRef.current = dragDisabled;
   }, [dragDisabled]);
-  useEffect31(() => {
+  useEffect32(() => {
     maximizedRef.current = maximized;
   }, [maximized]);
-  useEffect31(() => {
+  useEffect32(() => {
     const onMove = (event) => {
       const node = rootRef.current;
       if (!node) {
@@ -37807,7 +39449,7 @@ function DesktopWindow({
     ...height !== void 0 ? { height } : null
   };
   const showHandles = resizable && !maximized && !dragDisabled;
-  return /* @__PURE__ */ jsxs47(
+  return /* @__PURE__ */ jsxs51(
     "div",
     {
       ref: rootRef,
@@ -37825,7 +39467,7 @@ function DesktopWindow({
       ...rest,
       children: [
         children,
-        showHandles ? RESIZE_EDGES.map((edge) => /* @__PURE__ */ jsx72(
+        showHandles ? RESIZE_EDGES.map((edge) => /* @__PURE__ */ jsx76(
           "div",
           {
             className: "window-resize-handle",
@@ -37841,8 +39483,8 @@ function DesktopWindow({
 }
 
 // src/admin/shell/TaskbarClock.tsx
-import { useEffect as useEffect32, useState as useState31 } from "react";
-import { jsx as jsx73 } from "react/jsx-runtime";
+import { useEffect as useEffect33, useState as useState34 } from "react";
+import { jsx as jsx77 } from "react/jsx-runtime";
 function formatClock(date) {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
@@ -37856,10 +39498,10 @@ function isChromaticCapture() {
 }
 var CHROMATIC_FIXED_CLOCK = "21:30";
 function TaskbarClock() {
-  const [label, setLabel] = useState31(
+  const [label, setLabel] = useState34(
     () => isChromaticCapture() ? CHROMATIC_FIXED_CLOCK : formatClock(/* @__PURE__ */ new Date())
   );
-  useEffect32(() => {
+  useEffect33(() => {
     if (isChromaticCapture()) {
       setLabel(CHROMATIC_FIXED_CLOCK);
       return;
@@ -37869,11 +39511,11 @@ function TaskbarClock() {
     const id = window.setInterval(tick, 1e3);
     return () => window.clearInterval(id);
   }, []);
-  return /* @__PURE__ */ jsx73("div", { className: "sunken-panel clock", "aria-live": "polite", children: label });
+  return /* @__PURE__ */ jsx77("div", { className: "sunken-panel clock", "aria-live": "polite", children: label });
 }
 
 // src/admin/shell/Taskbar.tsx
-import { jsx as jsx74, jsxs as jsxs48 } from "react/jsx-runtime";
+import { jsx as jsx78, jsxs as jsxs52 } from "react/jsx-runtime";
 function taskClassName(win, active, siteTaskGlyphById) {
   const siteGlyph = win.kind === "site" && win.siteId != null ? siteTaskGlyphById?.[win.siteId] ?? "site" : null;
   return cn(
@@ -37888,6 +39530,7 @@ function taskClassName(win, active, siteTaskGlyphById) {
     win.kind === "permissions" && "permissions",
     win.kind === "roles" && "roles",
     win.kind === "users" && "users",
+    win.kind === "my-account" && "my-account",
     active && "active"
   );
 }
@@ -37902,10 +39545,10 @@ function Taskbar({
   siteTaskIconUrlById,
   className
 }) {
-  return /* @__PURE__ */ jsxs48("div", { id: "toolbar", className: cn("window", className), children: [
+  return /* @__PURE__ */ jsxs52("div", { id: "toolbar", className: cn("window", className), children: [
     startMenu,
-    /* @__PURE__ */ jsxs48("div", { className: "window-body", children: [
-      /* @__PURE__ */ jsx74(
+    /* @__PURE__ */ jsxs52("div", { className: "window-body", children: [
+      /* @__PURE__ */ jsx78(
         "button",
         {
           type: "button",
@@ -37917,11 +39560,11 @@ function Taskbar({
           children: "Menu"
         }
       ),
-      /* @__PURE__ */ jsx74("div", { className: "task-buttons", children: windows.map((win) => {
+      /* @__PURE__ */ jsx78("div", { className: "task-buttons", children: windows.map((win) => {
         const pressed = win.id === activeId && !win.minimized;
         const iconUrl = win.kind === "site" && win.siteId != null ? siteTaskIconUrlById?.[win.siteId] : void 0;
         const style = iconUrl ? { backgroundImage: `url("${iconUrl}")` } : void 0;
-        return /* @__PURE__ */ jsx74(
+        return /* @__PURE__ */ jsx78(
           "button",
           {
             type: "button",
@@ -37931,19 +39574,19 @@ function Taskbar({
             "aria-pressed": pressed,
             title: win.title,
             onClick: () => onTaskClick(win.id),
-            children: /* @__PURE__ */ jsx74("span", { className: "task-title", children: win.title })
+            children: /* @__PURE__ */ jsx78("span", { className: "task-title", children: win.title })
           },
           win.id
         );
       }) }),
-      /* @__PURE__ */ jsx74(TaskbarClock, {})
+      /* @__PURE__ */ jsx78(TaskbarClock, {})
     ] })
   ] });
 }
 
 // src/admin/shell/StartMenu.tsx
-import { useEffect as useEffect33, useRef as useRef16 } from "react";
-import { jsx as jsx75, jsxs as jsxs49 } from "react/jsx-runtime";
+import { useEffect as useEffect34, useRef as useRef18 } from "react";
+import { jsx as jsx79, jsxs as jsxs53 } from "react/jsx-runtime";
 function StartMenu({
   open,
   onClose,
@@ -37951,8 +39594,8 @@ function StartMenu({
   onOpenMyAccount,
   logoutHref
 }) {
-  const rootRef = useRef16(null);
-  useEffect33(() => {
+  const rootRef = useRef18(null);
+  useEffect34(() => {
     if (!open) {
       return;
     }
@@ -38015,7 +39658,7 @@ function StartMenu({
       } : void 0
     }
   ];
-  return /* @__PURE__ */ jsxs49(
+  return /* @__PURE__ */ jsxs53(
     "div",
     {
       ref: rootRef,
@@ -38023,18 +39666,18 @@ function StartMenu({
       id: "start-menu",
       hidden: !open,
       children: [
-        /* @__PURE__ */ jsx75("div", { className: "start-menu-banner", "aria-hidden": "true", children: /* @__PURE__ */ jsx75("span", { children: "WebHemi 1.0" }) }),
-        /* @__PURE__ */ jsxs49("ul", { className: "start-menu-list", role: "menu", "aria-label": "Menu", children: [
-          items.slice(0, 4).map((item) => /* @__PURE__ */ jsx75("li", { role: "none", children: /* @__PURE__ */ jsx75(StartMenuItem, { item }) }, item.id)),
-          /* @__PURE__ */ jsx75("li", { className: "separator", role: "separator" }),
-          items.slice(4).map((item) => /* @__PURE__ */ jsx75("li", { role: "none", children: /* @__PURE__ */ jsx75(StartMenuItem, { item }) }, item.id))
+        /* @__PURE__ */ jsx79("div", { className: "start-menu-banner", "aria-hidden": "true", children: /* @__PURE__ */ jsx79("span", { children: "WebHemi 1.0" }) }),
+        /* @__PURE__ */ jsxs53("ul", { className: "start-menu-list", role: "menu", "aria-label": "Menu", children: [
+          items.slice(0, 4).map((item) => /* @__PURE__ */ jsx79("li", { role: "none", children: /* @__PURE__ */ jsx79(StartMenuItem, { item }) }, item.id)),
+          /* @__PURE__ */ jsx79("li", { className: "separator", role: "separator" }),
+          items.slice(4).map((item) => /* @__PURE__ */ jsx79("li", { role: "none", children: /* @__PURE__ */ jsx79(StartMenuItem, { item }) }, item.id))
         ] })
       ]
     }
   );
 }
 function StartMenuItem({ item }) {
-  return /* @__PURE__ */ jsx75(
+  return /* @__PURE__ */ jsx79(
     "button",
     {
       type: "button",
@@ -38076,7 +39719,7 @@ function parseEntry(id, value) {
     return null;
   }
   const raw = value;
-  const kind = raw.kind === "site" || raw.kind === "site-settings" || raw.kind === "document-editor" || raw.kind === "control-panel" || raw.kind === "sites" || raw.kind === "hosts" || raw.kind === "settings" || raw.kind === "permissions" || raw.kind === "roles" || raw.kind === "users" ? raw.kind : null;
+  const kind = raw.kind === "site" || raw.kind === "site-settings" || raw.kind === "document-editor" || raw.kind === "control-panel" || raw.kind === "sites" || raw.kind === "hosts" || raw.kind === "settings" || raw.kind === "permissions" || raw.kind === "roles" || raw.kind === "users" || raw.kind === "my-account" ? raw.kind : null;
   if (!kind) {
     return null;
   }
@@ -38121,6 +39764,9 @@ function parseEntry(id, value) {
     return null;
   }
   if (kind === "users" && id !== USERS_WINDOW_ID) {
+    return null;
+  }
+  if (kind === "my-account" && id !== MY_ACCOUNT_WINDOW_ID) {
     return null;
   }
   if (kind === "control-panel" && id !== CONTROL_PANEL_WINDOW_ID) {
@@ -38263,6 +39909,10 @@ function hydrateDesktopFromPersistence(persisted, sites) {
       windows.push(windowFromEntry(entry));
       continue;
     }
+    if (entry.kind === "my-account" && entry.id === MY_ACCOUNT_WINDOW_ID) {
+      windows.push(windowFromEntry(entry));
+      continue;
+    }
     if (entry.kind === "site" && entry.siteId != null && siteIds.has(entry.siteId)) {
       windows.push({
         ...windowFromEntry(entry),
@@ -38270,7 +39920,7 @@ function hydrateDesktopFromPersistence(persisted, sites) {
       });
     }
   }
-  windows.sort((a2, b2) => a2.z - b2.z);
+  windows.sort((a3, b2) => a3.z - b2.z);
   const openIds = new Set(windows.map((win) => win.id));
   const activeId = persisted.activeId && openIds.has(persisted.activeId) ? persisted.activeId : windows.reduce(
     (best, win) => !best || win.z > best.z ? win : best,
@@ -38319,7 +39969,7 @@ function geometryFromPersistence(persisted, id, kind) {
 }
 
 // src/admin/pages/AdminDesktop.tsx
-import { jsx as jsx76, jsxs as jsxs50 } from "react/jsx-runtime";
+import { jsx as jsx80, jsxs as jsxs54 } from "react/jsx-runtime";
 var CASCADE_ORIGIN = { left: 48, top: 24 };
 var CASCADE_STEP = 28;
 var PERSIST_DEBOUNCE_MS = 200;
@@ -38369,10 +40019,19 @@ function toWindowRole(role) {
     permissionCount: role.permissionCount
   };
 }
+function toUserFormRoleOption(role) {
+  return { id: role.id, name: role.name, label: role.label };
+}
 function toWindowUser(user) {
   return {
     id: user.id,
     email: user.email,
+    displayName: user.displayName || user.email,
+    telephone: user.telephone,
+    address: user.address,
+    zip: user.zip,
+    city: user.city,
+    country: user.country,
     roleIds: [...user.roleIds],
     roles: user.roles.map((role) => ({ ...role })),
     siteAssignments: user.siteAssignments.map((row) => ({ ...row })),
@@ -38413,6 +40072,7 @@ function AdminDesktop({
   apiCsrfToken,
   errorSoundUrl,
   dingSoundUrl,
+  defaultAvatarUrl,
   apiBaseUrl,
   apiFetch,
   sitesApi,
@@ -38421,132 +40081,124 @@ function AdminDesktop({
   className
 }) {
   const storageKey = persistenceKey === false ? null : persistenceKey;
-  const persistedRef = useRef17(
+  const persistedRef = useRef19(
     storageKey ? loadPersistedDesktop(storageKey) : null
   );
-  const hydratedRef = useRef17(
+  const hydratedRef = useRef19(
     hydrateDesktopFromPersistence(persistedRef.current, sites)
   );
-  const nextZRef = useRef17(hydratedRef.current.nextZ);
-  const cascadeRef = useRef17(hydratedRef.current.cascade);
-  const dashboardRef = useRef17(null);
-  const [shell, setShell] = useState32(() => ({
+  const nextZRef = useRef19(hydratedRef.current.nextZ);
+  const cascadeRef = useRef19(hydratedRef.current.cascade);
+  const dashboardRef = useRef19(null);
+  const [shell, setShell] = useState35(() => ({
     windows: hydratedRef.current.windows,
     activeId: hydratedRef.current.activeId
   }));
-  const [deepLink] = useState32(() => {
+  const [deepLink] = useState35(() => {
     const search = locationSearch !== void 0 ? locationSearch : typeof window !== "undefined" ? window.location.search : "";
     return parseAdminDeepLink(search);
   });
-  const deepLinkAppliedRef = useRef17(false);
+  const deepLinkAppliedRef = useRef19(false);
   const sitesPreferSelectedId = deepLink?.window === "sites" ? deepLink.id : null;
   const hostsPreferSelectedId = deepLink?.window === "hosts" ? deepLink.id : null;
   const permissionsPreferSelectedId = deepLink?.window === "permissions" ? deepLink.id : null;
   const rolesPreferSelectedId = deepLink?.window === "roles" ? deepLink.id : null;
   const usersPreferSelectedId = deepLink?.window === "users" ? deepLink.id : null;
-  const [startMenuOpen, setStartMenuOpen] = useState32(false);
-  const [desktopSites, setDesktopSites] = useState32(sites);
-  const [sitesRows, setSitesRows] = useState32([]);
-  const [sitesLoading, setSitesLoading] = useState32(false);
-  const [sitesCreating, setSitesCreating] = useState32(false);
-  const [sitesDeleting, setSitesDeleting] = useState32(false);
-  const [sitesError, setSitesError] = useState32(null);
-  const [sitesFormError, setSitesFormError] = useState32(null);
-  const [sitesFieldErrors, setSitesFieldErrors] = useState32({});
-  const [permissionsRows, setPermissionsRows] = useState32([]);
-  const [permissionsLoading, setPermissionsLoading] = useState32(false);
-  const [permissionsCreating, setPermissionsCreating] = useState32(false);
-  const [permissionsDeleting, setPermissionsDeleting] = useState32(false);
-  const [permissionsError, setPermissionsError] = useState32(null);
-  const [permissionsFormError, setPermissionsFormError] = useState32(
+  const [startMenuOpen, setStartMenuOpen] = useState35(false);
+  const [desktopSites, setDesktopSites] = useState35(sites);
+  const [sitesRows, setSitesRows] = useState35([]);
+  const [sitesLoading, setSitesLoading] = useState35(false);
+  const [sitesCreating, setSitesCreating] = useState35(false);
+  const [sitesDeleting, setSitesDeleting] = useState35(false);
+  const [sitesError, setSitesError] = useState35(null);
+  const [sitesFormError, setSitesFormError] = useState35(null);
+  const [sitesFieldErrors, setSitesFieldErrors] = useState35({});
+  const [permissionsRows, setPermissionsRows] = useState35([]);
+  const [permissionsLoading, setPermissionsLoading] = useState35(false);
+  const [permissionsCreating, setPermissionsCreating] = useState35(false);
+  const [permissionsDeleting, setPermissionsDeleting] = useState35(false);
+  const [permissionsError, setPermissionsError] = useState35(null);
+  const [permissionsFormError, setPermissionsFormError] = useState35(
     null
   );
-  const [permissionsFieldErrors, setPermissionsFieldErrors] = useState32({});
-  const [permissionsStatusMessage, setPermissionsStatusMessage] = useState32(null);
-  const [rolesRows, setRolesRows] = useState32([]);
-  const [rolesPermissionOptions, setRolesPermissionOptions] = useState32([]);
-  const [rolesLoading, setRolesLoading] = useState32(false);
-  const [rolesCreating, setRolesCreating] = useState32(false);
-  const [rolesDeleting, setRolesDeleting] = useState32(false);
-  const [rolesError, setRolesError] = useState32(null);
-  const [rolesFormError, setRolesFormError] = useState32(null);
-  const [rolesFieldErrors, setRolesFieldErrors] = useState32({});
-  const [rolesStatusMessage, setRolesStatusMessage] = useState32(
+  const [permissionsFieldErrors, setPermissionsFieldErrors] = useState35({});
+  const [permissionsStatusMessage, setPermissionsStatusMessage] = useState35(null);
+  const [rolesRows, setRolesRows] = useState35([]);
+  const [rolesPermissionOptions, setRolesPermissionOptions] = useState35([]);
+  const [rolesLoading, setRolesLoading] = useState35(false);
+  const [rolesCreating, setRolesCreating] = useState35(false);
+  const [rolesDeleting, setRolesDeleting] = useState35(false);
+  const [rolesError, setRolesError] = useState35(null);
+  const [rolesFormError, setRolesFormError] = useState35(null);
+  const [rolesFieldErrors, setRolesFieldErrors] = useState35({});
+  const [rolesStatusMessage, setRolesStatusMessage] = useState35(
     null
   );
-  const [usersRows, setUsersRows] = useState32([]);
-  const [usersRoleOptions, setUsersRoleOptions] = useState32([]);
-  const [usersSiteOptions, setUsersSiteOptions] = useState32([]);
-  const [usersLoading, setUsersLoading] = useState32(false);
-  const [usersCreating, setUsersCreating] = useState32(false);
-  const [usersDeleting, setUsersDeleting] = useState32(false);
-  const [usersError, setUsersError] = useState32(null);
-  const [usersFormError, setUsersFormError] = useState32(null);
-  const [usersFieldErrors, setUsersFieldErrors] = useState32({});
-  const [usersStatusMessage, setUsersStatusMessage] = useState32(
+  const [usersRows, setUsersRows] = useState35([]);
+  const [usersRoleOptions, setUsersRoleOptions] = useState35([]);
+  const [usersSiteOptions, setUsersSiteOptions] = useState35([]);
+  const [usersLoading, setUsersLoading] = useState35(false);
+  const [usersCreating, setUsersCreating] = useState35(false);
+  const [usersDeleting, setUsersDeleting] = useState35(false);
+  const [usersError, setUsersError] = useState35(null);
+  const [usersFormError, setUsersFormError] = useState35(null);
+  const [usersFieldErrors, setUsersFieldErrors] = useState35({});
+  const [usersStatusMessage, setUsersStatusMessage] = useState35(
     null
   );
-  const [usersSettingPassword, setUsersSettingPassword] = useState32(false);
-  const [usersPasswordFormError, setUsersPasswordFormError] = useState32(null);
-  const [usersPasswordFieldErrors, setUsersPasswordFieldErrors] = useState32({});
-  const [currentUserId, setCurrentUserId] = useState32(null);
-  const [currentUserEmail, setCurrentUserEmail] = useState32(null);
-  const [userCapabilities, setUserCapabilities] = useState32(null);
-  const [myAccountOpen, setMyAccountOpen] = useState32(false);
-  const [myAccountSaving, setMyAccountSaving] = useState32(false);
-  const [myAccountFormError, setMyAccountFormError] = useState32(
+  const [usersSettingPassword, setUsersSettingPassword] = useState35(false);
+  const [usersPasswordFormError, setUsersPasswordFormError] = useState35(null);
+  const [usersPasswordFieldErrors, setUsersPasswordFieldErrors] = useState35({});
+  const [currentUserId, setCurrentUserId] = useState35(null);
+  const [userCapabilities, setUserCapabilities] = useState35(null);
+  const [hostsRows, setHostsRows] = useState35([]);
+  const [hostsLoading, setHostsLoading] = useState35(false);
+  const [hostsCreating, setHostsCreating] = useState35(false);
+  const [hostsDeleting, setHostsDeleting] = useState35(false);
+  const [hostsUnassigning, setHostsUnassigning] = useState35(false);
+  const [hostsAssigning, setHostsAssigning] = useState35(false);
+  const [hostsVerifying, setHostsVerifying] = useState35(false);
+  const [hostsError, setHostsError] = useState35(null);
+  const [hostsFormError, setHostsFormError] = useState35(null);
+  const [hostsFieldErrors, setHostsFieldErrors] = useState35({});
+  const [sitesStatusMessage, setSitesStatusMessage] = useState35(null);
+  const [hostsStatusMessage, setHostsStatusMessage] = useState35(null);
+  const [settings, setSettings] = useState35(null);
+  const [settingsLoading, setSettingsLoading] = useState35(false);
+  const [settingsSaving, setSettingsSaving] = useState35(false);
+  const [settingsError, setSettingsError] = useState35(null);
+  const [settingsStatusMessage, setSettingsStatusMessage] = useState35(
     null
   );
-  const [myAccountFieldErrors, setMyAccountFieldErrors] = useState32({});
-  const [myAccountAlert, setMyAccountAlert] = useState32(null);
-  const [hostsRows, setHostsRows] = useState32([]);
-  const [hostsLoading, setHostsLoading] = useState32(false);
-  const [hostsCreating, setHostsCreating] = useState32(false);
-  const [hostsDeleting, setHostsDeleting] = useState32(false);
-  const [hostsUnassigning, setHostsUnassigning] = useState32(false);
-  const [hostsAssigning, setHostsAssigning] = useState32(false);
-  const [hostsVerifying, setHostsVerifying] = useState32(false);
-  const [hostsError, setHostsError] = useState32(null);
-  const [hostsFormError, setHostsFormError] = useState32(null);
-  const [hostsFieldErrors, setHostsFieldErrors] = useState32({});
-  const [sitesStatusMessage, setSitesStatusMessage] = useState32(null);
-  const [hostsStatusMessage, setHostsStatusMessage] = useState32(null);
-  const [settings, setSettings] = useState32(null);
-  const [settingsLoading, setSettingsLoading] = useState32(false);
-  const [settingsSaving, setSettingsSaving] = useState32(false);
-  const [settingsError, setSettingsError] = useState32(null);
-  const [settingsStatusMessage, setSettingsStatusMessage] = useState32(
+  const [siteSettingsById, setSiteSettingsById] = useState35({});
+  const [siteSettingsLoadingId, setSiteSettingsLoadingId] = useState35(
     null
   );
-  const [siteSettingsById, setSiteSettingsById] = useState32({});
-  const [siteSettingsLoadingId, setSiteSettingsLoadingId] = useState32(
+  const [siteSettingsSavingId, setSiteSettingsSavingId] = useState35(
     null
   );
-  const [siteSettingsSavingId, setSiteSettingsSavingId] = useState32(
+  const [siteSettingsError, setSiteSettingsError] = useState35(null);
+  const [siteSettingsStatusMessage, setSiteSettingsStatusMessage] = useState35(null);
+  const [documentsByKey, setDocumentsByKey] = useState35({});
+  const [documentLoadingKey, setDocumentLoadingKey] = useState35(
     null
   );
-  const [siteSettingsError, setSiteSettingsError] = useState32(null);
-  const [siteSettingsStatusMessage, setSiteSettingsStatusMessage] = useState32(null);
-  const [documentsByKey, setDocumentsByKey] = useState32({});
-  const [documentLoadingKey, setDocumentLoadingKey] = useState32(
+  const [documentSavingKey, setDocumentSavingKey] = useState35(
     null
   );
-  const [documentSavingKey, setDocumentSavingKey] = useState32(
+  const [documentError, setDocumentError] = useState35(null);
+  const [documentStatusMessage, setDocumentStatusMessage] = useState35(null);
+  const [explorerForestRefreshBySite, setExplorerForestRefreshBySite] = useState35({});
+  const pendingLoginRedirectRef = useRef19(false);
+  const sitesStatusTimerRef = useRef19(null);
+  const hostsStatusTimerRef = useRef19(null);
+  const permissionsStatusTimerRef = useRef19(
     null
   );
-  const [documentError, setDocumentError] = useState32(null);
-  const [documentStatusMessage, setDocumentStatusMessage] = useState32(null);
-  const [explorerForestRefreshBySite, setExplorerForestRefreshBySite] = useState32({});
-  const pendingLoginRedirectRef = useRef17(false);
-  const sitesStatusTimerRef = useRef17(null);
-  const hostsStatusTimerRef = useRef17(null);
-  const permissionsStatusTimerRef = useRef17(
-    null
-  );
-  const rolesStatusTimerRef = useRef17(null);
-  const usersStatusTimerRef = useRef17(null);
-  const settingsStatusTimerRef = useRef17(null);
-  const api = useMemo13(
+  const rolesStatusTimerRef = useRef19(null);
+  const usersStatusTimerRef = useRef19(null);
+  const settingsStatusTimerRef = useRef19(null);
+  const api = useMemo14(
     () => sitesApi ?? createAdminApiClient({
       csrfToken: apiCsrfToken,
       baseUrl: apiBaseUrl,
@@ -38676,7 +40328,7 @@ function AdminDesktop({
     },
     [clearSettingsStatusMessage]
   );
-  useEffect34(() => {
+  useEffect35(() => {
     return () => {
       if (sitesStatusTimerRef.current != null) {
         clearTimeout(sitesStatusTimerRef.current);
@@ -38759,11 +40411,11 @@ function AdminDesktop({
   const rolesWindowOpen = shell.windows.some((win) => win.id === ROLES_WINDOW_ID);
   const usersWindowOpen = shell.windows.some((win) => win.id === USERS_WINDOW_ID);
   const settingsWindowOpen = shell.windows.some((win) => win.id === SETTINGS_WINDOW_ID);
-  const siteFormHosts = useMemo13(
+  const siteFormHosts = useMemo14(
     () => hostsRows.map(toSiteFormHostOption),
     [hostsRows]
   );
-  const hostFormSites = useMemo13(
+  const hostFormSites = useMemo14(
     () => desktopSites.map((site) => ({
       id: site.id,
       name: site.name,
@@ -38771,24 +40423,24 @@ function AdminDesktop({
     })),
     [desktopSites]
   );
-  const siteTaskGlyphById = useMemo13(() => {
+  const siteTaskGlyphById = useMemo14(() => {
     const map = {};
     for (const site of desktopSites) {
       map[site.id] = siteGlyphKind(site.slug);
     }
     return map;
   }, [desktopSites]);
-  const siteTaskIconUrlById = useMemo13(() => {
+  const siteTaskIconUrlById = useMemo14(() => {
     const map = {};
     for (const site of desktopSites) {
       map[site.id] = siteFaviconFileUrl(site.id, site.faviconMediaId, apiBaseUrl);
     }
     return map;
   }, [desktopSites, apiBaseUrl]);
-  useEffect34(() => {
+  useEffect35(() => {
     setDesktopSites(sites);
   }, [sites]);
-  useEffect34(() => {
+  useEffect35(() => {
     let cancelled = false;
     (async () => {
       const result = await api.getMe();
@@ -38798,9 +40450,6 @@ function AdminDesktop({
       setCurrentUserId(
         typeof result.data.id === "number" ? result.data.id : null
       );
-      setCurrentUserEmail(
-        typeof result.data.email === "string" ? result.data.email : null
-      );
       if (result.data.capabilities) {
         setUserCapabilities(result.data.capabilities);
       }
@@ -38809,7 +40458,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [api]);
-  useEffect34(() => {
+  useEffect35(() => {
     if (!storageKey) {
       return;
     }
@@ -38826,7 +40475,7 @@ function AdminDesktop({
     }, PERSIST_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [shell, storageKey]);
-  useEffect34(() => {
+  useEffect35(() => {
     if (!sitesWindowOpen) {
       return;
     }
@@ -38852,7 +40501,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [sitesWindowOpen, api, handleApiFailure, clearSitesStatusMessage]);
-  useEffect34(() => {
+  useEffect35(() => {
     if (!permissionsWindowOpen) {
       return;
     }
@@ -38877,7 +40526,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [permissionsWindowOpen, api, handleApiFailure, clearPermissionsStatusMessage]);
-  useEffect34(() => {
+  useEffect35(() => {
     if (!rolesWindowOpen) {
       return;
     }
@@ -38900,6 +40549,7 @@ function AdminDesktop({
       }
       pendingLoginRedirectRef.current = false;
       setRolesRows(rolesResult.data.map(toWindowRole));
+      setUsersRoleOptions(rolesResult.data.map(toUserFormRoleOption));
       if (permissionsResult.ok) {
         setRolesPermissionOptions(
           permissionsResult.data.map((row) => ({
@@ -38914,7 +40564,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [rolesWindowOpen, api, handleApiFailure, clearRolesStatusMessage]);
-  useEffect34(() => {
+  useEffect35(() => {
     if (!usersWindowOpen) {
       return;
     }
@@ -38939,13 +40589,8 @@ function AdminDesktop({
       pendingLoginRedirectRef.current = false;
       setUsersRows(usersResult.data.map(toWindowUser));
       if (rolesResult.ok) {
-        setUsersRoleOptions(
-          rolesResult.data.map((row) => ({
-            id: row.id,
-            name: row.name,
-            label: row.label
-          }))
-        );
+        setRolesRows(rolesResult.data.map(toWindowRole));
+        setUsersRoleOptions(rolesResult.data.map(toUserFormRoleOption));
       }
       if (sitesResult.ok) {
         setUsersSiteOptions(
@@ -38960,7 +40605,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [usersWindowOpen, api, handleApiFailure, clearUsersStatusMessage]);
-  useEffect34(() => {
+  useEffect35(() => {
     if (!hostsWindowOpen && !sitesWindowOpen) {
       return;
     }
@@ -39000,7 +40645,7 @@ function AdminDesktop({
     noteUnauthorized,
     clearHostsStatusMessage
   ]);
-  useEffect34(() => {
+  useEffect35(() => {
     if (!settingsWindowOpen && !hostsWindowOpen && !sitesWindowOpen) {
       return;
     }
@@ -39623,7 +41268,7 @@ function AdminDesktop({
     const saved = toWindowSite(result.data);
     setSitesRows(
       (prev) => [...prev.filter((row) => row.id !== saved.id), saved].sort(
-        (a2, b2) => a2.name.localeCompare(b2.name)
+        (a3, b2) => a3.name.localeCompare(b2.name)
       )
     );
     setDesktopSites((prev) => {
@@ -39631,7 +41276,7 @@ function AdminDesktop({
         ...prev.filter((row) => row.id !== saved.id),
         toDesktopSite(saved)
       ];
-      return next.sort((a2, b2) => a2.name.localeCompare(b2.name));
+      return next.sort((a3, b2) => a3.name.localeCompare(b2.name));
     });
   };
   const handleDeleteSite = async (site) => {
@@ -39695,7 +41340,7 @@ function AdminDesktop({
     const saved = toWindowPermission(result.data);
     setPermissionsRows(
       (prev) => [...prev.filter((row) => row.id !== saved.id), saved].sort(
-        (a2, b2) => a2.name.localeCompare(b2.name)
+        (a3, b2) => a3.name.localeCompare(b2.name)
       )
     );
   };
@@ -39753,12 +41398,18 @@ function AdminDesktop({
     const list = await api.listRoles();
     if (list.ok) {
       setRolesRows(list.data.map(toWindowRole));
+      setUsersRoleOptions(list.data.map(toUserFormRoleOption));
       return;
     }
     const saved = toWindowRole(result.data);
     setRolesRows(
       (prev) => [...prev.filter((row) => row.id !== saved.id), saved].sort(
-        (a2, b2) => a2.name.localeCompare(b2.name)
+        (a3, b2) => a3.name.localeCompare(b2.name)
+      )
+    );
+    setUsersRoleOptions(
+      (prev) => [...prev.filter((row) => row.id !== saved.id), toUserFormRoleOption(saved)].sort(
+        (a3, b2) => a3.name.localeCompare(b2.name)
       )
     );
   };
@@ -39776,8 +41427,10 @@ function AdminDesktop({
     const list = await api.listRoles();
     if (list.ok) {
       setRolesRows(list.data.map(toWindowRole));
+      setUsersRoleOptions(list.data.map(toUserFormRoleOption));
     } else {
       setRolesRows((prev) => prev.filter((row) => row.id !== role.id));
+      setUsersRoleOptions((prev) => prev.filter((row) => row.id !== role.id));
     }
   };
   const handleSaveUser = async (payload) => {
@@ -39785,13 +41438,24 @@ function AdminDesktop({
     setUsersCreating(true);
     setUsersFormError(null);
     setUsersFieldErrors({});
+    const profileFields = payload.displayName !== void 0 ? {
+      displayName: payload.displayName || null,
+      telephone: payload.telephone || null,
+      address: payload.address || null,
+      zip: payload.zip || null,
+      city: payload.city || null,
+      country: payload.country || null
+    } : {};
     const result = payload.mode === "new" ? await api.createUser({
       email: payload.email,
       password: payload.password ?? "",
+      ...profileFields,
       roleIds: payload.roleIds,
       siteAssignments: payload.siteAssignments
     }) : payload.userId != null ? await api.updateUser(payload.userId, {
       email: payload.email,
+      ...payload.password ? { password: payload.password } : {},
+      ...profileFields,
       roleIds: payload.roleIds,
       siteAssignments: payload.siteAssignments
     }) : null;
@@ -39805,6 +41469,12 @@ function AdminDesktop({
         setUsersFieldErrors({
           email: result.error.fields.email,
           password: result.error.fields.password,
+          displayName: result.error.fields.displayName,
+          telephone: result.error.fields.telephone,
+          address: result.error.fields.address,
+          zip: result.error.fields.zip,
+          city: result.error.fields.city,
+          country: result.error.fields.country,
           roleIds: result.error.fields.roleIds,
           siteAssignments: result.error.fields.siteAssignments
         });
@@ -39821,7 +41491,7 @@ function AdminDesktop({
     const saved = toWindowUser(result.data);
     setUsersRows(
       (prev) => [...prev.filter((row) => row.id !== saved.id), saved].sort(
-        (a2, b2) => a2.email.localeCompare(b2.email)
+        (a3, b2) => a3.email.localeCompare(b2.email)
       )
     );
   };
@@ -39867,39 +41537,16 @@ function AdminDesktop({
     }
     flashUsersStatus("Password updated.");
   };
-  const openMyAccount = useCallback11(() => {
-    setMyAccountFormError(null);
-    setMyAccountFieldErrors({});
-    setMyAccountAlert(null);
-    setMyAccountOpen(true);
-  }, []);
-  const closeMyAccount = useCallback11(() => {
-    setMyAccountOpen(false);
-    setMyAccountFormError(null);
-    setMyAccountFieldErrors({});
-  }, []);
-  const handleMyAccountPassword = async (payload) => {
-    setMyAccountSaving(true);
-    setMyAccountFormError(null);
-    setMyAccountFieldErrors({});
-    const result = await api.setUserPassword(payload.userId, {
-      currentPassword: payload.currentPassword ?? "",
-      password: payload.password,
-      confirmPassword: payload.password
-    });
-    setMyAccountSaving(false);
-    if (!result.ok) {
-      if (result.error.fields) {
-        setMyAccountFieldErrors({
-          currentPassword: result.error.fields.currentPassword,
-          password: result.error.fields.password,
-          confirmPassword: result.error.fields.confirmPassword
-        });
-      }
-      handleApiFailure(result, setMyAccountFormError);
+  const openMyAccount = () => {
+    if (currentUserId == null) {
       return;
     }
-    closeMyAccount();
+    openOrRaiseWindow(
+      MY_ACCOUNT_WINDOW_ID,
+      "my-account",
+      "My Account",
+      DEFAULT_WINDOW_SIZE["my-account"]
+    );
   };
   const handleSaveHost = async (payload) => {
     clearHostsStatusMessage();
@@ -39946,7 +41593,7 @@ function AdminDesktop({
       const saved = toWindowHost(result.data);
       setHostsRows(
         (prev) => [...prev.filter((row) => row.id !== saved.id), saved].sort(
-          (a2, b2) => a2.host.localeCompare(b2.host)
+          (a3, b2) => a3.host.localeCompare(b2.host)
         )
       );
     }
@@ -40077,15 +41724,15 @@ function AdminDesktop({
       );
     }
   };
-  return /* @__PURE__ */ jsxs50("div", { ref: dashboardRef, className: cn("dashboard", className), children: [
-    /* @__PURE__ */ jsx76("div", { className: "icon-list", children: desktopSites.map((site) => {
+  return /* @__PURE__ */ jsxs54("div", { ref: dashboardRef, className: cn("dashboard", className), children: [
+    /* @__PURE__ */ jsx80("div", { className: "icon-list", children: desktopSites.map((site) => {
       const glyph = siteGlyphKind(site.slug);
       const iconUrl = siteFaviconFileUrl(
         site.id,
         site.faviconMediaId,
         apiBaseUrl
       );
-      return /* @__PURE__ */ jsx76(
+      return /* @__PURE__ */ jsx80(
         SystemIcon,
         {
           kind: glyph,
@@ -40102,7 +41749,7 @@ function AdminDesktop({
       const maximizeAction = win.maximized ? "Restore" : "Maximize";
       const shellFrame = (child, options) => {
         const shellResizable = options?.resizable !== false;
-        return /* @__PURE__ */ jsx76(
+        return /* @__PURE__ */ jsx80(
           DesktopWindow,
           {
             windowId: win.id,
@@ -40126,7 +41773,7 @@ function AdminDesktop({
       };
       if (win.kind === "control-panel") {
         return shellFrame(
-          /* @__PURE__ */ jsx76(
+          /* @__PURE__ */ jsx80(
             ControlPanel,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -40148,7 +41795,7 @@ function AdminDesktop({
       }
       if (win.kind === "sites") {
         return shellFrame(
-          /* @__PURE__ */ jsx76(
+          /* @__PURE__ */ jsx80(
             SitesWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -40190,7 +41837,7 @@ function AdminDesktop({
       }
       if (win.kind === "hosts") {
         return shellFrame(
-          /* @__PURE__ */ jsx76(
+          /* @__PURE__ */ jsx80(
             HostsWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -40233,7 +41880,7 @@ function AdminDesktop({
       }
       if (win.kind === "settings") {
         return shellFrame(
-          /* @__PURE__ */ jsx76(
+          /* @__PURE__ */ jsx80(
             SettingsWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -40272,7 +41919,7 @@ function AdminDesktop({
           name: win.title.replace(/ — Settings$/, "") || "Site"
         };
         return shellFrame(
-          /* @__PURE__ */ jsx76(
+          /* @__PURE__ */ jsx80(
             SiteSettingsWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -40322,7 +41969,7 @@ function AdminDesktop({
         const key = documentCacheKey(siteId, nodeId);
         const data = documentsByKey[key];
         return shellFrame(
-          /* @__PURE__ */ jsx76(
+          /* @__PURE__ */ jsx80(
             DocumentEditorWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -40355,7 +42002,7 @@ function AdminDesktop({
       }
       if (win.kind === "permissions") {
         return shellFrame(
-          /* @__PURE__ */ jsx76(
+          /* @__PURE__ */ jsx80(
             PermissionsWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -40390,7 +42037,7 @@ function AdminDesktop({
       }
       if (win.kind === "roles") {
         return shellFrame(
-          /* @__PURE__ */ jsx76(
+          /* @__PURE__ */ jsx80(
             RolesWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -40427,7 +42074,7 @@ function AdminDesktop({
       }
       if (win.kind === "users") {
         return shellFrame(
-          /* @__PURE__ */ jsx76(
+          /* @__PURE__ */ jsx80(
             UsersWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -40453,6 +42100,7 @@ function AdminDesktop({
               onDelete: handleDeleteUser,
               onSetPassword: handleSetUserPassword,
               onAddRole: openRoles,
+              onOpenMyAccount: openMyAccount,
               errorSoundUrl,
               dingSoundUrl,
               onAlertClose: dismissUsersAlert,
@@ -40462,6 +42110,29 @@ function AdminDesktop({
               onActivate: () => activateWindow(win.id),
               width: win.width
             }
+          ),
+          { resizable: false }
+        );
+      }
+      if (win.kind === "my-account") {
+        if (currentUserId == null) {
+          return null;
+        }
+        return shellFrame(
+          /* @__PURE__ */ jsx80(
+            MyAccountWindow,
+            {
+              api,
+              userId: currentUserId,
+              defaultAvatarUrl,
+              errorSoundUrl,
+              dingSoundUrl,
+              inactive: !active,
+              onClose: () => closeWindow(win.id),
+              onMinimize: () => minimizeWindow(win.id),
+              onActivate: () => activateWindow(win.id)
+            },
+            `my-account-${currentUserId}`
           ),
           { resizable: false }
         );
@@ -40478,7 +42149,7 @@ function AdminDesktop({
         apiBaseUrl
       );
       return shellFrame(
-        /* @__PURE__ */ jsx76(
+        /* @__PURE__ */ jsx80(
           SiteFileExplorer,
           {
             className: cn(win.maximized && "is-maximized"),
@@ -40507,7 +42178,7 @@ function AdminDesktop({
         )
       );
     }),
-    /* @__PURE__ */ jsx76(
+    /* @__PURE__ */ jsx80(
       Taskbar,
       {
         windows: shell.windows,
@@ -40517,7 +42188,7 @@ function AdminDesktop({
         menuExpanded: startMenuOpen,
         siteTaskGlyphById,
         siteTaskIconUrlById,
-        startMenu: /* @__PURE__ */ jsx76(
+        startMenu: /* @__PURE__ */ jsx80(
           StartMenu,
           {
             open: startMenuOpen,
@@ -40528,48 +42199,22 @@ function AdminDesktop({
           }
         )
       }
-    ),
-    myAccountOpen && currentUserId != null && currentUserEmail ? /* @__PURE__ */ jsx76(DesktopModal, { dingSoundUrl, children: /* @__PURE__ */ jsx76(
-      SetPasswordDialog,
-      {
-        userId: currentUserId,
-        userEmail: currentUserEmail,
-        mode: "self",
-        fieldErrors: myAccountFieldErrors,
-        saving: myAccountSaving,
-        onSave: handleMyAccountPassword,
-        onError: (message) => setMyAccountAlert(message),
-        onClose: closeMyAccount
-      },
-      `my-account-${currentUserId}`
-    ) }) : null,
-    myAccountAlert || myAccountFormError ? /* @__PURE__ */ jsx76(DesktopModal, { layer: "alert", dingSoundUrl, children: /* @__PURE__ */ jsx76(
-      MessageDialog,
-      {
-        type: "error",
-        title: "Error",
-        message: myAccountAlert ?? myAccountFormError ?? "",
-        onClose: () => {
-          setMyAccountAlert(null);
-          setMyAccountFormError(null);
-        }
-      }
-    ) }) : null
+    )
   ] });
 }
 
 // src/themes/default/components/SiteHeader/SiteHeader.tsx
-import { jsx as jsx77, jsxs as jsxs51 } from "react/jsx-runtime";
+import { jsx as jsx81, jsxs as jsxs55 } from "react/jsx-runtime";
 function SiteHeader({ siteName, navItems = [], actions, className }) {
-  return /* @__PURE__ */ jsx77(
+  return /* @__PURE__ */ jsx81(
     "header",
     {
       className: cn(
         "wh-ui border-b border-[var(--wh-color-line)] bg-[var(--wh-color-surface)]",
         className
       ),
-      children: /* @__PURE__ */ jsxs51("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
-        /* @__PURE__ */ jsx77(
+      children: /* @__PURE__ */ jsxs55("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
+        /* @__PURE__ */ jsx81(
           "a",
           {
             href: "/",
@@ -40577,7 +42222,7 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
             children: siteName
           }
         ),
-        /* @__PURE__ */ jsx77("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx77(
+        /* @__PURE__ */ jsx81("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx81(
           "a",
           {
             href: item.href,
@@ -40589,16 +42234,16 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
           },
           `${item.label}:${item.href}`
         )) }),
-        actions ? /* @__PURE__ */ jsx77("div", { className: "flex items-center gap-2", children: actions }) : null
+        actions ? /* @__PURE__ */ jsx81("div", { className: "flex items-center gap-2", children: actions }) : null
       ] })
     }
   );
 }
 
 // src/themes/default/components/Hero/Hero.tsx
-import { jsx as jsx78, jsxs as jsxs52 } from "react/jsx-runtime";
+import { jsx as jsx82, jsxs as jsxs56 } from "react/jsx-runtime";
 function Hero({ title, subtitle, actions, className }) {
-  return /* @__PURE__ */ jsxs52(
+  return /* @__PURE__ */ jsxs56(
     "section",
     {
       className: cn(
@@ -40606,7 +42251,7 @@ function Hero({ title, subtitle, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsx78(
+        /* @__PURE__ */ jsx82(
           "div",
           {
             className: "pointer-events-none absolute inset-0 opacity-40",
@@ -40616,10 +42261,10 @@ function Hero({ title, subtitle, actions, className }) {
             "aria-hidden": true
           }
         ),
-        /* @__PURE__ */ jsxs52("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
-          /* @__PURE__ */ jsx78("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
-          subtitle ? /* @__PURE__ */ jsx78("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
-          actions ? /* @__PURE__ */ jsx78("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
+        /* @__PURE__ */ jsxs56("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
+          /* @__PURE__ */ jsx82("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
+          subtitle ? /* @__PURE__ */ jsx82("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
+          actions ? /* @__PURE__ */ jsx82("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
         ] })
       ]
     }
@@ -40654,6 +42299,7 @@ export {
   FieldBorder,
   FieldRow,
   FileExplorerWindow,
+  FileInput,
   FloatingModal,
   FormField,
   GroupBox,
@@ -40671,6 +42317,7 @@ export {
   MAIN_SITE_SLUG,
   MenuPopup,
   MessageDialog,
+  MyAccountWindow,
   OWNED_MODAL_FLASH_COUNT,
   OWNED_MODAL_FLASH_INTERVAL_MS,
   PaneWindowShell,

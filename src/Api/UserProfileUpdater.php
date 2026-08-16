@@ -5,32 +5,27 @@ declare(strict_types=1);
 namespace App\Api;
 
 use App\Entity\User;
+use App\Entity\UserLink;
 use App\Repository\UserRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-final class UserUpdater
+final class UserProfileUpdater
 {
     public function __construct(
         private readonly UserRepository $users,
-        private readonly UserRoleSync $roleSync,
-        private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly EntityManagerInterface $em,
+        private readonly UserAvatarBlobStore $avatars,
     ) {
     }
 
     /**
      * @throws UserEmailTakenException
-     * @throws UserRoleNotFoundException
-     * @throws UserSiteNotFoundException
-     * @throws UserInvalidRoleException
-     * @throws UserLastAdminException
      */
-    public function update(User $user, UpdateUserInput $input): User
+    public function update(User $user, UpdateUserProfileInput $input): User
     {
         if (!$input->isValid()) {
-            throw new \InvalidArgumentException('UpdateUserInput must be valid before update().');
+            throw new \InvalidArgumentException('UpdateUserProfileInput must be valid before update().');
         }
 
         if ($input->emailProvided && null !== $input->email) {
@@ -39,10 +34,6 @@ final class UserUpdater
                 throw new UserEmailTakenException();
             }
             $user->setEmail($input->email);
-        }
-
-        if ($input->passwordProvided && null !== $input->password) {
-            $user->setPassword($this->passwordHasher->hashPassword($user, $input->password));
         }
 
         if ($input->displayNameProvided) {
@@ -63,19 +54,37 @@ final class UserUpdater
         if ($input->countryProvided) {
             $user->setCountry($input->country);
         }
-
-        if ($input->roleIdsProvided && null !== $input->roleIds) {
-            $this->roleSync->syncGlobalRoles($user, $input->roleIds, enforceLastAdmin: true);
+        if ($input->bioProvided) {
+            $user->setBio($input->bio);
         }
 
-        if ($input->siteAssignmentsProvided && null !== $input->siteAssignments) {
-            $this->roleSync->syncSiteAssignments($user, $input->siteAssignments);
+        if ($input->avatarTypeProvided && null !== $input->avatarType) {
+            $previousType = $user->getAvatarType();
+            $previousPath = $user->getAvatarPath();
+            $user->setAvatarType($input->avatarType);
+            if (User::AVATAR_UPLOAD !== $input->avatarType) {
+                $user->setAvatarPath(null);
+                if (User::AVATAR_UPLOAD === $previousType) {
+                    $this->avatars->deleteIfExists($previousPath);
+                }
+            }
+        }
+
+        if ($input->linksProvided && null !== $input->links) {
+            $user->clearLinks();
+            foreach ($input->links as $index => $row) {
+                $link = (new UserLink())
+                    ->setName($row['name'])
+                    ->setUrl($row['url'])
+                    ->setPosition($index);
+                $user->addLink($link);
+            }
         }
 
         try {
             $this->em->flush();
-        } catch (UniqueConstraintViolationException $e) {
-            throw new UserEmailTakenException(previous: $e);
+        } catch (UniqueConstraintViolationException) {
+            throw new UserEmailTakenException();
         }
 
         return $user;

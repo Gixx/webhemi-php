@@ -33,6 +33,10 @@ final class UserRoleSync
      */
     public function syncGlobalRoles(User $user, array $roleIds, bool $enforceLastAdmin): void
     {
+        if ([] === $roleIds) {
+            throw new UserInvalidRoleException('At least one role is required.');
+        }
+
         $resolved = [];
         $willHaveAdmin = false;
         foreach ($roleIds as $id) {

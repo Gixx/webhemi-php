@@ -1,0 +1,12 @@
+{% extends 'themes/default/base.html.twig' %}
+
+{% block title %}{{ title }} — {{ siteName }}{% endblock %}
+
+{% block body %}
+<article class="wh-document">
+  <h1 class="wh-document__title">{{ title }}</h1>
+  <div class="wh-document__body">
+    {{ bodyHtml|raw }}
+  </div>
+</article>
+{% endblock %}

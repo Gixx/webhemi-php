@@ -54,7 +54,10 @@ use App\Api\UpdateRoleInput;
 use App\Api\UpdateSettingsInput;
 use App\Api\UpdateSiteInput;
 use App\Api\UpdateUserInput;
+use App\Api\UpdateUserProfileInput;
 use App\Api\UserApiMapper;
+use App\Api\UserAvatarBlobStore;
+use App\Api\UserAvatarUploader;
 use App\Api\UserCreator;
 use App\Api\UserDeleter;
 use App\Api\UserEmailTakenException;
@@ -62,6 +65,8 @@ use App\Api\UserInvalidRoleException;
 use App\Api\UserLastAdminException;
 use App\Api\UserPasswordMismatchException;
 use App\Api\UserPasswordSetter;
+use App\Api\UserProfileApiMapper;
+use App\Api\UserProfileUpdater;
 use App\Api\UserRoleNotFoundException;
 use App\Api\UserSelfDeleteException;
 use App\Api\UserSiteNotFoundException;
@@ -84,9 +89,12 @@ use App\Repository\UserRepository;
 use App\Routing\AdminEntryResolverInterface;
 use App\Routing\CanonicalAdminEntry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\Routing\Attribute\Route;
@@ -1103,6 +1111,102 @@ final class AdminApiController extends AbstractController
             $loginUrl,
             $sessionEnded,
         ));
+    }
+
+    #[Route('/me/profile', name: 'api_admin_me_profile_get', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function meProfileGet(UserProfileApiMapper $mapper): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return ApiJson::error('unauthorized', 'Not authenticated.', 401);
+        }
+
+        return ApiJson::data($mapper->toArray($user));
+    }
+
+    #[Route('/me/profile', name: 'api_admin_me_profile_patch', methods: ['PATCH'])]
+    #[IsGranted('ROLE_USER')]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function meProfilePatch(
+        Request $request,
+        UserProfileUpdater $updater,
+        UserProfileApiMapper $mapper,
+    ): JsonResponse {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return ApiJson::error('unauthorized', 'Not authenticated.', 401);
+        }
+
+        $payload = json_decode($request->getContent(), true);
+        $input = UpdateUserProfileInput::fromPayload($payload);
+        if (!$input->isValid()) {
+            return ApiJson::error('validation_failed', 'Validation failed.', 422, $input->fieldErrors);
+        }
+        if (!$input->hasChanges()) {
+            return ApiJson::data($mapper->toArray($user));
+        }
+
+        try {
+            $updated = $updater->update($user, $input);
+        } catch (UserEmailTakenException $e) {
+            return ApiJson::error('email_taken', $e->getMessage(), 409, [
+                'email' => $e->getMessage(),
+            ]);
+        }
+
+        return ApiJson::data($mapper->toArray($updated));
+    }
+
+    #[Route('/me/avatar', name: 'api_admin_me_avatar', methods: ['GET', 'POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function meAvatar(
+        Request $request,
+        UserAvatarBlobStore $avatars,
+        UserAvatarUploader $uploader,
+        UserProfileApiMapper $mapper,
+    ): Response {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return ApiJson::error('unauthorized', 'Not authenticated.', 401);
+        }
+
+        if ($request->isMethod('GET')) {
+            if (User::AVATAR_UPLOAD !== $user->getAvatarType() || null === $user->getAvatarPath()) {
+                throw $this->createNotFoundException('Avatar not found.');
+            }
+            $absolute = $avatars->absolutePath($user->getAvatarPath());
+            if (!is_file($absolute) || !is_readable($absolute)) {
+                throw $this->createNotFoundException('Avatar file missing.');
+            }
+            $response = new BinaryFileResponse($absolute);
+            $response->headers->set('Content-Type', 'image/jpeg');
+            $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE, 'avatar.jpg');
+
+            return $response;
+        }
+
+        $token = $request->headers->get('X-CSRF-TOKEN');
+        if (!\is_string($token) || !$this->isCsrfTokenValid('admin_api', $token)) {
+            return ApiJson::error('invalid_csrf', 'Invalid CSRF token.', 403);
+        }
+
+        $file = $request->files->get('file') ?? $request->files->get('avatar');
+        if (!$file instanceof UploadedFile) {
+            return ApiJson::error('validation_failed', 'Avatar file is required.', 422, [
+                'file' => 'Avatar file is required.',
+            ]);
+        }
+
+        try {
+            $uploader->upload($user, $file);
+        } catch (\InvalidArgumentException $e) {
+            return ApiJson::error('validation_failed', $e->getMessage(), 422, [
+                'file' => $e->getMessage(),
+            ]);
+        }
+
+        return ApiJson::data($mapper->toArray($user));
     }
 
     #[Route('/me', name: 'api_admin_me', methods: ['GET'])]

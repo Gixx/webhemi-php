@@ -46,7 +46,7 @@ final class CreateRoleInput
             $fields['name'] = 'Name must be at most 64 characters.';
         } elseif (1 !== preg_match('/^ROLE_[A-Z0-9]+(?:_[A-Z0-9]+)*$/', $name)) {
             $fields['name'] = 'Name must look like ROLE_CUSTOM_NAME (uppercase letters, digits, underscores).';
-        } elseif (\in_array($name, [\App\Entity\Role::ADMIN, \App\Entity\Role::SITE_ADMIN], true)) {
+        } elseif (\in_array($name, \App\Entity\Role::SYSTEM_NAMES, true)) {
             $fields['name'] = 'System role names are reserved.';
         }
 

@@ -36,21 +36,33 @@ final class UserApiTest extends TestCase
         self::assertFalse($bad->isValid());
         self::assertArrayHasKey('email', $bad->fieldErrors);
         self::assertArrayHasKey('password', $bad->fieldErrors);
+        self::assertArrayHasKey('displayName', $bad->fieldErrors);
 
         $ok = CreateUserInput::fromPayload([
             'email' => ' Editor@Example.com ',
             'password' => 'password1',
+            'displayName' => 'Editor',
             'roleIds' => [1],
         ]);
         self::assertTrue($ok->isValid());
         self::assertSame('editor@example.com', $ok->email);
+        self::assertSame('Editor', $ok->displayName);
     }
 
-    public function testUpdateRejectsPasswordField(): void
+    public function testUpdateOptionalPassword(): void
     {
-        $input = UpdateUserInput::fromPayload(['email' => 'a@b.co', 'password' => 'x']);
-        self::assertFalse($input->isValid());
-        self::assertArrayHasKey('password', $input->fieldErrors);
+        $rejected = UpdateUserInput::fromPayload(['email' => 'a@b.co', 'password' => 'short']);
+        self::assertFalse($rejected->isValid());
+        self::assertArrayHasKey('password', $rejected->fieldErrors);
+
+        $omitEmpty = UpdateUserInput::fromPayload(['email' => 'a@b.co', 'password' => '']);
+        self::assertTrue($omitEmpty->isValid());
+        self::assertFalse($omitEmpty->passwordProvided);
+
+        $ok = UpdateUserInput::fromPayload(['password' => 'password1']);
+        self::assertTrue($ok->isValid());
+        self::assertTrue($ok->passwordProvided);
+        self::assertSame('password1', $ok->password);
     }
 
     public function testMapperShape(): void
@@ -80,6 +92,7 @@ final class UserApiTest extends TestCase
         $input = CreateUserInput::fromPayload([
             'email' => 'new@webhemi.local',
             'password' => 'password1',
+            'displayName' => 'New User',
             'roleIds' => [1],
         ]);
         self::assertTrue($input->isValid());
@@ -102,7 +115,7 @@ final class UserApiTest extends TestCase
         $em->expects(self::once())->method('persist')->with(self::isInstanceOf(User::class));
         $em->expects(self::once())->method('flush');
 
-        $user = (new UserCreator($users, $sync, $hasher, $em))->create($input);
+        $user = (new UserCreator($users, $roles, $sync, $hasher, $em))->create($input);
         self::assertSame('new@webhemi.local', $user->getEmail());
         self::assertSame('hashed', $user->getPassword());
         self::assertTrue($user->hasRoleName(Role::ADMIN));
@@ -198,7 +211,12 @@ final class UserApiTest extends TestCase
         $em->expects(self::never())->method('flush');
 
         $this->expectException(UserEmailTakenException::class);
-        (new UserUpdater($users, $sync, $em))->update($user, $input);
+        (new UserUpdater(
+            $users,
+            $sync,
+            $this->createStub(UserPasswordHasherInterface::class),
+            $em,
+        ))->update($user, $input);
     }
 
     public function testPasswordInputRequiresCurrentWhenSelf(): void

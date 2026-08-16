@@ -13,6 +13,12 @@ final class UserApiMapper
      * @return array{
      *     id: int,
      *     email: string,
+     *     displayName: string|null,
+     *     telephone: string|null,
+     *     address: string|null,
+     *     zip: string|null,
+     *     city: string|null,
+     *     country: string|null,
      *     roleIds: list<int>,
      *     roles: list<array{id: int, name: string, label: string}>,
      *     siteAssignments: list<array{
@@ -58,6 +64,12 @@ final class UserApiMapper
         return [
             'id' => (int) $user->getId(),
             'email' => $user->getEmail(),
+            'displayName' => $user->getDisplayName(),
+            'telephone' => $user->getTelephone(),
+            'address' => $user->getAddress(),
+            'zip' => $user->getZip(),
+            'city' => $user->getCity(),
+            'country' => $user->getCountry(),
             'roleIds' => $roleIds,
             'roles' => $roles,
             'siteAssignments' => $assignments,

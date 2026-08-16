@@ -1494,6 +1494,15 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] textarea:disabled {
   background-color: var(--surface);
 }
+[data-wh-theme=admin] {
+  /* File picker path: white when enabled (still readonly); gray when disabled. */
+}
+[data-wh-theme=admin] .file-input-path:not(:disabled) {
+  background-color: var(--button-highlight);
+}
+[data-wh-theme=admin] .file-input-path:disabled {
+  background-color: var(--surface);
+}
 [data-wh-theme=admin] select {
   appearance: none;
   -webkit-appearance: none;
@@ -1621,6 +1630,33 @@ html[data-wh-theme=admin] {
 }
 [data-wh-theme=admin] a:focus {
   outline: 1px dotted var(--link-blue);
+}
+[data-wh-theme=admin] {
+  /* Retro file picker (path + Browse…). */
+}
+[data-wh-theme=admin] .file-input-native {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+[data-wh-theme=admin] .file-input-row {
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+[data-wh-theme=admin] .file-input-path {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+[data-wh-theme=admin] .file-input-label {
+  display: block;
+  margin-bottom: var(--grouped-element-spacing);
 }
 [data-wh-theme=admin] input[type=range] {
   -webkit-appearance: none;
@@ -2138,6 +2174,22 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .panel.info > .info-icon.change-password,
 [data-wh-theme=admin] .users-window .info-icon.change-password {
   background-image: url("./icons/system/change_password.svg");
+}
+[data-wh-theme=admin] .user-form-dialog .info-icon.dialog-info {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  background-image: url("./icons/system/dialog_info.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+[data-wh-theme=admin] .user-form-dialog .field-row.info-icon-row {
+  align-items: flex-start;
+}
+[data-wh-theme=admin] .user-form-dialog .field-row.info-icon-row > * + * {
+  margin-left: 12px;
 }
 [data-wh-theme=admin] .icon.roles,
 [data-wh-theme=admin] .panel.info > .info-icon.roles,
@@ -2765,6 +2817,9 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] #toolbar .task-buttons > .task.users {
   background-image: url("./icons/system/users.svg");
 }
+[data-wh-theme=admin] #toolbar .task-buttons > .task.my-account {
+  background-image: url("./icons/system/my_account.svg");
+}
 [data-wh-theme=admin] #toolbar .task-buttons > .task > .task-title {
   display: block;
   min-width: 0;
@@ -2951,7 +3006,9 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .title-bar-text.sites,
 [data-wh-theme=admin] .title-bar-text.settings,
 [data-wh-theme=admin] .title-bar-text.themes,
-[data-wh-theme=admin] .title-bar-text.folder {
+[data-wh-theme=admin] .title-bar-text.folder,
+[data-wh-theme=admin] .title-bar-text.external-link,
+[data-wh-theme=admin] .title-bar-text.my-account {
   padding-left: 22px;
   background-repeat: no-repeat;
   background-position: 2px center;
@@ -2989,6 +3046,12 @@ html[data-wh-theme=admin] {
 }
 [data-wh-theme=admin] .title-bar-text.folder {
   background-image: url("./icons/explorer/folder.svg");
+}
+[data-wh-theme=admin] .title-bar-text.external-link {
+  background-image: url("./icons/system/external_link.svg");
+}
+[data-wh-theme=admin] .title-bar-text.my-account {
+  background-image: url("./icons/system/my_account.svg");
 }
 [data-wh-theme=admin] .status-bar .status-bar-field {
   white-space: nowrap;
@@ -4052,6 +4115,23 @@ html[data-wh-theme=admin] {
   background-repeat: no-repeat;
   background-size: 32px 32px;
 }
+[data-wh-theme=admin] .users-window .users-list-table {
+  width: 100%;
+  table-layout: fixed;
+}
+[data-wh-theme=admin] .users-window .users-list-table th:nth-child(1),
+[data-wh-theme=admin] .users-window .users-list-table td:nth-child(1) {
+  width: 38%;
+}
+[data-wh-theme=admin] .users-window .users-list-table th:nth-child(2),
+[data-wh-theme=admin] .users-window .users-list-table td:nth-child(2) {
+  width: 62%;
+}
+[data-wh-theme=admin] .users-window .users-list-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 [data-wh-theme=admin] {
   /* Host / parent-modal dim while a DesktopModal is open. */
 }
@@ -4157,10 +4237,10 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .permission-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > label,
 [data-wh-theme=admin] .role-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > label,
 [data-wh-theme=admin] .user-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > label {
-  flex: 0 0 6.5em;
+  flex: 0 0 7em;
   box-sizing: border-box;
-  width: 6.5em;
-  min-width: 6.5em;
+  width: 7em;
+  min-width: 7em;
 }
 [data-wh-theme=admin] .site-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > input,
 [data-wh-theme=admin] .site-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > select,
@@ -4216,6 +4296,43 @@ html[data-wh-theme=admin] {
   width: 100%;
   max-width: none;
 }
+[data-wh-theme=admin] {
+  /* My Account: aligned label column + equal-width controls. */
+}
+[data-wh-theme=admin] .my-account-window .my-account-fields .field-box:not(.field-box-control-first):not(.field-box-above),
+[data-wh-theme=admin] .my-account-window .my-account-security-fields .field-box:not(.field-box-control-first):not(.field-box-above),
+[data-wh-theme=admin] .link-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+}
+[data-wh-theme=admin] .my-account-window .my-account-fields .field-box:not(.field-box-control-first):not(.field-box-above) > label {
+  flex: 0 0 7em;
+  box-sizing: border-box;
+  width: 7em;
+  min-width: 7em;
+}
+[data-wh-theme=admin] .my-account-window .my-account-security-fields .field-box:not(.field-box-control-first):not(.field-box-above) > label {
+  flex: 0 0 11em;
+  box-sizing: border-box;
+  width: 11em;
+  min-width: 11em;
+}
+[data-wh-theme=admin] .link-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > label {
+  flex: 0 0 4em;
+  box-sizing: border-box;
+  width: 4em;
+  min-width: 4em;
+}
+[data-wh-theme=admin] .my-account-window .my-account-fields .field-box:not(.field-box-control-first):not(.field-box-above) > input,
+[data-wh-theme=admin] .my-account-window .my-account-security-fields .field-box:not(.field-box-control-first):not(.field-box-above) > input,
+[data-wh-theme=admin] .link-form-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+}
 [data-wh-theme=admin] .site-form-host-list {
   /* Fixed height so `.scrollable` grid + custom rails get a definite viewport. */
   height: 160px;
@@ -4230,6 +4347,287 @@ html[data-wh-theme=admin] {
 }
 [data-wh-theme=admin] .site-form-host-list > .scrollable-viewport:has(> table) {
   padding: 0;
+}
+
+/* react-image-crop styles (outside theme nest so selectors stay global class names) */
+/* Vendored from react-image-crop (no JS side-effect import — AssetMapper).
+ * Scoped under Admin Theme so :root vars apply on the admin surface. */
+[data-wh-theme=admin] {
+  --rc-drag-handle-size: 12px;
+  --rc-drag-handle-mobile-size: 24px;
+  --rc-drag-handle-bg-colour: #0003;
+  --rc-drag-bar-size: 6px;
+  --rc-border-color: #ffffffb3;
+  --rc-focus-color: #08f;
+}
+
+@keyframes marching-ants {
+  0% {
+    background-position: 0 0, 0 100%, 0 0, 100% 0;
+  }
+  to {
+    background-position: 20px 0, -20px 100%, 0 -20px, 100% 20px;
+  }
+}
+.ReactCrop {
+  cursor: crosshair;
+  max-width: 100%;
+  display: inline-block;
+  position: relative;
+}
+
+.ReactCrop *,
+.ReactCrop :before,
+.ReactCrop :after {
+  box-sizing: border-box;
+}
+
+.ReactCrop--disabled,
+.ReactCrop--locked {
+  cursor: inherit;
+}
+
+.ReactCrop__child-wrapper {
+  max-height: inherit;
+  overflow: hidden;
+}
+
+.ReactCrop__child-wrapper > img,
+.ReactCrop__child-wrapper > video {
+  max-width: 100%;
+  max-height: inherit;
+  display: block;
+}
+
+.ReactCrop:not(.ReactCrop--disabled) .ReactCrop__child-wrapper > img,
+.ReactCrop:not(.ReactCrop--disabled) .ReactCrop__child-wrapper > video,
+.ReactCrop:not(.ReactCrop--disabled) .ReactCrop__crop-selection {
+  touch-action: none;
+}
+
+.ReactCrop__crop-mask {
+  pointer-events: none;
+  width: calc(100% + 0.5px);
+  height: calc(100% + 0.5px);
+  position: absolute;
+  inset: 0;
+}
+
+.ReactCrop__crop-selection {
+  cursor: move;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(0, 0);
+}
+
+.ReactCrop--disabled .ReactCrop__crop-selection {
+  cursor: inherit;
+}
+
+.ReactCrop--circular-crop .ReactCrop__crop-selection {
+  border-radius: 50%;
+}
+
+.ReactCrop--circular-crop .ReactCrop__crop-selection:after {
+  pointer-events: none;
+  content: "";
+  border: 1px solid var(--rc-border-color);
+  opacity: 0.3;
+  position: absolute;
+  inset: -1px;
+}
+
+.ReactCrop--no-animate .ReactCrop__crop-selection {
+  outline: 1px dashed #fff;
+}
+
+.ReactCrop__crop-selection:not(.ReactCrop--no-animate .ReactCrop__crop-selection) {
+  color: #fff;
+  background-image: linear-gradient(90deg, #fff 50%, #444 50%), linear-gradient(90deg, #fff 50%, #444 50%), linear-gradient(#fff 50%, #444 50%), linear-gradient(#fff 50%, #444 50%);
+  background-position: 0 0, 0 100%, 0 0, 100% 0;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  background-size: 10px 1px, 10px 1px, 1px 10px, 1px 10px;
+  animation: 1s linear infinite marching-ants;
+}
+
+.ReactCrop__crop-selection:focus {
+  outline: 2px solid var(--rc-focus-color);
+  outline-offset: -1px;
+}
+
+.ReactCrop--invisible-crop .ReactCrop__crop-mask,
+.ReactCrop--invisible-crop .ReactCrop__crop-selection {
+  display: none;
+}
+
+.ReactCrop__rule-of-thirds-vt:before,
+.ReactCrop__rule-of-thirds-vt:after,
+.ReactCrop__rule-of-thirds-hz:before,
+.ReactCrop__rule-of-thirds-hz:after {
+  content: "";
+  background-color: rgba(255, 255, 255, 0.4);
+  display: block;
+  position: absolute;
+}
+
+.ReactCrop__rule-of-thirds-vt:before,
+.ReactCrop__rule-of-thirds-vt:after {
+  width: 1px;
+  height: 100%;
+}
+
+.ReactCrop__rule-of-thirds-vt:before {
+  left: 33.3333%;
+}
+
+.ReactCrop__rule-of-thirds-vt:after {
+  left: 66.6667%;
+}
+
+.ReactCrop__rule-of-thirds-hz:before,
+.ReactCrop__rule-of-thirds-hz:after {
+  width: 100%;
+  height: 1px;
+}
+
+.ReactCrop__rule-of-thirds-hz:before {
+  top: 33.3333%;
+}
+
+.ReactCrop__rule-of-thirds-hz:after {
+  top: 66.6667%;
+}
+
+.ReactCrop__drag-handle {
+  width: var(--rc-drag-handle-size);
+  height: var(--rc-drag-handle-size);
+  background-color: var(--rc-drag-handle-bg-colour);
+  border: 1px solid var(--rc-border-color);
+  position: absolute;
+}
+
+.ReactCrop__drag-handle:focus {
+  background: var(--rc-focus-color);
+}
+
+.ReactCrop .ord-nw {
+  cursor: nw-resize;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
+}
+
+.ReactCrop .ord-n {
+  cursor: n-resize;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ReactCrop .ord-ne {
+  cursor: ne-resize;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+}
+
+.ReactCrop .ord-e {
+  cursor: e-resize;
+  top: 50%;
+  right: 0;
+  transform: translate(50%, -50%);
+}
+
+.ReactCrop .ord-se {
+  cursor: se-resize;
+  bottom: 0;
+  right: 0;
+  transform: translate(50%, 50%);
+}
+
+.ReactCrop .ord-s {
+  cursor: s-resize;
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%, 50%);
+}
+
+.ReactCrop .ord-sw {
+  cursor: sw-resize;
+  bottom: 0;
+  left: 0;
+  transform: translate(-50%, 50%);
+}
+
+.ReactCrop .ord-w {
+  cursor: w-resize;
+  top: 50%;
+  left: 0;
+  transform: translate(-50%, -50%);
+}
+
+.ReactCrop__disabled .ReactCrop__drag-handle {
+  cursor: inherit;
+}
+
+.ReactCrop__drag-bar {
+  position: absolute;
+}
+
+.ReactCrop__drag-bar.ord-n {
+  width: 100%;
+  height: var(--rc-drag-bar-size);
+  top: 0;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.ReactCrop__drag-bar.ord-e {
+  width: var(--rc-drag-bar-size);
+  height: 100%;
+  top: 0;
+  right: 0;
+  transform: translate(50%);
+}
+
+.ReactCrop__drag-bar.ord-s {
+  width: 100%;
+  height: var(--rc-drag-bar-size);
+  bottom: 0;
+  left: 0;
+  transform: translateY(50%);
+}
+
+.ReactCrop__drag-bar.ord-w {
+  width: var(--rc-drag-bar-size);
+  height: 100%;
+  top: 0;
+  left: 0;
+  transform: translate(-50%);
+}
+
+.ReactCrop--new-crop .ReactCrop__drag-bar,
+.ReactCrop--new-crop .ReactCrop__drag-handle,
+.ReactCrop--fixed-aspect .ReactCrop__drag-bar,
+.ReactCrop--fixed-aspect .ReactCrop__drag-handle.ord-n,
+.ReactCrop--fixed-aspect .ReactCrop__drag-handle.ord-e,
+.ReactCrop--fixed-aspect .ReactCrop__drag-handle.ord-s,
+.ReactCrop--fixed-aspect .ReactCrop__drag-handle.ord-w {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .ReactCrop .ord-n,
+  .ReactCrop .ord-e,
+  .ReactCrop .ord-s,
+  .ReactCrop .ord-w {
+    display: none;
+  }
+  .ReactCrop__drag-handle {
+    width: var(--rc-drag-handle-mobile-size);
+    height: var(--rc-drag-handle-mobile-size);
+  }
 }/* Default frontend theme — swappable public-site tokens */
 
 [data-wh-theme="default"] {

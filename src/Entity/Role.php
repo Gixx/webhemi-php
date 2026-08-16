@@ -17,6 +17,10 @@ class Role
 {
     public const ADMIN = 'ROLE_ADMIN';
     public const SITE_ADMIN = 'ROLE_SITE_ADMIN';
+    public const GUEST = 'ROLE_GUEST';
+
+    /** @var list<string> */
+    public const SYSTEM_NAMES = [self::ADMIN, self::SITE_ADMIN, self::GUEST];
 
     #[ORM\Id]
     #[ORM\GeneratedValue]

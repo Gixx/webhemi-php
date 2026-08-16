@@ -1,0 +1,10 @@
+{# Accordion block — LexicalHtmlRenderer emits equivalent markup for documents.
+   Theme authors may restyle via .wh-accordion* or replace renderer later. #}
+<div class="wh-accordion"{% if blockId %} id="{{ blockId }}"{% endif %} data-wh-block="accordion">
+  {% for item in items %}
+    <details class="wh-accordion__item">
+      <summary class="wh-accordion__title">{{ item.title }}</summary>
+      <div class="wh-accordion__body">{{ item.body|nl2br }}</div>
+    </details>
+  {% endfor %}
+</div>

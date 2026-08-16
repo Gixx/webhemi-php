@@ -56,6 +56,7 @@ final class SeedCommand extends Command
         // Permission catalog stays empty at seed — operators add rows for testing.
         $adminRole = $this->ensureSystemRole(Role::ADMIN, 'Administrator');
         $this->ensureSystemRole(Role::SITE_ADMIN, 'Site Administrator');
+        $this->ensureSystemRole(Role::GUEST, 'Guest');
 
         $site = $this->sites->findOneBy(['slug' => 'main']);
         if (!$site instanceof Site) {
