@@ -3246,10 +3246,11 @@ import { useCallback as useCallback3, useEffect as useEffect7, useMemo as useMem
 
 // src/admin/bricks/FileExplorerWindow/ExplorerPromptDialog.tsx
 import { useId as useId4, useState as useState8 } from "react";
-import { Fragment as Fragment9, jsx as jsx45, jsxs as jsxs23 } from "react/jsx-runtime";
+import { jsx as jsx45, jsxs as jsxs23 } from "react/jsx-runtime";
 function ExplorerPromptDialog({
   title,
   label,
+  titleIcon = "folder",
   initialValue = "",
   confirmLabel = "OK",
   onConfirm,
@@ -3267,31 +3268,30 @@ function ExplorerPromptDialog({
   return /* @__PURE__ */ jsx45(DesktopModal, { children: /* @__PURE__ */ jsx45(
     DialogWindow,
     {
+      className: "explorer-prompt-dialog",
       title,
-      titleIcon: "folder",
+      titleIcon,
       titleBarControls: /* @__PURE__ */ jsx45(TitleBarControls, { children: /* @__PURE__ */ jsx45(TitleBarControl, { action: "Close", onClick: onCancel }) }),
-      actions: /* @__PURE__ */ jsxs23(Fragment9, { children: [
+      actions: /* @__PURE__ */ jsxs23(FieldRow, { className: "justify-end", children: [
         /* @__PURE__ */ jsx45(Button, { type: "button", onClick: submit, children: confirmLabel }),
         /* @__PURE__ */ jsx45(Button, { type: "button", onClick: onCancel, children: "Cancel" })
       ] }),
-      children: /* @__PURE__ */ jsxs23(FieldRow, { children: [
-        /* @__PURE__ */ jsx45("label", { htmlFor: inputId, children: label }),
-        /* @__PURE__ */ jsx45(
-          TextBox,
-          {
-            id: inputId,
-            value,
-            autoFocus: true,
-            onChange: (event) => setValue(event.target.value),
-            onKeyDown: (event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                submit();
-              }
+      children: /* @__PURE__ */ jsx45(FieldRow, { children: /* @__PURE__ */ jsx45(
+        TextBox,
+        {
+          id: inputId,
+          label,
+          value,
+          autoFocus: true,
+          onChange: (event) => setValue(event.target.value),
+          onKeyDown: (event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              submit();
             }
           }
-        )
-      ] })
+        }
+      ) })
     }
   ) });
 }
@@ -3903,7 +3903,7 @@ function SiteFileExplorer({
   }, [live, selectedItems]);
   const canDelete = selectedItems.length > 0 && selectedItems.every((item) => canDeleteExplorerItem(forest, item));
   const canCutCopy = canCutOrCopyExplorerItems(forest, selectedMovable);
-  const canPaste = Boolean(clipboard) && clipboard?.mode === "cut" && canPasteIntoExplorerLocation(forest, locationId, clipboard);
+  const canPaste = Boolean(clipboard) && (clipboard?.mode === "cut" || !live && clipboard?.mode === "copy") && canPasteIntoExplorerLocation(forest, locationId, clipboard);
   const canProperties = selectedItems.length === 1;
   const canSelectAll = items.length > 0;
   const canCreate = Boolean(
@@ -4448,6 +4448,7 @@ function SiteFileExplorer({
       ExplorerPromptDialog,
       {
         title: prompt === "new-folder" ? "New Folder" : prompt === "new-page" ? "New Page" : "Rename",
+        titleIcon: prompt === "new-page" || prompt === "rename" && primarySelected && isExplorerDocument(primarySelected) ? "file-document" : "folder",
         label: prompt === "rename" ? "New name:" : "Name:",
         initialValue: prompt === "rename" ? primarySelected?.label ?? "" : "",
         confirmLabel: prompt === "rename" ? "Rename" : "Create",
@@ -23849,7 +23850,7 @@ var ReactProviderExtension2 = mod8.ReactProviderExtension;
 // node_modules/@lexical/react/dist/LexicalRichTextPlugin.dev.mjs
 import { useLayoutEffect as useLayoutEffect5, useEffect as useEffect10, useState as useState11, useMemo as useMemo6, Suspense } from "react";
 import { flushSync, createPortal as createPortal2 } from "react-dom";
-import { jsx as jsx48, jsxs as jsxs25, Fragment as Fragment10 } from "react/jsx-runtime";
+import { jsx as jsx48, jsxs as jsxs25, Fragment as Fragment9 } from "react/jsx-runtime";
 
 // node_modules/@lexical/text/dist/LexicalText.dev.mjs
 var LexicalText_dev_exports = {};
@@ -28514,7 +28515,7 @@ function RichTextPlugin({
 }) {
   const [editor] = useLexicalComposerContext2();
   useRichTextSetup(editor);
-  return /* @__PURE__ */ jsxs25(Fragment10, {
+  return /* @__PURE__ */ jsxs25(Fragment9, {
     children: [contentEditable, /* @__PURE__ */ jsx48(Placeholder, {
       content: placeholder
     }), /* @__PURE__ */ jsx48(LegacyDecorators, {
@@ -28550,7 +28551,7 @@ __export(LexicalContentEditable_dev_exports, {
   ContentEditableElement: () => ContentEditableElement
 });
 import { useLayoutEffect as useLayoutEffect6, useEffect as useEffect11, forwardRef, useState as useState12, useCallback as useCallback4, useMemo as useMemo7 } from "react";
-import { jsx as jsx49, jsxs as jsxs26, Fragment as Fragment11 } from "react/jsx-runtime";
+import { jsx as jsx49, jsxs as jsxs26, Fragment as Fragment10 } from "react/jsx-runtime";
 function mergeRefs(...refs) {
   return (value) => {
     for (const ref of refs) {
@@ -28661,7 +28662,7 @@ function ContentEditableImpl(props, ref) {
     ...rest
   } = props;
   const [editor] = useLexicalComposerContext2();
-  return /* @__PURE__ */ jsxs26(Fragment11, {
+  return /* @__PURE__ */ jsxs26(Fragment10, {
     children: [/* @__PURE__ */ jsx49(ContentEditableElement, {
       editor,
       ...rest,
@@ -32302,7 +32303,7 @@ import { useCallback as useCallback5, useState as useState14 } from "react";
 
 // src/admin/bricks/DocumentEditor/AccordionSettingsDialog.tsx
 import { useId as useId5, useState as useState13 } from "react";
-import { Fragment as Fragment12, jsx as jsx51, jsxs as jsxs27 } from "react/jsx-runtime";
+import { Fragment as Fragment11, jsx as jsx51, jsxs as jsxs27 } from "react/jsx-runtime";
 function newItemId() {
   return `acc-${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -32326,7 +32327,7 @@ function AccordionSettingsDialog({
       title: "Accordion",
       titleIcon: "folder",
       titleBarControls: /* @__PURE__ */ jsx51(TitleBarControls, { children: /* @__PURE__ */ jsx51(TitleBarControl, { action: "Close", onClick: onCancel }) }),
-      actions: /* @__PURE__ */ jsxs27(Fragment12, { children: [
+      actions: /* @__PURE__ */ jsxs27(Fragment11, { children: [
         /* @__PURE__ */ jsx51(
           Button,
           {
@@ -32396,7 +32397,7 @@ function AccordionSettingsDialog({
 }
 
 // src/admin/bricks/DocumentEditor/nodes/AccordionPlaceholder.tsx
-import { Fragment as Fragment13, jsx as jsx52, jsxs as jsxs28 } from "react/jsx-runtime";
+import { Fragment as Fragment12, jsx as jsx52, jsxs as jsxs28 } from "react/jsx-runtime";
 function AccordionPlaceholder({
   nodeKey,
   blockId,
@@ -32418,7 +32419,7 @@ function AccordionPlaceholder({
   );
   const count = items.length;
   const summary = count === 0 ? "No sections" : count === 1 ? "1 section" : `${count} sections`;
-  return /* @__PURE__ */ jsxs28(Fragment13, { children: [
+  return /* @__PURE__ */ jsxs28(Fragment12, { children: [
     /* @__PURE__ */ jsxs28("div", { className: "wh-doc-accordion-chip", children: [
       /* @__PURE__ */ jsx52("span", { className: "wh-doc-accordion-chip__label", children: "Accordion" }),
       /* @__PURE__ */ jsxs28("span", { className: "wh-doc-accordion-chip__meta", children: [
@@ -32737,7 +32738,7 @@ function DocumentEditorCanvas({
 
 // src/admin/bricks/DocumentEditor/DocumentEditorWindow.tsx
 import { useEffect as useEffect16, useState as useState15 } from "react";
-import { Fragment as Fragment14, jsx as jsx56, jsxs as jsxs31 } from "react/jsx-runtime";
+import { Fragment as Fragment13, jsx as jsx56, jsxs as jsxs31 } from "react/jsx-runtime";
 function DocumentEditorWindow({
   title,
   documentTitle: documentTitleProp = "",
@@ -32812,7 +32813,7 @@ function DocumentEditorWindow({
     persist("draft");
   };
   const isPublished = publication === "published";
-  return /* @__PURE__ */ jsxs31(Fragment14, { children: [
+  return /* @__PURE__ */ jsxs31(Fragment13, { children: [
     /* @__PURE__ */ jsxs31(
       HeadingPanelWindow,
       {
@@ -32949,6 +32950,7 @@ var TITLE_BAR_ICON_OPTIONS = [
   "settings",
   "themes",
   "folder",
+  "file-document",
   "external-link",
   "my-account"
 ];
@@ -33497,7 +33499,7 @@ function wouldLoseDomainAdmin(options) {
 }
 
 // src/admin/components/SitesWindow/SiteFormDialog.tsx
-import { Fragment as Fragment15, jsx as jsx59, jsxs as jsxs34 } from "react/jsx-runtime";
+import { Fragment as Fragment14, jsx as jsx59, jsxs as jsxs34 } from "react/jsx-runtime";
 function SiteFormDialog({
   mode,
   initial,
@@ -33643,7 +33645,7 @@ function SiteFormDialog({
             }
           )
         ] }),
-        /* @__PURE__ */ jsx59(TabPanel, { children: /* @__PURE__ */ jsx59(WindowBody, { children: tab === "general" ? /* @__PURE__ */ jsxs34(Fragment15, { children: [
+        /* @__PURE__ */ jsx59(TabPanel, { children: /* @__PURE__ */ jsx59(WindowBody, { children: tab === "general" ? /* @__PURE__ */ jsxs34(Fragment14, { children: [
           /* @__PURE__ */ jsx59(FieldRow, { children: /* @__PURE__ */ jsx59(
             TextBox,
             {
@@ -33681,7 +33683,7 @@ function SiteFormDialog({
               onChange: (event) => setEnabled(event.target.checked)
             }
           ) })
-        ] }) : /* @__PURE__ */ jsxs34(Fragment15, { children: [
+        ] }) : /* @__PURE__ */ jsxs34(Fragment14, { children: [
           /* @__PURE__ */ jsx59("p", { style: { marginTop: 0, marginBottom: 8 }, children: initial?.siteId == null ? "Save the site first, then assign verified hosts here or from Hosts." : "Assigned hosts below. Assign only verified, unassigned hosts; Remove unassigns without deleting." }),
           /* @__PURE__ */ jsx59(
             SunkenPanel,
@@ -33778,7 +33780,7 @@ function SiteFormDialog({
 }
 
 // src/admin/components/SitesWindow/SitesWindow.tsx
-import { Fragment as Fragment16, jsx as jsx60, jsxs as jsxs35 } from "react/jsx-runtime";
+import { Fragment as Fragment15, jsx as jsx60, jsxs as jsxs35 } from "react/jsx-runtime";
 function formatSaveErrors(formError, fieldErrors) {
   const parts = [
     formError,
@@ -34087,7 +34089,7 @@ function SitesWindow({
         /* @__PURE__ */ jsx60(StatusBarField, { className: "description", children: statusMid }),
         /* @__PURE__ */ jsx60(StatusBarField, {})
       ] }),
-      children: /* @__PURE__ */ jsxs35(Fragment16, { children: [
+      children: /* @__PURE__ */ jsxs35(Fragment15, { children: [
         /* @__PURE__ */ jsx60(
           SunkenPanel,
           {
@@ -34374,7 +34376,7 @@ function HostFormDialog({
 }
 
 // src/admin/components/HostsWindow/HostsWindow.tsx
-import { Fragment as Fragment17, jsx as jsx62, jsxs as jsxs37 } from "react/jsx-runtime";
+import { Fragment as Fragment16, jsx as jsx62, jsxs as jsxs37 } from "react/jsx-runtime";
 function formatSaveErrors2(formError, fieldErrors) {
   const parts = [
     formError,
@@ -34703,7 +34705,7 @@ function HostsWindow({
         /* @__PURE__ */ jsx62(StatusBarField, { className: "description", children: statusMid }),
         /* @__PURE__ */ jsx62(StatusBarField, {})
       ] }),
-      children: /* @__PURE__ */ jsxs37(Fragment17, { children: [
+      children: /* @__PURE__ */ jsxs37(Fragment16, { children: [
         /* @__PURE__ */ jsx62(
           SunkenPanel,
           {
@@ -35014,7 +35016,7 @@ function SettingsWindow({
 
 // src/admin/components/SiteSettingsWindow/SiteSettingsWindow.tsx
 import { useEffect as useEffect22, useId as useId8, useState as useState22 } from "react";
-import { Fragment as Fragment18, jsx as jsx64, jsxs as jsxs39 } from "react/jsx-runtime";
+import { Fragment as Fragment17, jsx as jsx64, jsxs as jsxs39 } from "react/jsx-runtime";
 function SiteSettingsWindow({
   siteName,
   name: nameProp = "",
@@ -35104,7 +35106,7 @@ function SiteSettingsWindow({
     }
     onSave(patch);
   };
-  return /* @__PURE__ */ jsxs39(Fragment18, { children: [
+  return /* @__PURE__ */ jsxs39(Fragment17, { children: [
     /* @__PURE__ */ jsxs39(
       HeadingPanelWindow,
       {
@@ -35373,7 +35375,7 @@ function PermissionFormDialog({
 }
 
 // src/admin/components/PermissionsWindow/PermissionsWindow.tsx
-import { Fragment as Fragment19, jsx as jsx66, jsxs as jsxs41 } from "react/jsx-runtime";
+import { Fragment as Fragment18, jsx as jsx66, jsxs as jsxs41 } from "react/jsx-runtime";
 function formatSaveErrors3(formError, fieldErrors) {
   const parts = [
     formError,
@@ -35633,7 +35635,7 @@ function PermissionsWindow({
         /* @__PURE__ */ jsx66(StatusBarField, { className: "description", children: statusMid }),
         /* @__PURE__ */ jsx66(StatusBarField, {})
       ] }),
-      children: /* @__PURE__ */ jsxs41(Fragment19, { children: [
+      children: /* @__PURE__ */ jsxs41(Fragment18, { children: [
         /* @__PURE__ */ jsx66(
           SunkenPanel,
           {
@@ -35716,7 +35718,7 @@ import {
 
 // src/admin/components/RolesWindow/RoleFormDialog.tsx
 import { useEffect as useEffect25, useId as useId10, useMemo as useMemo11, useState as useState25 } from "react";
-import { Fragment as Fragment20, jsx as jsx67, jsxs as jsxs42 } from "react/jsx-runtime";
+import { Fragment as Fragment19, jsx as jsx67, jsxs as jsxs42 } from "react/jsx-runtime";
 var NAME_PATTERN = /^ROLE_[A-Z0-9]+(?:_[A-Z0-9]+)*$/;
 function RoleFormDialog({
   mode,
@@ -35863,7 +35865,7 @@ function RoleFormDialog({
             }
           )
         ] }),
-        /* @__PURE__ */ jsx67(TabPanel, { children: /* @__PURE__ */ jsx67(WindowBody, { children: tab === "general" ? /* @__PURE__ */ jsxs42(Fragment20, { children: [
+        /* @__PURE__ */ jsx67(TabPanel, { children: /* @__PURE__ */ jsx67(WindowBody, { children: tab === "general" ? /* @__PURE__ */ jsxs42(Fragment19, { children: [
           /* @__PURE__ */ jsx67(FieldRow, { children: /* @__PURE__ */ jsx67(
             TextBox,
             {
@@ -35903,7 +35905,7 @@ function RoleFormDialog({
               disabled: busy
             }
           ) })
-        ] }) : /* @__PURE__ */ jsxs42(Fragment20, { children: [
+        ] }) : /* @__PURE__ */ jsxs42(Fragment19, { children: [
           /* @__PURE__ */ jsx67("p", { style: { marginTop: 0, marginBottom: 8 }, children: "Assigned permissions below. Assign from the catalog; Remove detaches without deleting the permission." }),
           /* @__PURE__ */ jsx67(
             SunkenPanel,
@@ -36005,7 +36007,7 @@ function RoleFormDialog({
 }
 
 // src/admin/components/RolesWindow/RolesWindow.tsx
-import { Fragment as Fragment21, jsx as jsx68, jsxs as jsxs43 } from "react/jsx-runtime";
+import { Fragment as Fragment20, jsx as jsx68, jsxs as jsxs43 } from "react/jsx-runtime";
 function formatSaveErrors4(formError, fieldErrors) {
   const parts = [
     formError,
@@ -36242,7 +36244,7 @@ function RolesWindow({
         /* @__PURE__ */ jsx68(StatusBarField, { className: "description", children: statusMid }),
         /* @__PURE__ */ jsx68(StatusBarField, {})
       ] }),
-      children: /* @__PURE__ */ jsxs43(Fragment21, { children: [
+      children: /* @__PURE__ */ jsxs43(Fragment20, { children: [
         /* @__PURE__ */ jsx68(
           SunkenPanel,
           {
@@ -36332,7 +36334,7 @@ import {
 
 // src/admin/components/UsersWindow/UserFormDialog.tsx
 import { useEffect as useEffect27, useId as useId11, useMemo as useMemo12, useState as useState27 } from "react";
-import { Fragment as Fragment22, jsx as jsx69, jsxs as jsxs44 } from "react/jsx-runtime";
+import { Fragment as Fragment21, jsx as jsx69, jsxs as jsxs44 } from "react/jsx-runtime";
 var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function UserFormDialog({
   mode,
@@ -36612,7 +36614,7 @@ function UserFormDialog({
             }
           )
         ] }),
-        /* @__PURE__ */ jsx69(TabPanel, { children: /* @__PURE__ */ jsx69(WindowBody, { children: tab === "general" ? isSelf ? /* @__PURE__ */ jsxs44(Fragment22, { children: [
+        /* @__PURE__ */ jsx69(TabPanel, { children: /* @__PURE__ */ jsx69(WindowBody, { children: tab === "general" ? isSelf ? /* @__PURE__ */ jsxs44(Fragment21, { children: [
           /* @__PURE__ */ jsxs44(FieldRow, { className: "info-icon-row", children: [
             /* @__PURE__ */ jsx69("span", { className: "info-icon dialog-info", "aria-hidden": true }),
             /* @__PURE__ */ jsxs44("p", { style: { margin: 0, flex: "1 1 auto" }, children: [
@@ -36726,7 +36728,7 @@ function UserFormDialog({
               disabled: busy
             }
           )
-        ] }) : tab === "roles" ? /* @__PURE__ */ jsxs44(Fragment22, { children: [
+        ] }) : tab === "roles" ? /* @__PURE__ */ jsxs44(Fragment21, { children: [
           /* @__PURE__ */ jsx69("p", { style: { marginTop: 0, marginBottom: 8 }, children: "Global roles below. Site Admin is assigned per site on the Sites tab." }),
           /* @__PURE__ */ jsx69(
             SunkenPanel,
@@ -36813,7 +36815,7 @@ function UserFormDialog({
               }
             )
           ] })
-        ] }) : /* @__PURE__ */ jsxs44(Fragment22, { children: [
+        ] }) : /* @__PURE__ */ jsxs44(Fragment21, { children: [
           /* @__PURE__ */ jsx69("p", { style: { marginTop: 0, marginBottom: 8 }, children: "One role per site. Administrator cannot be used as a site role." }),
           /* @__PURE__ */ jsx69(
             SunkenPanel,
@@ -36912,7 +36914,7 @@ function UserFormDialog({
             }
           ) })
         ] }) }) }),
-        /* @__PURE__ */ jsx69(FieldRow, { className: "justify-end site-form-dialog-actions", children: readOnly ? /* @__PURE__ */ jsx69(Button, { type: "button", isDefault: true, accessKey: "c", onClick: onClose, children: "Close" }) : /* @__PURE__ */ jsxs44(Fragment22, { children: [
+        /* @__PURE__ */ jsx69(FieldRow, { className: "justify-end site-form-dialog-actions", children: readOnly ? /* @__PURE__ */ jsx69(Button, { type: "button", isDefault: true, accessKey: "c", onClick: onClose, children: "Close" }) : /* @__PURE__ */ jsxs44(Fragment21, { children: [
           /* @__PURE__ */ jsx69(Button, { type: "submit", isDefault: true, accessKey: "o", loading: saving, children: "OK" }),
           /* @__PURE__ */ jsx69(
             Button,
@@ -37104,7 +37106,7 @@ function SetPasswordDialog({
 }
 
 // src/admin/components/UsersWindow/UsersWindow.tsx
-import { Fragment as Fragment23, jsx as jsx71, jsxs as jsxs46 } from "react/jsx-runtime";
+import { Fragment as Fragment22, jsx as jsx71, jsxs as jsxs46 } from "react/jsx-runtime";
 var DEFAULT_CAPABILITIES = {
   listUsers: false,
   viewUser: false,
@@ -37415,7 +37417,7 @@ function UsersWindow({
         /* @__PURE__ */ jsx71(Button, { type: "button", isDefault: true, accessKey: "c", onClick: onClose, children: "Close" }),
         /* @__PURE__ */ jsx71(Button, { type: "button", accessKey: "a", disabled: true, onClick: handleCancel, children: "Cancel" })
       ] }),
-      children: /* @__PURE__ */ jsxs46(Fragment23, { children: [
+      children: /* @__PURE__ */ jsxs46(Fragment22, { children: [
         /* @__PURE__ */ jsx71(TabList, { children: /* @__PURE__ */ jsx71(
           Tab,
           {
@@ -38344,7 +38346,7 @@ function LinkFormModal({
 }
 
 // src/admin/components/MyAccount/MyAccountWindow.tsx
-import { Fragment as Fragment24, jsx as jsx74, jsxs as jsxs49 } from "react/jsx-runtime";
+import { Fragment as Fragment23, jsx as jsx74, jsxs as jsxs49 } from "react/jsx-runtime";
 var EMAIL_PATTERN2 = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function MyAccountWindow({
   api,
@@ -38581,7 +38583,7 @@ function MyAccountWindow({
       setSaving(false);
     }
   };
-  return /* @__PURE__ */ jsxs49(Fragment24, { children: [
+  return /* @__PURE__ */ jsxs49(Fragment23, { children: [
     /* @__PURE__ */ jsx74(
       PaneWindowShell,
       {
@@ -38623,7 +38625,7 @@ function MyAccountWindow({
             )
           ] }),
           /* @__PURE__ */ jsx74(TabPanel, { children: /* @__PURE__ */ jsxs49(WindowBody, { children: [
-            loading ? /* @__PURE__ */ jsx74("p", { style: { margin: 0 }, children: "Loading\u2026" }) : tab === "personal" ? /* @__PURE__ */ jsxs49(Fragment24, { children: [
+            loading ? /* @__PURE__ */ jsx74("p", { style: { margin: 0 }, children: "Loading\u2026" }) : tab === "personal" ? /* @__PURE__ */ jsxs49(Fragment23, { children: [
               /* @__PURE__ */ jsx74(GroupBox, { legend: "Avatar", children: /* @__PURE__ */ jsxs49(FieldRow, { style: { alignItems: "flex-start" }, children: [
                 /* @__PURE__ */ jsx74(
                   "img",

@@ -1495,12 +1495,13 @@ html[data-wh-theme=admin] {
   background-color: var(--surface);
 }
 [data-wh-theme=admin] {
-  /* File picker path: white when enabled (still readonly); gray when disabled. */
+  /* File picker path: white when enabled (still readonly); gray when disabled.
+   * Must beat `input[type="text"]:read-only` → `--surface`. */
 }
-[data-wh-theme=admin] .file-input-path:not(:disabled) {
+[data-wh-theme=admin] input[type=text].file-input-path:read-only:not(:disabled) {
   background-color: var(--button-highlight);
 }
-[data-wh-theme=admin] .file-input-path:disabled {
+[data-wh-theme=admin] input[type=text].file-input-path:disabled {
   background-color: var(--surface);
 }
 [data-wh-theme=admin] select {
@@ -3007,6 +3008,7 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .title-bar-text.settings,
 [data-wh-theme=admin] .title-bar-text.themes,
 [data-wh-theme=admin] .title-bar-text.folder,
+[data-wh-theme=admin] .title-bar-text.file-document,
 [data-wh-theme=admin] .title-bar-text.external-link,
 [data-wh-theme=admin] .title-bar-text.my-account {
   padding-left: 22px;
@@ -3046,6 +3048,9 @@ html[data-wh-theme=admin] {
 }
 [data-wh-theme=admin] .title-bar-text.folder {
   background-image: url("./icons/explorer/folder.svg");
+}
+[data-wh-theme=admin] .title-bar-text.file-document {
+  background-image: url("./icons/explorer/file_document.svg");
 }
 [data-wh-theme=admin] .title-bar-text.external-link {
   background-image: url("./icons/system/external_link.svg");
@@ -3999,6 +4004,27 @@ html[data-wh-theme=admin] {
 }
 [data-wh-theme=admin] .explorer-properties-dialog {
   max-width: 100%;
+}
+[data-wh-theme=admin] {
+  /* New Folder / New Page / Rename: name field fills the dialog width. */
+}
+[data-wh-theme=admin] .explorer-prompt-dialog .field-row {
+  width: 100%;
+  min-width: 0;
+}
+[data-wh-theme=admin] .explorer-prompt-dialog .field-box:not(.field-box-control-first):not(.field-box-above) {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+}
+[data-wh-theme=admin] .explorer-prompt-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > label {
+  flex: 0 0 auto;
+}
+[data-wh-theme=admin] .explorer-prompt-dialog .field-box:not(.field-box-control-first):not(.field-box-above) > input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
 }
 [data-wh-theme=admin] .explorer-properties-identity {
   display: flex;
