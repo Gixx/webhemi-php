@@ -96,6 +96,7 @@ final class ExplorerForestMapperTest extends TestCase
         self::assertCount(4, $forest);
         self::assertSame('site-3', $forest[0]['id']);
         self::assertSame('site', $forest[0]['role']);
+        self::assertSame('site-main', $forest[0]['kind']);
         self::assertSame('node-10', $forest[0]['children'][0]['id']);
         self::assertSame('folder', $forest[0]['children'][0]['role']);
         self::assertSame('folder', $forest[0]['children'][0]['kind']);

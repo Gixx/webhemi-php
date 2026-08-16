@@ -25,6 +25,7 @@ use App\Api\MediaAssetInvalidFolderException;
 use App\Api\MediaAssetPurger;
 use App\Api\MediaAssetRestorer;
 use App\Api\MediaAssetSoftDeleter;
+use App\Api\MediaBlobStore;
 use App\Api\UpdateContentNodeInput;
 use App\Entity\ContentNode;
 use App\Entity\ContentTree;
@@ -35,9 +36,11 @@ use App\Repository\ContentNodeRepository;
 use App\Repository\MediaAssetRepository;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsCsrfTokenValid;
@@ -347,6 +350,32 @@ final class ContentAdminApiController extends AbstractController
         $this->assertMediaSite($site, $asset);
 
         return ApiJson::data(MediaAssetApiMapper::toArray($asset));
+    }
+
+    #[Route('/media/{id}/file', name: 'api_admin_media_file', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function fileMedia(
+        #[MapEntity(id: 'siteId')] Site $site,
+        #[MapEntity(id: 'id')] MediaAsset $asset,
+        MediaBlobStore $blobs,
+    ): BinaryFileResponse {
+        $this->requireSitePermission('media.list', $site);
+        $this->assertMediaSite($site, $asset);
+        if ($asset->isDeleted()) {
+            throw new NotFoundHttpException('Media asset not found.');
+        }
+        $absolute = $blobs->absolutePath($asset->getStorageKey());
+        if (!is_file($absolute) || !is_readable($absolute)) {
+            throw new NotFoundHttpException('Media file missing.');
+        }
+
+        $response = new BinaryFileResponse($absolute);
+        $response->headers->set('Content-Type', $asset->getMimeType() ?: 'application/octet-stream');
+        $response->setContentDisposition(
+            ResponseHeaderBag::DISPOSITION_INLINE,
+            $asset->getOriginalFilename(),
+        );
+
+        return $response;
     }
 
     #[Route('/media/{id}', name: 'api_admin_media_delete', requirements: ['id' => '\d+'], methods: ['DELETE'])]

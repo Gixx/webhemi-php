@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api;
 
+use App\Entity\MediaAsset;
 use App\Entity\Site;
 
 final class SiteApiMapper
@@ -16,7 +17,8 @@ final class SiteApiMapper
      *     themeId: string,
      *     enabled: bool,
      *     protected: bool,
-     *     hostCount: int
+     *     hostCount: int,
+     *     faviconMediaId: int|null
      * }
      */
     public static function toArray(Site $site): array
@@ -29,6 +31,17 @@ final class SiteApiMapper
             'enabled' => $site->isEnabled(),
             'protected' => $site->isProtected(),
             'hostCount' => $site->getHosts()->count(),
+            'faviconMediaId' => self::faviconMediaId($site),
         ];
+    }
+
+    private static function faviconMediaId(Site $site): ?int
+    {
+        $favicon = $site->getFaviconMedia();
+        if (!$favicon instanceof MediaAsset || $favicon->isDeleted()) {
+            return null;
+        }
+
+        return (int) $favicon->getId();
     }
 }

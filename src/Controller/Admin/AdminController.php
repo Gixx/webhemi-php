@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Admin;
 
+use App\Entity\MediaAsset;
 use App\Entity\Site;
 use App\Repository\SiteRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,11 +20,16 @@ final class AdminController extends AbstractController
     public function dashboard(SiteRepository $sites): Response
     {
         $rows = array_map(static function (Site $site): array {
+            $favicon = $site->getFaviconMedia();
+
             return [
                 'id' => (int) $site->getId(),
                 'slug' => $site->getSlug(),
                 'name' => $site->getName(),
                 'enabled' => $site->isEnabled(),
+                'faviconMediaId' => $favicon instanceof MediaAsset && !$favicon->isDeleted()
+                    ? (int) $favicon->getId()
+                    : null,
             ];
         }, $sites->findBy([], ['name' => 'ASC']));
 

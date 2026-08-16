@@ -2119,6 +2119,11 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .explorer-glyph.site {
   background-image: url("./icons/system/site.svg");
 }
+[data-wh-theme=admin] .icon.site-main,
+[data-wh-theme=admin] .panel.info > .info-icon.site-main,
+[data-wh-theme=admin] .explorer-glyph.site-main {
+  background-image: url("./icons/system/site_main.svg");
+}
 [data-wh-theme=admin] .icon.users,
 [data-wh-theme=admin] .panel.info > .info-icon.users,
 [data-wh-theme=admin] .explorer-glyph.users {
@@ -2739,6 +2744,9 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] #toolbar .task-buttons > .task.site {
   background-image: url("./icons/system/site.svg");
 }
+[data-wh-theme=admin] #toolbar .task-buttons > .task.site-main {
+  background-image: url("./icons/system/site_main.svg");
+}
 [data-wh-theme=admin] #toolbar .task-buttons > .task.sites {
   background-image: url("./icons/system/sites.svg");
 }
@@ -2935,6 +2943,7 @@ html[data-wh-theme=admin] {
 }
 [data-wh-theme=admin] .title-bar-text.control-panel,
 [data-wh-theme=admin] .title-bar-text.site,
+[data-wh-theme=admin] .title-bar-text.site-main,
 [data-wh-theme=admin] .title-bar-text.users,
 [data-wh-theme=admin] .title-bar-text.roles,
 [data-wh-theme=admin] .title-bar-text.permissions,
@@ -2953,6 +2962,9 @@ html[data-wh-theme=admin] {
 }
 [data-wh-theme=admin] .title-bar-text.site {
   background-image: url("./icons/system/site.svg");
+}
+[data-wh-theme=admin] .title-bar-text.site-main {
+  background-image: url("./icons/system/site_main.svg");
 }
 [data-wh-theme=admin] .title-bar-text.users {
   background-image: url("./icons/system/users.svg");

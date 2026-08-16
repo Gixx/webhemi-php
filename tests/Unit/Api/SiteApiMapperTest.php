@@ -25,6 +25,7 @@ final class SiteApiMapperTest extends TestCase
                 'enabled' => true,
                 'protected' => false,
                 'hostCount' => 0,
+                'faviconMediaId' => null,
             ],
             SiteApiMapper::toArray($site),
         );

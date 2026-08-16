@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{{ siteName }} — WebHemi{% endblock %}</title>
+    <link rel="icon" href="{{ path('site_favicon') }}">
     <link rel="stylesheet" href="{{ asset(assetPrefix ~ '/theme.css') }}">
     {% block stylesheets %}{% endblock %}
 </head>

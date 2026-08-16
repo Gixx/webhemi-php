@@ -58,7 +58,7 @@ final class ExplorerForestMapper
         return [
             'id' => 'site-' . $siteId,
             'label' => $site->getName(),
-            'kind' => 'site',
+            'kind' => $site->isMain() ? 'site-main' : 'site',
             'role' => 'site',
             'typeLabel' => 'Website',
             'children' => $this->nestNodes($nodes, null),

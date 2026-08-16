@@ -950,6 +950,7 @@ function SystemIcon({
   kind,
   label,
   labelTone = "light",
+  iconUrl,
   href = "#",
   draggable = false,
   onActivate,
@@ -957,6 +958,7 @@ function SystemIcon({
   className,
   linkProps,
   onDoubleClick,
+  style,
   ...rest
 }) {
   const handleClick2 = (event) => {
@@ -983,6 +985,7 @@ function SystemIcon({
       className: cn("icon", kind, `label-tone-${labelTone}`, className),
       draggable,
       onDoubleClick: handleDoubleClick,
+      style: iconUrl ? { ...style, backgroundImage: `url("${iconUrl}")` } : style,
       ...rest,
       children: /* @__PURE__ */ jsx26("a", { href, ...linkProps, onClick: handleClick2, children: /* @__PURE__ */ jsx26("span", { children: label }) })
     }
@@ -1165,6 +1168,7 @@ import { jsx as jsx29, jsxs as jsxs9 } from "react/jsx-runtime";
 function PaneWindowShell({
   title,
   titleIcon,
+  titleIconUrl,
   titleBarControls,
   inactive = false,
   statusBar,
@@ -1180,7 +1184,14 @@ function PaneWindowShell({
   const controls = titleBarControls === null ? null : titleBarControls ?? /* @__PURE__ */ jsx29(TitleBarControls, { children: /* @__PURE__ */ jsx29(TitleBarControl, { action: "Close" }) });
   return /* @__PURE__ */ jsxs9(Window, { className: cn(resizable && "resizable", className), style: mergedStyle, ...rest, children: [
     /* @__PURE__ */ jsxs9(TitleBar, { inactive, children: [
-      /* @__PURE__ */ jsx29(TitleBarText, { className: titleIcon, children: title }),
+      /* @__PURE__ */ jsx29(
+        TitleBarText,
+        {
+          className: titleIcon,
+          style: titleIconUrl ? { backgroundImage: `url("${titleIconUrl}")` } : void 0,
+          children: title
+        }
+      ),
       controls
     ] }),
     /* @__PURE__ */ jsx29(WindowBody, { className: bodyClassName, children }),
@@ -3218,7 +3229,7 @@ function ExplorerPromptDialog({
 var EXPLORER_FIXTURE_SITE = {
   id: "site-acme",
   name: "Acme Website",
-  /** Default site glyph until favicon support exists. */
+  /** Default site glyph until a custom favicon is set. */
   titleIcon: "site"
 };
 var EXPLORER_FIXTURE_TREE = [
@@ -3385,7 +3396,7 @@ function buildEmptySiteExplorerTree(site) {
     {
       id: prefix,
       label: site.name,
-      kind: "site",
+      kind: site.slug === "main" ? "site-main" : "site",
       role: "site",
       typeLabel: "Website",
       children: []
@@ -3430,6 +3441,7 @@ function buildDemoSiteExplorerTree(site) {
       ...siteRoot,
       id: prefix,
       label: site.name,
+      kind: site.slug === "main" ? "site-main" : "site",
       children: siteRoot.children ? remap(siteRoot.children, prefix) : []
     },
     {
@@ -32857,6 +32869,7 @@ var TITLE_BAR_ICON_OPTIONS = [
   "none",
   "control-panel",
   "site",
+  "site-main",
   "users",
   "roles",
   "permissions",
@@ -37415,6 +37428,18 @@ import {
   useState as useState32
 } from "react";
 
+// src/admin/lib/siteIcon.ts
+function siteGlyphKind(slug) {
+  return slug === MAIN_SITE_SLUG ? "site-main" : "site";
+}
+function siteFaviconFileUrl(siteId, faviconMediaId, apiBaseUrl = "/admin/api") {
+  if (faviconMediaId == null || faviconMediaId <= 0) {
+    return void 0;
+  }
+  const base = apiBaseUrl.replace(/\/$/, "");
+  return `${base}/sites/${siteId}/media/${faviconMediaId}/file`;
+}
+
 // src/admin/lib/safeAppPath.ts
 function isSafeAppPath(href) {
   if (!href.startsWith("/") || href.startsWith("//")) {
@@ -37849,11 +37874,12 @@ function TaskbarClock() {
 
 // src/admin/shell/Taskbar.tsx
 import { jsx as jsx74, jsxs as jsxs48 } from "react/jsx-runtime";
-function taskClassName(win, active) {
+function taskClassName(win, active, siteTaskGlyphById) {
+  const siteGlyph = win.kind === "site" && win.siteId != null ? siteTaskGlyphById?.[win.siteId] ?? "site" : null;
   return cn(
     "task",
     win.kind === "control-panel" && "control-panel",
-    win.kind === "site" && "site",
+    siteGlyph,
     win.kind === "site-settings" && "settings",
     win.kind === "document-editor" && "folder",
     win.kind === "sites" && "sites",
@@ -37872,6 +37898,8 @@ function Taskbar({
   onMenuClick,
   menuExpanded = false,
   startMenu,
+  siteTaskGlyphById,
+  siteTaskIconUrlById,
   className
 }) {
   return /* @__PURE__ */ jsxs48("div", { id: "toolbar", className: cn("window", className), children: [
@@ -37891,11 +37919,14 @@ function Taskbar({
       ),
       /* @__PURE__ */ jsx74("div", { className: "task-buttons", children: windows.map((win) => {
         const pressed = win.id === activeId && !win.minimized;
+        const iconUrl = win.kind === "site" && win.siteId != null ? siteTaskIconUrlById?.[win.siteId] : void 0;
+        const style = iconUrl ? { backgroundImage: `url("${iconUrl}")` } : void 0;
         return /* @__PURE__ */ jsx74(
           "button",
           {
             type: "button",
-            className: taskClassName(win, pressed),
+            className: taskClassName(win, pressed, siteTaskGlyphById),
+            style,
             "data-window": win.id,
             "aria-pressed": pressed,
             title: win.title,
@@ -38303,7 +38334,8 @@ function toDesktopSite(site) {
     id: site.id,
     name: site.name,
     slug: site.slug,
-    enabled: site.enabled
+    enabled: site.enabled,
+    faviconMediaId: "faviconMediaId" in site ? site.faviconMediaId ?? null : null
   };
 }
 function toWindowSite(site) {
@@ -38314,7 +38346,8 @@ function toWindowSite(site) {
     enabled: site.enabled,
     themeId: site.themeId,
     protected: site.protected,
-    hostCount: site.hostCount
+    hostCount: site.hostCount,
+    faviconMediaId: site.faviconMediaId ?? null
   };
 }
 function toWindowPermission(permission) {
@@ -38738,6 +38771,20 @@ function AdminDesktop({
     })),
     [desktopSites]
   );
+  const siteTaskGlyphById = useMemo13(() => {
+    const map = {};
+    for (const site of desktopSites) {
+      map[site.id] = siteGlyphKind(site.slug);
+    }
+    return map;
+  }, [desktopSites]);
+  const siteTaskIconUrlById = useMemo13(() => {
+    const map = {};
+    for (const site of desktopSites) {
+      map[site.id] = siteFaviconFileUrl(site.id, site.faviconMediaId, apiBaseUrl);
+    }
+    return map;
+  }, [desktopSites, apiBaseUrl]);
   useEffect34(() => {
     setDesktopSites(sites);
   }, [sites]);
@@ -39355,12 +39402,16 @@ function AdminDesktop({
     }
     setSiteSettingsById((prev) => ({ ...prev, [siteId]: result.data }));
     setSiteSettingsStatusMessage("Settings saved.");
+    setDesktopSites(
+      (prev) => prev.map(
+        (row) => row.id === siteId ? {
+          ...row,
+          name: result.data.name,
+          faviconMediaId: result.data.faviconMediaId ?? null
+        } : row
+      )
+    );
     if (patch.name) {
-      setDesktopSites(
-        (prev) => prev.map(
-          (row) => row.id === siteId ? { ...row, name: result.data.name } : row
-        )
-      );
       setShell((prev) => ({
         ...prev,
         windows: prev.windows.map((win) => {
@@ -40027,27 +40078,25 @@ function AdminDesktop({
     }
   };
   return /* @__PURE__ */ jsxs50("div", { ref: dashboardRef, className: cn("dashboard", className), children: [
-    /* @__PURE__ */ jsxs50("div", { className: "icon-list", children: [
-      desktopSites.map((site) => /* @__PURE__ */ jsx76(
+    /* @__PURE__ */ jsx76("div", { className: "icon-list", children: desktopSites.map((site) => {
+      const glyph = siteGlyphKind(site.slug);
+      const iconUrl = siteFaviconFileUrl(
+        site.id,
+        site.faviconMediaId,
+        apiBaseUrl
+      );
+      return /* @__PURE__ */ jsx76(
         SystemIcon,
         {
-          kind: "site",
+          kind: glyph,
+          iconUrl,
           label: site.name,
           labelTone: "light",
           onOpen: () => openSite(site)
         },
         site.id
-      )),
-      /* @__PURE__ */ jsx76(
-        SystemIcon,
-        {
-          kind: "control-panel",
-          label: "Control Panel",
-          labelTone: "light",
-          onOpen: openControlPanel
-        }
-      )
-    ] }),
+      );
+    }) }),
     shell.windows.map((win) => {
       const active = win.id === shell.activeId && !win.minimized;
       const maximizeAction = win.maximized ? "Restore" : "Maximize";
@@ -40421,6 +40470,13 @@ function AdminDesktop({
         id: win.siteId ?? 0,
         name: win.title
       };
+      const siteIdNum = typeof site.id === "number" ? site.id : Number(site.id);
+      const siteTitleIcon = siteGlyphKind(site.slug);
+      const siteTitleIconUrl = siteFaviconFileUrl(
+        siteIdNum,
+        site.faviconMediaId,
+        apiBaseUrl
+      );
       return shellFrame(
         /* @__PURE__ */ jsx76(
           SiteFileExplorer,
@@ -40428,12 +40484,13 @@ function AdminDesktop({
             className: cn(win.maximized && "is-maximized"),
             inactive: !active,
             title: win.title,
-            titleIcon: "site",
+            titleIcon: siteTitleIcon,
+            titleIconUrl: siteTitleIconUrl,
             api: canEditSites ? api : void 0,
-            siteId: typeof site.id === "number" ? site.id : Number(site.id),
+            siteId: siteIdNum,
             siteName: site.name,
             tree: explorerTreeForSite(site),
-            forestRefreshKey: explorerForestRefreshBySite[typeof site.id === "number" ? site.id : Number(site.id)] ?? 0,
+            forestRefreshKey: explorerForestRefreshBySite[siteIdNum] ?? 0,
             onOpenSiteSettings: () => openSiteSettings(site),
             onOpenDocument: (item) => {
               const ref = parseExplorerEntityId(item.id);
@@ -40458,6 +40515,8 @@ function AdminDesktop({
         onTaskClick: handleTaskClick,
         onMenuClick: toggleStartMenu,
         menuExpanded: startMenuOpen,
+        siteTaskGlyphById,
+        siteTaskIconUrlById,
         startMenu: /* @__PURE__ */ jsx76(
           StartMenu,
           {
