@@ -1778,6 +1778,14 @@ html[data-wh-theme=admin] {
   /* Goes down too far */
   border-left: 1px dotted #808080;
 }
+[data-wh-theme=admin] {
+  /* Deeper nests: only padding indents. Extra margin pushed the next vertical
+   * rule under the folder glyph instead of under [-] (parent toggle already sits
+   * on the previous dotted column via margin-left: -22px below). */
+}
+[data-wh-theme=admin] ul.tree-view ul ul {
+  margin-left: 0;
+}
 [data-wh-theme=admin] ul.tree-view ul > li {
   position: relative;
 }
@@ -2126,14 +2134,22 @@ html[data-wh-theme=admin] {
   color: #000000;
 }
 [data-wh-theme=admin] .icon > a > span {
-  display: inline-block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  box-sizing: border-box;
   width: 88px;
-  max-height: 38px;
+  max-height: 30px; /* 2 × line-height */
+  margin: 0 auto;
   line-height: 15px;
   font-family: inherit;
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 [data-wh-theme=admin] .icon > a:focus {
   outline: none !important;
@@ -3808,6 +3824,43 @@ html[data-wh-theme=admin] {
   min-width: 0;
   min-height: 0;
   background: #fff;
+}
+[data-wh-theme=admin] .explorer-panel-layout > .explorer-split > .panel.explorer-content-host {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  /* Keep `.field-border` padding so the sunken inset bevel stays visible. */
+  background: var(--button-highlight, #fff);
+}
+[data-wh-theme=admin] .explorer-panel-layout > .explorer-split > .panel.explorer-content-host > .explorer-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  background: #fff;
+}
+[data-wh-theme=admin] .explorer-media-notice {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 1px 6px;
+  background: #ffffe1;
+  border-bottom: 1px solid #e6e6b8;
+  color: #000;
+  font-size: 11px;
+  line-height: 14px;
+}
+[data-wh-theme=admin] .explorer-media-notice-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+[data-wh-theme=admin] .explorer-content-inner.is-os-file-dropzone {
+  min-height: 100%;
+}
+[data-wh-theme=admin] .explorer-content-inner.is-os-file-drag-over {
+  outline: 1px dashed #808000;
+  outline-offset: -2px;
+  background: #fffff0;
 }
 [data-wh-theme=admin] {
   /* --- Toolbar icon buttons --- */

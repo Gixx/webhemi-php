@@ -34,6 +34,26 @@ php bin/console app:seed -n
 symfony server:start   # or php -S 127.0.0.1:8000 -t public
 ```
 
+### PHP upload limits (media library)
+
+Default PHP often caps uploads at **2M**. Media library video needs more.
+
+**Preferred (Symfony local server):** project-root [`php.ini`](php.ini) sets `upload_max_filesize` / `post_max_size` to **64M**. Restart after changing it:
+
+```bash
+symfony server:stop
+symfony serve -d --port=8000
+```
+
+Confirm via `/_profiler/phpinfo` (dev) or:
+
+```bash
+# should show 64M under the running server’s PHP, not only CLI
+symfony php -r 'echo ini_get("upload_max_filesize"), PHP_EOL;'
+```
+
+Optional CLI / system `conf.d` copy: [`config/php/99-uploads.ini`](config/php/99-uploads.ini).
+
 Default seed:
 
 - Admin: `admin@webhemi.local` / `admin`

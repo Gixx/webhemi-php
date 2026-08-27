@@ -21,7 +21,7 @@ final class UserAvatarUploader
     public function upload(User $user, UploadedFile $file): User
     {
         if (!$file->isValid()) {
-            throw new \InvalidArgumentException('Uploaded file is invalid.');
+            throw new \InvalidArgumentException(UploadedFileErrors::message($file));
         }
         if ($file->getSize() > self::MAX_BYTES) {
             throw new \InvalidArgumentException('Avatar must be 512 KB or smaller.');

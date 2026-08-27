@@ -49,6 +49,10 @@ final class MediaAssetCreator
             }
         }
 
+        if (!MediaAssetMimePolicy::isAllowed($mimeType, $originalFilename)) {
+            throw new \InvalidArgumentException(MediaAssetMimePolicy::rejectionMessage());
+        }
+
         $stored = $this->blobs->storeFromPath($absolutePath, $originalFilename, $mimeType);
         $existing = $this->media->findBySiteAndHash($site, $stored['contentHash']);
         if ($existing instanceof MediaAsset) {

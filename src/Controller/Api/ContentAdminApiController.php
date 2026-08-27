@@ -26,8 +26,10 @@ use App\Api\MediaAssetInvalidFolderException;
 use App\Api\MediaAssetPurger;
 use App\Api\MediaAssetRestorer;
 use App\Api\MediaAssetSoftDeleter;
+use App\Api\MediaAssetUpdater;
 use App\Api\MediaBlobStore;
 use App\Api\UpdateContentNodeInput;
+use App\Api\UploadedFileErrors;
 use App\Entity\ContentNode;
 use App\Entity\ContentTree;
 use App\Entity\MediaAsset;
@@ -360,6 +362,9 @@ final class ContentAdminApiController extends AbstractController
                 'file' => 'File is required.',
             ]);
         }
+        if (!$file->isValid()) {
+            return ApiJson::error('upload_failed', UploadedFileErrors::message($file), 400);
+        }
 
         $folderNodeId = null;
         if ($request->request->has('folderNodeId') && '' !== (string) $request->request->get('folderNodeId')) {
@@ -371,7 +376,7 @@ final class ContentAdminApiController extends AbstractController
                 $site,
                 $file->getPathname(),
                 $file->getClientOriginalName() ?: 'upload.bin',
-                $file->getClientMimeType(),
+                $file->getMimeType() ?: $file->getClientMimeType(),
                 $folderNodeId,
             );
         } catch (MediaAssetInvalidFolderException $e) {
@@ -395,6 +400,48 @@ final class ContentAdminApiController extends AbstractController
         $this->assertMediaSite($site, $asset);
 
         return ApiJson::data(MediaAssetApiMapper::toArray($asset));
+    }
+
+    #[Route('/media/{id}', name: 'api_admin_media_update', requirements: ['id' => '\d+'], methods: ['PATCH'])]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function updateMedia(
+        #[MapEntity(id: 'siteId')] Site $site,
+        #[MapEntity(id: 'id')] MediaAsset $asset,
+        Request $request,
+        MediaAssetUpdater $updater,
+    ): JsonResponse {
+        $this->requireSitePermission('media.edit', $site);
+        $this->assertMediaSite($site, $asset);
+
+        try {
+            $payload = json_decode($request->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return ApiJson::error('invalid_json', 'Request body must be valid JSON.', 400);
+        }
+
+        if (!\is_array($payload) || !\array_key_exists('folderNodeId', $payload)) {
+            return ApiJson::error('validation_failed', 'Media asset could not be updated.', 422, [
+                'folderNodeId' => 'folderNodeId is required (number or null).',
+            ]);
+        }
+
+        $folderNodeId = null;
+        if (null !== $payload['folderNodeId'] && '' !== $payload['folderNodeId']) {
+            if (!is_numeric($payload['folderNodeId'])) {
+                return ApiJson::error('validation_failed', 'Media asset could not be updated.', 422, [
+                    'folderNodeId' => 'folderNodeId must be a number or null.',
+                ]);
+            }
+            $folderNodeId = (int) $payload['folderNodeId'];
+        }
+
+        try {
+            $updated = $updater->updateFolder($site, $asset, $folderNodeId);
+        } catch (MediaAssetInvalidFolderException $e) {
+            return ApiJson::error('invalid_folder', $e->getMessage(), 422);
+        }
+
+        return ApiJson::data(MediaAssetApiMapper::toArray($updated));
     }
 
     #[Route('/media/{id}/file', name: 'api_admin_media_file', requirements: ['id' => '\d+'], methods: ['GET'])]

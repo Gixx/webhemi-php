@@ -248,7 +248,7 @@ final class ExplorerForestMapper
     private function assetToItem(MediaAsset $asset): array
     {
         $mime = strtolower($asset->getMimeType());
-        $icon = 'file-image';
+        $icon = 'file-document';
         $typeLabel = 'File';
         if (str_starts_with($mime, 'image/')) {
             $icon = 'file-image';
@@ -259,6 +259,8 @@ final class ExplorerForestMapper
         } elseif (str_starts_with($mime, 'video/')) {
             $icon = 'file-video';
             $typeLabel = 'Video';
+        } elseif ('application/pdf' === $mime) {
+            $typeLabel = 'PDF Document';
         }
 
         return [

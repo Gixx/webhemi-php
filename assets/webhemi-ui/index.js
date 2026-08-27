@@ -1964,6 +1964,19 @@ function beginExplorerDrag(ids, dataTransfer) {
 function endExplorerDrag() {
   activeDragIds = [];
 }
+function isExplorerInternalDrag() {
+  return activeDragIds.length > 0;
+}
+function dataTransferHasOsFiles(dataTransfer) {
+  if (!dataTransfer) {
+    return false;
+  }
+  try {
+    return Array.from(dataTransfer.types).includes("Files");
+  } catch {
+    return false;
+  }
+}
 function readExplorerDragIds(event) {
   const data = event.dataTransfer;
   if (!data) {
@@ -2102,6 +2115,16 @@ function modifiersFromEvent(event) {
     shiftKey: event.shiftKey
   };
 }
+function readOsFiles(event) {
+  const list = event.dataTransfer?.files;
+  if (!list || list.length === 0) {
+    return [];
+  }
+  return Array.from(list);
+}
+function canAcceptOsFiles(event, onOsFilesDrop) {
+  return Boolean(onOsFilesDrop) && dataTransferHasOsFiles(event.dataTransfer) && !isExplorerInternalDrag();
+}
 function ExplorerContent({
   view,
   items,
@@ -2109,11 +2132,13 @@ function ExplorerContent({
   cutItemIds = [],
   onSelect,
   onOpen,
-  onItemsDrop
+  onItemsDrop,
+  onOsFilesDrop
 }) {
   const selected = new Set(selectedIds);
   const cut = new Set(cutItemIds);
   const [dragOverId, setDragOverId] = useState3(null);
+  const [osDragOver, setOsDragOver] = useState3(false);
   const openItem = (item) => {
     onOpen?.(item);
   };
@@ -2133,6 +2158,18 @@ function ExplorerContent({
   };
   const canDropOn = (item) => isExplorerLocation(item) && !item.disabled;
   const onDragOverItem = (item, event) => {
+    if (canAcceptOsFiles(event, onOsFilesDrop) && canDropOn(item)) {
+      event.preventDefault();
+      event.stopPropagation();
+      try {
+        event.dataTransfer.dropEffect = "copy";
+      } catch {
+      }
+      if (dragOverId !== item.id) {
+        setDragOverId(item.id);
+      }
+      return;
+    }
     if (!onItemsDrop || !canDropOn(item)) {
       return;
     }
@@ -2151,6 +2188,17 @@ function ExplorerContent({
     }
   };
   const onDropItem = (item, event) => {
+    if (canAcceptOsFiles(event, onOsFilesDrop) && canDropOn(item)) {
+      event.preventDefault();
+      event.stopPropagation();
+      setDragOverId(null);
+      setOsDragOver(false);
+      const files = readOsFiles(event);
+      if (files.length > 0) {
+        onOsFilesDrop?.(files, item.id);
+      }
+      return;
+    }
     if (!onItemsDrop || !canDropOn(item)) {
       return;
     }
@@ -2163,14 +2211,56 @@ function ExplorerContent({
     }
     onItemsDrop(ids, item.id);
   };
+  const onDragOverPane = (event) => {
+    if (!canAcceptOsFiles(event, onOsFilesDrop)) {
+      return;
+    }
+    event.preventDefault();
+    try {
+      event.dataTransfer.dropEffect = "copy";
+    } catch {
+    }
+    if (!osDragOver) {
+      setOsDragOver(true);
+    }
+  };
+  const onDragLeavePane = (event) => {
+    if (event.currentTarget === event.target) {
+      setOsDragOver(false);
+    }
+  };
+  const onDropPane = (event) => {
+    if (!canAcceptOsFiles(event, onOsFilesDrop)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    setOsDragOver(false);
+    setDragOverId(null);
+    const files = readOsFiles(event);
+    if (files.length > 0) {
+      onOsFilesDrop?.(files, null);
+    }
+  };
   const itemClass = (item) => cn(
     item.hidden && "is-hidden",
     selected.has(item.id) && "is-selected",
     cut.has(item.id) && "is-cut",
     dragOverId === item.id && "is-drag-over"
   );
+  const paneClass = cn(
+    "explorer-content-inner",
+    view,
+    osDragOver && "is-os-file-drag-over",
+    onOsFilesDrop && "is-os-file-dropzone"
+  );
+  const paneHandlers = onOsFilesDrop ? {
+    onDragOver: onDragOverPane,
+    onDragLeave: onDragLeavePane,
+    onDrop: onDropPane
+  } : {};
   if (view === "large-icons") {
-    return /* @__PURE__ */ jsx39("div", { className: "explorer-content-inner large-icons", children: items.map((item) => /* @__PURE__ */ jsx39(
+    return /* @__PURE__ */ jsx39("div", { className: paneClass, ...paneHandlers, children: items.map((item) => /* @__PURE__ */ jsx39(
       SystemIcon,
       {
         kind: item.kind,
@@ -2189,7 +2279,7 @@ function ExplorerContent({
     )) });
   }
   if (view === "list") {
-    return /* @__PURE__ */ jsx39("div", { className: "explorer-content-inner list", children: items.map((item) => /* @__PURE__ */ jsxs18(
+    return /* @__PURE__ */ jsx39("div", { className: paneClass, ...paneHandlers, children: items.map((item) => /* @__PURE__ */ jsxs18(
       "a",
       {
         href: "#",
@@ -2215,7 +2305,7 @@ function ExplorerContent({
       item.id
     )) });
   }
-  return /* @__PURE__ */ jsx39("div", { className: "explorer-content-inner details", children: /* @__PURE__ */ jsxs18(Table, { className: "explorer-details", children: [
+  return /* @__PURE__ */ jsx39("div", { className: paneClass, ...paneHandlers, children: /* @__PURE__ */ jsxs18(Table, { className: "explorer-details", children: [
     /* @__PURE__ */ jsx39("thead", { children: /* @__PURE__ */ jsxs18("tr", { children: [
       /* @__PURE__ */ jsx39("th", { children: "Name" }),
       /* @__PURE__ */ jsx39("th", { children: "Size" }),
@@ -2271,6 +2361,7 @@ function buildMenus(props) {
     fileOpenDisabled = false,
     onNewFolder,
     onNewPage,
+    onUploadMedia,
     onRename,
     onDelete,
     onProperties,
@@ -2295,7 +2386,14 @@ function buildMenus(props) {
         disabled: !onNewFolder,
         onSelect: onNewFolder
       },
-      {
+      onUploadMedia ? {
+        kind: "item",
+        id: "upload-media",
+        label: "Upload\u2026",
+        accessKey: "U",
+        disabled: false,
+        onSelect: onUploadMedia
+      } : {
         kind: "item",
         id: "new-page",
         label: "New Page",
@@ -2918,6 +3016,8 @@ function FileExplorerWindow({
   onSelect,
   onOpen,
   onItemsDrop,
+  onOsFilesDrop,
+  mediaUploadNotice = false,
   onLevelUp,
   levelUpDisabled = false,
   onCut,
@@ -2929,6 +3029,7 @@ function FileExplorerWindow({
   onClose,
   onNewFolder,
   onNewPage,
+  onUploadMedia,
   onRename,
   onSelectAll,
   onRefresh,
@@ -2973,6 +3074,27 @@ function FileExplorerWindow({
   );
   const primarySelectedId = selectedIds.length > 0 ? selectedIds[selectedIds.length - 1] : null;
   const selectedItem = findExplorerItem(tree, primarySelectedId) ?? items.find((item) => item.id === primarySelectedId) ?? null;
+  const onContentHostDragOver = (event) => {
+    if (!onOsFilesDrop || !dataTransferHasOsFiles(event.dataTransfer) || isExplorerInternalDrag()) {
+      return;
+    }
+    event.preventDefault();
+    try {
+      event.dataTransfer.dropEffect = "copy";
+    } catch {
+    }
+  };
+  const onContentHostDrop = (event) => {
+    if (!onOsFilesDrop || !dataTransferHasOsFiles(event.dataTransfer) || isExplorerInternalDrag()) {
+      return;
+    }
+    event.preventDefault();
+    const list = event.dataTransfer.files;
+    if (!list || list.length === 0) {
+      return;
+    }
+    onOsFilesDrop(Array.from(list), null);
+  };
   return /* @__PURE__ */ jsx43(
     PaneWindowShell,
     {
@@ -2993,6 +3115,7 @@ function FileExplorerWindow({
             fileOpenDisabled: !selectedItem,
             onNewFolder,
             onNewPage,
+            onUploadMedia,
             onRename,
             onDelete,
             onProperties,
@@ -3035,18 +3158,33 @@ function FileExplorerWindow({
               max: maxTreeWidth
             }
           ) : /* @__PURE__ */ jsx43("div", { className: "explorer-splitter is-static", "aria-hidden": true }),
-          /* @__PURE__ */ jsx43(FieldBorder, { scrollable: true, className: "panel explorer-content", children: /* @__PURE__ */ jsx43(
-            ExplorerContent,
+          /* @__PURE__ */ jsxs21(
+            FieldBorder,
             {
-              view,
-              items,
-              selectedIds,
-              cutItemIds,
-              onSelect,
-              onOpen,
-              onItemsDrop
+              className: "panel explorer-content-host",
+              ...onOsFilesDrop ? {
+                "data-media-upload-dropzone": "true",
+                onDragOver: onContentHostDragOver,
+                onDrop: onContentHostDrop
+              } : {},
+              children: [
+                mediaUploadNotice ? /* @__PURE__ */ jsx43("div", { className: "explorer-media-notice", role: "status", children: /* @__PURE__ */ jsx43("span", { className: "explorer-media-notice-text", children: "Drag and drop media files from your computer" }) }) : null,
+                /* @__PURE__ */ jsx43(Scrollable, { className: "explorer-content", children: /* @__PURE__ */ jsx43(
+                  ExplorerContent,
+                  {
+                    view,
+                    items,
+                    selectedIds,
+                    cutItemIds,
+                    onSelect,
+                    onOpen,
+                    onItemsDrop,
+                    onOsFilesDrop
+                  }
+                ) })
+              ]
             }
-          ) })
+          )
         ] })
       ] })
     }
@@ -3248,7 +3386,7 @@ function ExplorerPropertiesDialog({
 }
 
 // src/admin/bricks/FileExplorerWindow/SiteFileExplorer.tsx
-import { useCallback as useCallback3, useEffect as useEffect7, useMemo as useMemo3, useState as useState9 } from "react";
+import { useCallback as useCallback3, useEffect as useEffect7, useMemo as useMemo3, useRef as useRef8, useState as useState9 } from "react";
 
 // src/admin/bricks/FileExplorerWindow/ExplorerPromptDialog.tsx
 import { useId as useId4, useState as useState8 } from "react";
@@ -3850,6 +3988,107 @@ function undoExplorerAction(roots, entry) {
   return undoExplorerPaste(roots, entry);
 }
 
+// src/admin/bricks/FileExplorerWindow/mediaUploadPolicy.ts
+var MEDIA_UPLOAD_ACCEPT = [
+  "image/*",
+  "video/*",
+  "audio/*",
+  "application/pdf",
+  ".pdf",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
+  ".ppt",
+  ".pptx",
+  ".odt",
+  ".ods",
+  ".odp",
+  ".rtf"
+].join(",");
+var OFFICE_MIME = /* @__PURE__ */ new Set([
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.oasis.opendocument.text",
+  "application/vnd.oasis.opendocument.spreadsheet",
+  "application/vnd.oasis.opendocument.presentation",
+  "application/rtf",
+  "text/rtf"
+]);
+var OFFICE_EXT = /* @__PURE__ */ new Set([
+  "doc",
+  "docx",
+  "xls",
+  "xlsx",
+  "ppt",
+  "pptx",
+  "odt",
+  "ods",
+  "odp",
+  "rtf"
+]);
+var MEDIA_EXT = /* @__PURE__ */ new Set([
+  // images
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
+  "svg",
+  "bmp",
+  "tif",
+  "tiff",
+  "ico",
+  "avif",
+  // video
+  "mp4",
+  "webm",
+  "mov",
+  "avi",
+  "mkv",
+  "m4v",
+  "ogv",
+  // audio
+  "mp3",
+  "wav",
+  "ogg",
+  "flac",
+  "aac",
+  "m4a",
+  "oga",
+  // docs
+  "pdf",
+  ...OFFICE_EXT
+]);
+function extensionOf(filename) {
+  const base = filename.trim().toLowerCase();
+  const dot = base.lastIndexOf(".");
+  return dot >= 0 ? base.slice(dot + 1) : "";
+}
+function isAllowedMediaUpload(file) {
+  const mime = (file.type || "").toLowerCase().trim();
+  if (mime.startsWith("image/") || mime.startsWith("video/") || mime.startsWith("audio/") || mime === "application/pdf" || OFFICE_MIME.has(mime)) {
+    return true;
+  }
+  return MEDIA_EXT.has(extensionOf(file.name));
+}
+function filterAllowedMediaUploads(files) {
+  const accepted = [];
+  const rejected = [];
+  for (const file of files) {
+    if (isAllowedMediaUpload(file)) {
+      accepted.push(file);
+    } else {
+      rejected.push(file);
+    }
+  }
+  return { accepted, rejected };
+}
+
 // src/admin/bricks/FileExplorerWindow/SiteFileExplorer.tsx
 import { jsx as jsx46, jsxs as jsxs24 } from "react/jsx-runtime";
 function SiteFileExplorer({
@@ -3891,6 +4130,7 @@ function SiteFileExplorer({
   const [errorMessage, setErrorMessage] = useState9(null);
   const [busy, setBusy] = useState9(false);
   const [prompt, setPrompt] = useState9(null);
+  const uploadInputRef = useRef8(null);
   const location = useMemo3(() => findExplorerItem(forest, locationId), [forest, locationId]);
   const items = useMemo3(() => explorerContentItems(location), [location]);
   const parent = useMemo3(() => findExplorerParent(forest, locationId), [forest, locationId]);
@@ -3901,15 +4141,32 @@ function SiteFileExplorer({
   const primarySelected = selectedItems[selectedItems.length - 1] ?? null;
   const hiddenCount = items.filter((item) => item.hidden).length;
   const statusItem = primarySelected ?? location;
-  const selectedMovable = useMemo3(() => {
+  const selectedCuttable = useMemo3(() => {
     if (!live) {
       return selectedItems;
     }
     return selectedItems.filter((item) => parseExplorerEntityId(item.id)?.type === "node");
   }, [live, selectedItems]);
+  const selectedCopyable = useMemo3(() => {
+    if (!live) {
+      return selectedItems;
+    }
+    return selectedItems.filter((item) => {
+      const ref = parseExplorerEntityId(item.id);
+      return ref?.type === "node" || ref?.type === "media";
+    });
+  }, [live, selectedItems]);
+  const locationIsSiteTree = Boolean(
+    location && (location.role === "site" || location.role === "folder" && !isUnderMediaLibrary(forest, location.id, findExplorerParent))
+  );
+  const locationIsMediaTree = Boolean(
+    location && (location.role === "media-library" || location.role === "folder" && isUnderMediaLibrary(forest, location.id, findExplorerParent))
+  );
   const canDelete = selectedItems.length > 0 && selectedItems.every((item) => canDeleteExplorerItem(forest, item));
-  const canCutCopy = canCutOrCopyExplorerItems(forest, selectedMovable);
-  const canPaste = Boolean(clipboard) && (clipboard?.mode === "cut" || clipboard?.mode === "copy") && canPasteIntoExplorerLocation(forest, locationId, clipboard);
+  const canCut = canCutOrCopyExplorerItems(forest, selectedCuttable);
+  const canCopy = canCutOrCopyExplorerItems(forest, selectedCopyable);
+  const clipboardHasMedia = clipboard?.items.some((item) => parseExplorerEntityId(item.id)?.type === "media") ?? false;
+  const canPaste = Boolean(clipboard) && canPasteIntoExplorerLocation(forest, locationId, clipboard) && (!live || clipboard?.mode === "cut" || clipboard?.mode === "copy" && (!clipboardHasMedia || locationIsSiteTree));
   const canProperties = selectedItems.length === 1;
   const canSelectAll = items.length > 0;
   const canCreate = Boolean(
@@ -3985,6 +4242,77 @@ function SiteFileExplorer({
     }
     return base;
   };
+  const uploadMediaFiles = async (files, folderNodeIdOverride) => {
+    if (!live || !api || siteId == null) {
+      return;
+    }
+    const ctx = resolveCreateContext();
+    if (!ctx || ctx.tree !== "media") {
+      setErrorMessage("Media files can only be uploaded into the Media Library.");
+      return;
+    }
+    const { accepted, rejected } = filterAllowedMediaUploads(files);
+    if (accepted.length === 0) {
+      setErrorMessage(
+        "Only images, video, audio, PDF, and Office documents can be uploaded."
+      );
+      return;
+    }
+    const folderNodeId = folderNodeIdOverride !== void 0 ? folderNodeIdOverride : ctx.parentId;
+    setBusy(true);
+    for (const file of accepted) {
+      const result = await api.uploadMedia(siteId, file, folderNodeId);
+      if (!result.ok) {
+        setErrorMessage(result.error.message);
+        setBusy(false);
+        await reloadForest();
+        return;
+      }
+    }
+    if (rejected.length > 0) {
+      setErrorMessage(
+        `${rejected.length} file(s) skipped \u2014 only images, video, audio, PDF, and Office documents are allowed.`
+      );
+    }
+    await reloadForest();
+    setBusy(false);
+  };
+  const handleUploadMediaClick = () => {
+    uploadInputRef.current?.click();
+  };
+  const handleUploadInputChange = (event) => {
+    const list = event.target.files;
+    event.target.value = "";
+    if (!list || list.length === 0) {
+      return;
+    }
+    void uploadMediaFiles(Array.from(list));
+  };
+  const handleOsFilesDrop = (files, targetFolderId) => {
+    let folderNodeId;
+    if (targetFolderId) {
+      const target = findExplorerItem(forest, targetFolderId);
+      if (!target || !isExplorerLocation(target) || target.disabled) {
+        return;
+      }
+      if (target.role === "media-library") {
+        folderNodeId = null;
+      } else if (target.role === "folder") {
+        if (!isUnderMediaLibrary(forest, target.id, findExplorerParent)) {
+          setErrorMessage("Media files can only be uploaded into the Media Library.");
+          return;
+        }
+        const ref = parseExplorerEntityId(target.id);
+        if (!ref || ref.type !== "node") {
+          return;
+        }
+        folderNodeId = ref.id;
+      } else {
+        return;
+      }
+    }
+    void uploadMediaFiles(files, folderNodeId);
+  };
   const handleOpen = (item) => {
     if (item.role === "settings") {
       onOpenSiteSettings?.();
@@ -4041,31 +4369,31 @@ function SiteFileExplorer({
     setSelectionAnchorId(items[0]?.id ?? null);
   };
   const handleCut = () => {
-    if (!canCutCopy || selectedMovable.length === 0) {
+    if (!canCut || selectedCuttable.length === 0) {
       return;
     }
-    const sourceParent = findExplorerParent(forest, selectedMovable[0].id);
+    const sourceParent = findExplorerParent(forest, selectedCuttable[0].id);
     if (!sourceParent) {
       return;
     }
-    if (selectedMovable.some(
+    if (selectedCuttable.some(
       (item) => findExplorerParent(forest, item.id)?.id !== sourceParent.id
     )) {
       return;
     }
     setClipboard({
       mode: "cut",
-      items: cloneExplorerForest(selectedMovable),
+      items: cloneExplorerForest(selectedCuttable),
       sourceParentId: sourceParent.id
     });
   };
   const handleCopy = () => {
-    if (!canCutOrCopyExplorerItems(forest, selectedMovable) || selectedMovable.length === 0) {
+    if (!canCopy || selectedCopyable.length === 0) {
       return;
     }
     setClipboard({
       mode: "copy",
-      items: cloneExplorerForest(selectedMovable),
+      items: cloneExplorerForest(selectedCopyable),
       sourceParentId: null
     });
   };
@@ -4093,10 +4421,27 @@ function SiteFileExplorer({
     if (!ctx) {
       return;
     }
+    if (clipboardHasMedia && ctx.tree !== "site") {
+      setErrorMessage("Media library items can only be linked into the site tree.");
+      return;
+    }
     setBusy(true);
     for (const item of clipboard.items) {
       const ref = parseExplorerEntityId(item.id);
-      if (!ref || ref.type !== "node") {
+      if (!ref) {
+        continue;
+      }
+      if (ref.type === "media") {
+        if (clipboard.mode !== "copy") {
+          continue;
+        }
+        const result2 = await createMediaRefLink(api, siteId, ref.id, item.label, ctx.parentId);
+        if (!result2.ok) {
+          setErrorMessage(result2.error.message);
+          setBusy(false);
+          await reloadForest();
+          return;
+        }
         continue;
       }
       const result = clipboard.mode === "copy" ? await api.copyContentNode(siteId, ref.id, { parentId: ctx.parentId }) : await api.updateContentNode(siteId, ref.id, { parentId: ctx.parentId });
@@ -4217,6 +4562,7 @@ function SiteFileExplorer({
     if (!target) {
       return;
     }
+    const targetUnderMedia = isUnderMediaLibrary(forest, target.id, findExplorerParent);
     const ctx = target.role === "folder" ? (() => {
       const ref = parseExplorerEntityId(target.id);
       if (!ref || ref.type !== "node") {
@@ -4224,24 +4570,57 @@ function SiteFileExplorer({
       }
       return {
         parentId: ref.id,
-        tree: isUnderMediaLibrary(forest, target.id, findExplorerParent) ? "media" : "site"
+        tree: targetUnderMedia ? "media" : "site"
       };
-    })() : apiParentContext(target);
+    })() : target.role === "media-library" ? { parentId: null, tree: "media" } : apiParentContext(target);
     if (!ctx) {
       return;
     }
     setBusy(true);
     for (const id of itemIds) {
       const ref = parseExplorerEntityId(id);
-      if (!ref || ref.type !== "node") {
+      if (!ref) {
         continue;
       }
-      const result = await api.updateContentNode(siteId, ref.id, { parentId: ctx.parentId });
-      if (!result.ok) {
-        setErrorMessage(result.error.message);
-        setBusy(false);
-        await reloadForest();
-        return;
+      if (ref.type === "media") {
+        if (ctx.tree === "media") {
+          const result = await api.updateMedia(siteId, ref.id, {
+            folderNodeId: ctx.parentId
+          });
+          if (!result.ok) {
+            setErrorMessage(result.error.message);
+            setBusy(false);
+            await reloadForest();
+            return;
+          }
+        } else {
+          const item = findExplorerItem(forest, id);
+          const result = await createMediaRefLink(
+            api,
+            siteId,
+            ref.id,
+            item?.label ?? "Media",
+            ctx.parentId
+          );
+          if (!result.ok) {
+            setErrorMessage(result.error.message);
+            setBusy(false);
+            await reloadForest();
+            return;
+          }
+        }
+        continue;
+      }
+      if (ctx.tree === "media" || ctx.tree === "site") {
+        const result = await api.updateContentNode(siteId, ref.id, {
+          parentId: ctx.parentId
+        });
+        if (!result.ok) {
+          setErrorMessage(result.error.message);
+          setBusy(false);
+          await reloadForest();
+          return;
+        }
       }
     }
     setClipboard(null);
@@ -4378,7 +4757,7 @@ function SiteFileExplorer({
   };
   const statusCountLabel = selectedIds.length > 0 ? `${selectedIds.length} object(s) selected` : `${items.length} object(s)${hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}${busy ? " \u2014 updating\u2026" : ""}`;
   const canUndo = live ? softDeleteUndo != null : undoEntry != null;
-  const copyHandler = canCutCopy ? handleCopy : void 0;
+  const copyHandler = canCopy ? handleCopy : void 0;
   return /* @__PURE__ */ jsxs24("div", { className: "site-file-explorer", children: [
     /* @__PURE__ */ jsx46(
       FileExplorerWindow,
@@ -4398,6 +4777,8 @@ function SiteFileExplorer({
         onSelect: handleSelect,
         onOpen: handleOpen,
         onItemsDrop: handleItemsDrop,
+        onOsFilesDrop: live && locationIsMediaTree ? handleOsFilesDrop : void 0,
+        mediaUploadNotice: live && locationIsMediaTree,
         onLevelUp: () => {
           if (!parent) {
             return;
@@ -4407,13 +4788,14 @@ function SiteFileExplorer({
         },
         levelUpDisabled: !parent,
         onClose,
-        onCut: canCutCopy ? handleCut : void 0,
+        onCut: canCut ? handleCut : void 0,
         onCopy: copyHandler,
         onPaste: canPaste ? handlePaste : void 0,
         onDelete: canDelete ? handleDelete : void 0,
         onUndo: canUndo ? handleUndo : void 0,
         onNewFolder: live && canCreate ? () => setPrompt("new-folder") : void 0,
-        onNewPage: live && canCreate && resolveCreateContext()?.tree === "site" ? () => setPrompt("new-page") : void 0,
+        onNewPage: live && canCreate && locationIsSiteTree ? () => setPrompt("new-page") : void 0,
+        onUploadMedia: live && canCreate && locationIsMediaTree ? handleUploadMediaClick : void 0,
         onRename: live && canRename ? () => setPrompt("rename") : void 0,
         onSelectAll: canSelectAll ? handleSelectAll : void 0,
         onProperties: canProperties ? () => {
@@ -4470,8 +4852,89 @@ function SiteFileExplorer({
         message: errorMessage,
         onClose: () => setErrorMessage(null)
       }
-    ) }) : null
+    ) }) : null,
+    /* @__PURE__ */ jsx46(
+      "input",
+      {
+        ref: uploadInputRef,
+        type: "file",
+        className: "file-input-native",
+        accept: MEDIA_UPLOAD_ACCEPT,
+        multiple: true,
+        tabIndex: -1,
+        "aria-hidden": true,
+        onChange: handleUploadInputChange
+      }
+    )
   ] });
+}
+function mediaRefTitleAndSlug(label) {
+  const title = label.trim() || "Media";
+  const withoutExt = title.replace(/\.[^.]+$/, "");
+  return { title, slug: slugifyExplorerTitle(withoutExt || title) };
+}
+async function createMediaRefLink(api, siteId, mediaAssetId, label, parentId) {
+  const { title, slug: baseSlug } = mediaRefTitleAndSlug(label);
+  let last = null;
+  for (let n3 = 0; n3 < 30; n3 += 1) {
+    const slug = n3 === 0 ? baseSlug : `${baseSlug}-${n3 + 1}`;
+    last = await api.createContentNode(siteId, {
+      tree: "site",
+      kind: "media_ref",
+      parentId,
+      slug,
+      title,
+      mediaAssetId,
+      publication: "published"
+    });
+    if (last.ok || last.error.code !== "slug_taken") {
+      return last;
+    }
+  }
+  return last;
+}
+
+// src/admin/bricks/FileExplorerWindow/useBlockOsFileWindowNavigation.ts
+import { useEffect as useEffect8 } from "react";
+var MEDIA_UPLOAD_DROPZONE_ATTR = "data-media-upload-dropzone";
+function useBlockOsFileWindowNavigation() {
+  useEffect8(() => {
+    const isOsFileDrag = (event) => dataTransferHasOsFiles(event.dataTransfer) && !isExplorerInternalDrag();
+    const inMediaDropzone = (event) => {
+      const node = event.target;
+      if (!(node instanceof Element)) {
+        return false;
+      }
+      return Boolean(node.closest(`[${MEDIA_UPLOAD_DROPZONE_ATTR}="true"]`));
+    };
+    const onDragOver = (event) => {
+      if (!isOsFileDrag(event)) {
+        return;
+      }
+      event.preventDefault();
+      try {
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = inMediaDropzone(event) ? "copy" : "none";
+        }
+      } catch {
+      }
+    };
+    const onDrop = (event) => {
+      if (!isOsFileDrag(event)) {
+        return;
+      }
+      if (!inMediaDropzone(event)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    window.addEventListener("dragover", onDragOver, true);
+    window.addEventListener("drop", onDrop, true);
+    return () => {
+      window.removeEventListener("dragover", onDragOver, true);
+      window.removeEventListener("drop", onDrop, true);
+    };
+  }, []);
 }
 
 // node_modules/@lexical/react/dist/LexicalComposer.dev.mjs
@@ -19687,9 +20150,9 @@ var tokenizeRawText2 = mod2.tokenizeRawText;
 var unmountSlotContainer2 = mod2.unmountSlotContainer;
 
 // node_modules/@lexical/react/dist/LexicalComposer.dev.mjs
-import { useLayoutEffect as useLayoutEffect3, useEffect as useEffect8, useMemo as useMemo4 } from "react";
+import { useLayoutEffect as useLayoutEffect3, useEffect as useEffect9, useMemo as useMemo4 } from "react";
 import { jsx as jsx47 } from "react/jsx-runtime";
-var useLayoutEffectImpl = CAN_USE_DOM2 ? useLayoutEffect3 : useEffect8;
+var useLayoutEffectImpl = CAN_USE_DOM2 ? useLayoutEffect3 : useEffect9;
 var HISTORY_MERGE_OPTIONS = {
   tag: HISTORY_MERGE_TAG2
 };
@@ -19792,13 +20255,13 @@ var useLexicalEditable_dev_exports = {};
 __export(useLexicalEditable_dev_exports, {
   useLexicalEditable: () => useLexicalEditable
 });
-import { useLayoutEffect as useLayoutEffect4, useEffect as useEffect9, useMemo as useMemo5, useState as useState10, useRef as useRef8 } from "react";
-var useLayoutEffectImpl2 = CAN_USE_DOM2 ? useLayoutEffect4 : useEffect9;
+import { useLayoutEffect as useLayoutEffect4, useEffect as useEffect10, useMemo as useMemo5, useState as useState10, useRef as useRef9 } from "react";
+var useLayoutEffectImpl2 = CAN_USE_DOM2 ? useLayoutEffect4 : useEffect10;
 function useLexicalSubscription(subscription2) {
   const [editor] = useLexicalComposerContext2();
   const initializedSubscription = useMemo5(() => subscription2(editor), [editor, subscription2]);
   const [value, setValue] = useState10(() => initializedSubscription.initialValueFn());
-  const valueRef = useRef8(value);
+  const valueRef = useRef9(value);
   useLayoutEffectImpl2(() => {
     const {
       initialValueFn,
@@ -23852,7 +24315,7 @@ var mod8 = true ? LexicalReactProviderExtension_dev_exports : LexicalReactProvid
 var ReactProviderExtension2 = mod8.ReactProviderExtension;
 
 // node_modules/@lexical/react/dist/LexicalRichTextPlugin.dev.mjs
-import { useLayoutEffect as useLayoutEffect5, useEffect as useEffect10, useState as useState11, useMemo as useMemo6, Suspense } from "react";
+import { useLayoutEffect as useLayoutEffect5, useEffect as useEffect11, useState as useState11, useMemo as useMemo6, Suspense } from "react";
 import { flushSync, createPortal as createPortal2 } from "react-dom";
 import { jsx as jsx48, jsxs as jsxs25, Fragment as Fragment9 } from "react/jsx-runtime";
 
@@ -28426,7 +28889,7 @@ var registerRichText2 = mod13.registerRichText;
 function formatDevErrorMessage9(message) {
   throw new Error(message);
 }
-var useLayoutEffectImpl3 = CAN_USE_DOM2 ? useLayoutEffect5 : useEffect10;
+var useLayoutEffectImpl3 = CAN_USE_DOM2 ? useLayoutEffect5 : useEffect11;
 function useDecorators(editor, ErrorBoundary2) {
   const [decorators, setDecorators] = useState11(() => editor.getDecorators());
   useLayoutEffectImpl3(() => {
@@ -28436,7 +28899,7 @@ function useDecorators(editor, ErrorBoundary2) {
       });
     });
   }, [editor]);
-  useEffect10(() => {
+  useEffect11(() => {
     setDecorators(editor.getDecorators());
   }, [editor]);
   return useMemo6(() => {
@@ -28554,7 +29017,7 @@ __export(LexicalContentEditable_dev_exports, {
   ContentEditable: () => ContentEditable,
   ContentEditableElement: () => ContentEditableElement
 });
-import { useLayoutEffect as useLayoutEffect6, useEffect as useEffect11, forwardRef as forwardRef2, useState as useState12, useCallback as useCallback4, useMemo as useMemo7 } from "react";
+import { useLayoutEffect as useLayoutEffect6, useEffect as useEffect12, forwardRef as forwardRef2, useState as useState12, useCallback as useCallback4, useMemo as useMemo7 } from "react";
 import { jsx as jsx49, jsxs as jsxs26, Fragment as Fragment10 } from "react/jsx-runtime";
 function mergeRefs(...refs) {
   return (value) => {
@@ -28567,7 +29030,7 @@ function mergeRefs(...refs) {
     }
   };
 }
-var useLayoutEffectImpl4 = CAN_USE_DOM2 ? useLayoutEffect6 : useEffect11;
+var useLayoutEffectImpl4 = CAN_USE_DOM2 ? useLayoutEffect6 : useEffect12;
 function ContentEditableElementImpl({
   editor,
   ariaActiveDescendant,
@@ -29114,10 +29577,10 @@ var createEmptyHistoryState2 = mod16.createEmptyHistoryState;
 var registerHistory2 = mod16.registerHistory;
 
 // node_modules/@lexical/react/dist/LexicalHistoryPlugin.dev.mjs
-import { useMemo as useMemo8, useEffect as useEffect12 } from "react";
+import { useMemo as useMemo8, useEffect as useEffect13 } from "react";
 function useHistory(editor, externalHistoryState, delay = 1e3) {
   const historyState = useMemo8(() => externalHistoryState || createEmptyHistoryState2(), [externalHistoryState]);
-  useEffect12(() => {
+  useEffect13(() => {
     return registerHistory2(editor, historyState, delay);
   }, [delay, editor, historyState]);
 }
@@ -30885,9 +31348,9 @@ var registerList2 = mod18.registerList;
 var registerListStrictIndentTransform2 = mod18.registerListStrictIndentTransform;
 
 // node_modules/@lexical/react/dist/LexicalListPlugin.dev.mjs
-import { useEffect as useEffect13 } from "react";
+import { useEffect as useEffect14 } from "react";
 function useList(editor) {
-  useEffect13(() => {
+  useEffect14(() => {
     return registerList2(editor);
   }, [editor]);
 }
@@ -30896,12 +31359,12 @@ function ListPlugin({
   shouldPreserveNumbering = false
 }) {
   const [editor] = useLexicalComposerContext2();
-  useEffect13(() => {
+  useEffect14(() => {
     if (!editor.hasNodes([ListNode2, ListItemNode2])) {
       throw new Error("ListPlugin: ListNode and/or ListItemNode not registered on editor");
     }
   }, [editor]);
-  useEffect13(() => {
+  useEffect14(() => {
     return mergeRegister2(registerList2(editor, {
       restoreNumbering: shouldPreserveNumbering
     }), hasStrictIndent ? registerListStrictIndentTransform2(editor) : () => {
@@ -32136,18 +32599,18 @@ var registerClickableLink2 = mod20.registerClickableLink;
 var registerLink2 = mod20.registerLink;
 
 // node_modules/@lexical/react/dist/LexicalLinkPlugin.dev.mjs
-import { useEffect as useEffect14 } from "react";
+import { useEffect as useEffect15 } from "react";
 function LinkPlugin({
   validateUrl,
   attributes
 }) {
   const [editor] = useLexicalComposerContext2();
-  useEffect14(() => {
+  useEffect15(() => {
     if (!editor.hasNodes([LinkNode2])) {
       throw new Error("LinkPlugin: LinkNode not registered on editor");
     }
   });
-  useEffect14(() => {
+  useEffect15(() => {
     return registerLink2(editor, namedSignals2({
       attributes,
       validateUrl
@@ -32165,8 +32628,8 @@ var LexicalOnChangePlugin_dev_exports = {};
 __export(LexicalOnChangePlugin_dev_exports, {
   OnChangePlugin: () => OnChangePlugin
 });
-import { useLayoutEffect as useLayoutEffect7, useEffect as useEffect15 } from "react";
-var useLayoutEffectImpl5 = CAN_USE_DOM2 ? useLayoutEffect7 : useEffect15;
+import { useLayoutEffect as useLayoutEffect7, useEffect as useEffect16 } from "react";
+var useLayoutEffectImpl5 = CAN_USE_DOM2 ? useLayoutEffect7 : useEffect16;
 function OnChangePlugin({
   ignoreHistoryMergeTagChange = true,
   ignoreSelectionChange = false,
@@ -32741,7 +33204,7 @@ function DocumentEditorCanvas({
 }
 
 // src/admin/bricks/DocumentEditor/DocumentEditorWindow.tsx
-import { useEffect as useEffect16, useState as useState15 } from "react";
+import { useEffect as useEffect17, useState as useState15 } from "react";
 import { Fragment as Fragment13, jsx as jsx56, jsxs as jsxs31 } from "react/jsx-runtime";
 function DocumentEditorWindow({
   title,
@@ -32774,14 +33237,14 @@ function DocumentEditorWindow({
   const [editorKey, setEditorKey] = useState15(0);
   const [alertMessage, setAlertMessage] = useState15(null);
   const [dirty, setDirty] = useState15(false);
-  useEffect16(() => {
+  useEffect17(() => {
     setDocumentTitle(documentTitleProp);
     setPublication(publicationProp);
     setDraftBody(null);
     setDirty(false);
     setEditorKey((value) => value + 1);
   }, [documentTitleProp, bodyJson, publicationProp]);
-  useEffect16(() => {
+  useEffect17(() => {
     if (!error) {
       return;
     }
@@ -33211,6 +33674,10 @@ function createAdminApiClient(options = {}) {
       }
       return requestMultipart(`/sites/${siteId}/media`, form);
     },
+    updateMedia: (siteId, mediaId, body) => request(`/sites/${siteId}/media/${mediaId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body)
+    }),
     deleteMedia: (siteId, mediaId) => request(`/sites/${siteId}/media/${mediaId}`, {
       method: "DELETE"
     }),
@@ -33447,7 +33914,7 @@ function ControlPanel({
 }
 
 // src/admin/components/SitesWindow/SitesWindow.tsx
-import { useCallback as useCallback6, useEffect as useEffect18, useLayoutEffect as useLayoutEffect8, useRef as useRef9, useState as useState18 } from "react";
+import { useCallback as useCallback6, useEffect as useEffect19, useLayoutEffect as useLayoutEffect8, useRef as useRef10, useState as useState18 } from "react";
 
 // src/admin/lib/accessModeResetWarning.ts
 var ACCESS_MODE_RESET_WARNING = "This change will switch Admin access to path.\nUnfinished work in this session will be discarded, and you will need to sign in again on the path admin login page.";
@@ -33456,7 +33923,7 @@ Unfinished work in this session will be discarded, and you will need to sign in 
 This cannot be undone.`;
 
 // src/admin/components/SitesWindow/SiteFormDialog.tsx
-import { useEffect as useEffect17, useId as useId6, useMemo as useMemo10, useState as useState17 } from "react";
+import { useEffect as useEffect18, useId as useId6, useMemo as useMemo10, useState as useState17 } from "react";
 
 // src/admin/components/HostsWindow/hostFormAccess.ts
 var MAIN_SITE_SLUG = "main";
@@ -33551,15 +34018,15 @@ function SiteFormDialog({
     ),
     [hosts]
   );
-  useEffect17(() => {
+  useEffect18(() => {
     setLocalErrors({});
   }, [fieldErrors]);
-  useEffect17(() => {
+  useEffect18(() => {
     if (selectedHostId != null && !assignedHosts.some((host) => host.id === selectedHostId)) {
       setSelectedHostId(null);
     }
   }, [assignedHosts, selectedHostId]);
-  useEffect17(() => {
+  useEffect18(() => {
     if (assignHostId != null && !assignableHosts.some((host) => host.id === assignHostId)) {
       setAssignHostId(null);
     }
@@ -33844,11 +34311,11 @@ function SitesWindow({
   const [alert, setAlert] = useState18(null);
   const [confirmDelete, setConfirmDelete] = useState18(null);
   const [pendingAccessResetUnassign, setPendingAccessResetUnassign] = useState18(null);
-  const wasSavingRef = useRef9(false);
-  const alertSoundKeyRef = useRef9(null);
-  const confirmSoundKeyRef = useRef9(null);
-  const accessResetSoundKeyRef = useRef9(null);
-  const appliedPreferIdRef = useRef9(null);
+  const wasSavingRef = useRef10(false);
+  const alertSoundKeyRef = useRef10(null);
+  const confirmSoundKeyRef = useRef10(null);
+  const accessResetSoundKeyRef = useRef10(null);
+  const appliedPreferIdRef = useRef10(null);
   const showErrorAlert = useCallback6(
     (message, title = "Error") => {
       const key = `${title}\0${message}`;
@@ -33907,7 +34374,7 @@ function SitesWindow({
     closeAccessResetUnassign();
     onUnassignHost(hostId);
   }, [pendingAccessResetUnassign, closeAccessResetUnassign, onUnassignHost]);
-  useEffect18(() => {
+  useEffect19(() => {
     if (preferSelectedId == null) {
       appliedPreferIdRef.current = null;
       return;
@@ -33920,17 +34387,17 @@ function SitesWindow({
       appliedPreferIdRef.current = preferSelectedId;
     }
   }, [preferSelectedId, sites]);
-  useEffect18(() => {
+  useEffect19(() => {
     if (selectedId != null && !sites.some((site) => site.id === selectedId)) {
       setSelectedId(null);
     }
   }, [sites, selectedId]);
-  useEffect18(() => {
+  useEffect19(() => {
     if (confirmDelete != null && !sites.some((site) => site.id === confirmDelete.site.id)) {
       closeDeleteConfirm();
     }
   }, [sites, confirmDelete, closeDeleteConfirm]);
-  useEffect18(() => {
+  useEffect19(() => {
     const hadErrors = Boolean(formError) || Boolean(fieldErrors && Object.keys(fieldErrors).length > 0);
     if (wasSavingRef.current && !saving && form.open && !hadErrors) {
       setForm({ open: false });
@@ -33944,7 +34411,7 @@ function SitesWindow({
     }
     showErrorAlert(error);
   }, [error, loading, showErrorAlert]);
-  useEffect18(() => {
+  useEffect19(() => {
     if (!formError && !(form.open && showFormErrors)) {
       return;
     }
@@ -34194,10 +34661,10 @@ function SitesWindow({
 }
 
 // src/admin/components/HostsWindow/HostsWindow.tsx
-import { useCallback as useCallback7, useEffect as useEffect20, useLayoutEffect as useLayoutEffect9, useRef as useRef10, useState as useState20 } from "react";
+import { useCallback as useCallback7, useEffect as useEffect21, useLayoutEffect as useLayoutEffect9, useRef as useRef11, useState as useState20 } from "react";
 
 // src/admin/components/HostsWindow/HostFormDialog.tsx
-import { useEffect as useEffect19, useId as useId7, useState as useState19 } from "react";
+import { useEffect as useEffect20, useId as useId7, useState as useState19 } from "react";
 import { jsx as jsx61, jsxs as jsxs36 } from "react/jsx-runtime";
 function HostFormDialog({
   mode,
@@ -34228,10 +34695,10 @@ function HostFormDialog({
   const isMainSelected = siteId != null && selectedSite?.slug === MAIN_SITE_SLUG;
   const otherAdminExists = adminSurfaceHostId != null && adminSurfaceHostId !== initial?.hostId;
   const surfaceSelectable = mode === "edit" && !hostProtected && !siteSelectLocked && siteId != null && isMainSelected && !otherAdminExists;
-  useEffect19(() => {
+  useEffect20(() => {
     setLocalErrors({});
   }, [fieldErrors]);
-  useEffect19(() => {
+  useEffect20(() => {
     if (!surfaceSelectable && surface !== "site") {
       setSurface("site");
     }
@@ -34439,11 +34906,11 @@ function HostsWindow({
   const [alert, setAlert] = useState20(null);
   const [confirmDelete, setConfirmDelete] = useState20(null);
   const [pendingAccessReset, setPendingAccessReset] = useState20(null);
-  const wasSavingRef = useRef10(false);
-  const alertSoundKeyRef = useRef10(null);
-  const confirmSoundKeyRef = useRef10(null);
-  const accessResetSoundKeyRef = useRef10(null);
-  const appliedPreferIdRef = useRef10(null);
+  const wasSavingRef = useRef11(false);
+  const alertSoundKeyRef = useRef11(null);
+  const confirmSoundKeyRef = useRef11(null);
+  const accessResetSoundKeyRef = useRef11(null);
+  const appliedPreferIdRef = useRef11(null);
   const showErrorAlert = useCallback7(
     (message, title = "Error") => {
       const key = `${title}\0${message}`;
@@ -34504,7 +34971,7 @@ function HostsWindow({
     setShowFormErrors(true);
     onSave?.(payload);
   }, [pendingAccessReset, closeAccessResetConfirm, onSave]);
-  useEffect20(() => {
+  useEffect21(() => {
     if (preferSelectedId == null) {
       appliedPreferIdRef.current = null;
       return;
@@ -34517,17 +34984,17 @@ function HostsWindow({
       appliedPreferIdRef.current = preferSelectedId;
     }
   }, [preferSelectedId, hosts]);
-  useEffect20(() => {
+  useEffect21(() => {
     if (selectedId != null && !hosts.some((row) => row.id === selectedId)) {
       setSelectedId(null);
     }
   }, [hosts, selectedId]);
-  useEffect20(() => {
+  useEffect21(() => {
     if (confirmDelete != null && !hosts.some((row) => row.id === confirmDelete.host.id)) {
       closeDeleteConfirm();
     }
   }, [hosts, confirmDelete, closeDeleteConfirm]);
-  useEffect20(() => {
+  useEffect21(() => {
     const hadErrors = Boolean(formError) || Boolean(fieldErrors && Object.keys(fieldErrors).length > 0);
     if (wasSavingRef.current && !saving && form.open && !hadErrors) {
       setForm({ open: false });
@@ -34541,7 +35008,7 @@ function HostsWindow({
     }
     showErrorAlert(error);
   }, [error, loading, showErrorAlert]);
-  useEffect20(() => {
+  useEffect21(() => {
     if (!formError && !(form.open && showFormErrors)) {
       return;
     }
@@ -34812,7 +35279,7 @@ ${DELETE_ADMIN_HOST_ACCESS_RESET_WARNING}` : `Delete host \u201C${confirmDelete.
 }
 
 // src/admin/components/SettingsWindow/SettingsWindow.tsx
-import { useEffect as useEffect21, useLayoutEffect as useLayoutEffect10, useRef as useRef11, useState as useState21 } from "react";
+import { useEffect as useEffect22, useLayoutEffect as useLayoutEffect10, useRef as useRef12, useState as useState21 } from "react";
 import { jsx as jsx63, jsxs as jsxs38 } from "react/jsx-runtime";
 var ACCESS_SWITCH_WARNING = "Changing admin access mode will discard unfinished work in this session.\nYou will need to sign in again on the new admin login page.";
 function SettingsWindow({
@@ -34848,26 +35315,26 @@ function SettingsWindow({
     null
   );
   const [alert, setAlert] = useState21(null);
-  const soundedFor = useRef11(null);
-  const warnedFor = useRef11(null);
+  const soundedFor = useRef12(null);
+  const warnedFor = useRef12(null);
   const handleCancel = onCancel ?? onClose;
   const busy = loading || saving;
   const showAlert = Boolean(alert);
   const showSwitchWarning = pendingAccess != null && !showAlert;
   const toolbarChecked = symfonyDebugToolbarEditable ? toolbarDraft : false;
   const toolbarDisabled = !symfonyDebugToolbarEditable || !canEdit || busy;
-  useEffect21(() => {
+  useEffect22(() => {
     setDraft(adminAccess);
   }, [adminAccess]);
-  useEffect21(() => {
+  useEffect22(() => {
     setToolbarDraft(symfonyDebugToolbar);
   }, [symfonyDebugToolbar]);
-  useEffect21(() => {
+  useEffect22(() => {
     if (draft === "domain" && !domainAvailable) {
       setDraft("path");
     }
   }, [domainAvailable, draft]);
-  useEffect21(() => {
+  useEffect22(() => {
     if (!error) {
       return;
     }
@@ -35023,7 +35490,7 @@ function SettingsWindow({
 }
 
 // src/admin/components/SiteSettingsWindow/SiteSettingsWindow.tsx
-import { useEffect as useEffect22, useId as useId8, useState as useState22 } from "react";
+import { useEffect as useEffect23, useId as useId8, useState as useState22 } from "react";
 import { Fragment as Fragment17, jsx as jsx64, jsxs as jsxs39 } from "react/jsx-runtime";
 function SiteSettingsWindow({
   siteName,
@@ -35069,12 +35536,12 @@ function SiteSettingsWindow({
     faviconMediaId != null ? String(faviconMediaId) : ""
   );
   const [alertMessage, setAlertMessage] = useState22(null);
-  useEffect22(() => {
+  useEffect23(() => {
     setName(nameProp);
     setDescription(descriptionProp ?? "");
     setFaviconIdInput(faviconMediaId != null ? String(faviconMediaId) : "");
   }, [nameProp, descriptionProp, faviconMediaId]);
-  useEffect22(() => {
+  useEffect23(() => {
     if (!error) {
       return;
     }
@@ -35250,9 +35717,9 @@ function SiteSettingsWindow({
 // src/admin/components/PermissionsWindow/PermissionsWindow.tsx
 import {
   useCallback as useCallback8,
-  useEffect as useEffect24,
+  useEffect as useEffect25,
   useLayoutEffect as useLayoutEffect11,
-  useRef as useRef12,
+  useRef as useRef13,
   useState as useState24
 } from "react";
 
@@ -35266,7 +35733,7 @@ function truncateWithEllipsis(value, maxLength = 30) {
 }
 
 // src/admin/components/PermissionsWindow/PermissionFormDialog.tsx
-import { useEffect as useEffect23, useId as useId9, useState as useState23 } from "react";
+import { useEffect as useEffect24, useId as useId9, useState as useState23 } from "react";
 import { jsx as jsx65, jsxs as jsxs40 } from "react/jsx-runtime";
 function PermissionFormDialog({
   mode,
@@ -35285,7 +35752,7 @@ function PermissionFormDialog({
   const [label, setLabel] = useState23(initial?.label ?? "");
   const [description, setDescription] = useState23(initial?.description ?? "");
   const [localErrors, setLocalErrors] = useState23({});
-  useEffect23(() => {
+  useEffect24(() => {
     setLocalErrors({});
   }, [fieldErrors]);
   const mergedErrors = {
@@ -35431,10 +35898,10 @@ function PermissionsWindow({
   const [showFormErrors, setShowFormErrors] = useState24(false);
   const [alert, setAlert] = useState24(null);
   const [confirmDelete, setConfirmDelete] = useState24(null);
-  const wasSavingRef = useRef12(false);
-  const alertSoundKeyRef = useRef12(null);
-  const confirmSoundKeyRef = useRef12(null);
-  const appliedPreferIdRef = useRef12(null);
+  const wasSavingRef = useRef13(false);
+  const alertSoundKeyRef = useRef13(null);
+  const confirmSoundKeyRef = useRef13(null);
+  const appliedPreferIdRef = useRef13(null);
   const showErrorAlert = useCallback8(
     (message, title = "Error") => {
       const key = `${title}\0${message}`;
@@ -35459,7 +35926,7 @@ function PermissionsWindow({
     setForm({ open: false });
     setShowFormErrors(false);
   };
-  useEffect24(() => {
+  useEffect25(() => {
     if (preferSelectedId == null) {
       appliedPreferIdRef.current = null;
       return;
@@ -35472,17 +35939,17 @@ function PermissionsWindow({
       appliedPreferIdRef.current = preferSelectedId;
     }
   }, [preferSelectedId, permissions]);
-  useEffect24(() => {
+  useEffect25(() => {
     if (selectedId != null && !permissions.some((row) => row.id === selectedId)) {
       setSelectedId(null);
     }
   }, [permissions, selectedId]);
-  useEffect24(() => {
+  useEffect25(() => {
     if (confirmDelete != null && !permissions.some((row) => row.id === confirmDelete.permission.id)) {
       closeDeleteConfirm();
     }
   }, [permissions, confirmDelete, closeDeleteConfirm]);
-  useEffect24(() => {
+  useEffect25(() => {
     const hadErrors = Boolean(formError) || Boolean(fieldErrors && Object.keys(fieldErrors).length > 0);
     if (wasSavingRef.current && !saving && form.open && !hadErrors) {
       setForm({ open: false });
@@ -35496,7 +35963,7 @@ function PermissionsWindow({
     }
     showErrorAlert(error);
   }, [error, loading, showErrorAlert]);
-  useEffect24(() => {
+  useEffect25(() => {
     if (!formError && !(form.open && showFormErrors)) {
       return;
     }
@@ -35719,13 +36186,13 @@ function PermissionsWindow({
 // src/admin/components/RolesWindow/RolesWindow.tsx
 import {
   useCallback as useCallback9,
-  useEffect as useEffect26,
-  useRef as useRef13,
+  useEffect as useEffect27,
+  useRef as useRef14,
   useState as useState26
 } from "react";
 
 // src/admin/components/RolesWindow/RoleFormDialog.tsx
-import { useEffect as useEffect25, useId as useId10, useMemo as useMemo11, useState as useState25 } from "react";
+import { useEffect as useEffect26, useId as useId10, useMemo as useMemo11, useState as useState25 } from "react";
 import { Fragment as Fragment19, jsx as jsx67, jsxs as jsxs42 } from "react/jsx-runtime";
 var NAME_PATTERN = /^ROLE_[A-Z0-9]+(?:_[A-Z0-9]+)*$/;
 function RoleFormDialog({
@@ -35756,15 +36223,15 @@ function RoleFormDialog({
   );
   const [assignPermissionId, setAssignPermissionId] = useState25(null);
   const [localErrors, setLocalErrors] = useState25({});
-  useEffect25(() => {
+  useEffect26(() => {
     setLocalErrors({});
   }, [fieldErrors]);
-  useEffect25(() => {
+  useEffect26(() => {
     if (selectedPermissionId != null && !permissionIds.includes(selectedPermissionId)) {
       setSelectedPermissionId(null);
     }
   }, [permissionIds, selectedPermissionId]);
-  useEffect25(() => {
+  useEffect26(() => {
     if (assignPermissionId != null && permissionIds.includes(assignPermissionId)) {
       setAssignPermissionId(null);
     }
@@ -36065,10 +36532,10 @@ function RolesWindow({
   const [showFormErrors, setShowFormErrors] = useState26(false);
   const [alert, setAlert] = useState26(null);
   const [confirmDelete, setConfirmDelete] = useState26(null);
-  const wasSavingRef = useRef13(false);
-  const alertSoundKeyRef = useRef13(null);
-  const confirmSoundKeyRef = useRef13(null);
-  const appliedPreferIdRef = useRef13(null);
+  const wasSavingRef = useRef14(false);
+  const alertSoundKeyRef = useRef14(null);
+  const confirmSoundKeyRef = useRef14(null);
+  const appliedPreferIdRef = useRef14(null);
   const showErrorAlert = useCallback9(
     (message, title = "Error") => {
       const key = `${title}\0${message}`;
@@ -36093,7 +36560,7 @@ function RolesWindow({
     setForm({ open: false });
     setShowFormErrors(false);
   };
-  useEffect26(() => {
+  useEffect27(() => {
     if (preferSelectedId == null) {
       appliedPreferIdRef.current = null;
       return;
@@ -36106,19 +36573,19 @@ function RolesWindow({
       appliedPreferIdRef.current = preferSelectedId;
     }
   }, [preferSelectedId, roles]);
-  useEffect26(() => {
+  useEffect27(() => {
     if (error) {
       showErrorAlert(error);
     }
   }, [error, showErrorAlert]);
-  useEffect26(() => {
+  useEffect27(() => {
     const message = formatSaveErrors4(formError, fieldErrors);
     if (message) {
       setShowFormErrors(true);
       showErrorAlert(message);
     }
   }, [formError, fieldErrors, showErrorAlert]);
-  useEffect26(() => {
+  useEffect27(() => {
     if (wasSavingRef.current && !saving && form.open && !formError) {
       const hasFieldError = Boolean(fieldErrors?.name) || Boolean(fieldErrors?.label) || Boolean(fieldErrors?.description);
       if (!hasFieldError) {
@@ -36335,13 +36802,13 @@ function RolesWindow({
 // src/admin/components/UsersWindow/UsersWindow.tsx
 import {
   useCallback as useCallback10,
-  useEffect as useEffect29,
-  useRef as useRef14,
+  useEffect as useEffect30,
+  useRef as useRef15,
   useState as useState29
 } from "react";
 
 // src/admin/components/UsersWindow/UserFormDialog.tsx
-import { useEffect as useEffect27, useId as useId11, useMemo as useMemo12, useState as useState27 } from "react";
+import { useEffect as useEffect28, useId as useId11, useMemo as useMemo12, useState as useState27 } from "react";
 import { Fragment as Fragment21, jsx as jsx69, jsxs as jsxs44 } from "react/jsx-runtime";
 var EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function UserFormDialog({
@@ -36398,25 +36865,25 @@ function UserFormDialog({
     () => roles.filter((row) => row.name !== "ROLE_ADMIN"),
     [roles]
   );
-  useEffect27(() => {
+  useEffect28(() => {
     setLocalErrors({});
   }, [fieldErrors]);
-  useEffect27(() => {
+  useEffect28(() => {
     if (selectedRoleId != null && !roleIds.includes(selectedRoleId)) {
       setSelectedRoleId(null);
     }
   }, [roleIds, selectedRoleId]);
-  useEffect27(() => {
+  useEffect28(() => {
     if (assignRoleId != null && roleIds.includes(assignRoleId)) {
       setAssignRoleId(null);
     }
   }, [roleIds, assignRoleId]);
-  useEffect27(() => {
+  useEffect28(() => {
     if (selectedSiteId != null && !siteAssignments.some((row) => row.siteId === selectedSiteId)) {
       setSelectedSiteId(null);
     }
   }, [siteAssignments, selectedSiteId]);
-  useEffect27(() => {
+  useEffect28(() => {
     if (assignSiteId != null && siteAssignments.some((row) => row.siteId === assignSiteId)) {
       setAssignSiteId(null);
     }
@@ -36941,7 +37408,7 @@ function UserFormDialog({
 }
 
 // src/admin/components/UsersWindow/SetPasswordDialog.tsx
-import { useEffect as useEffect28, useId as useId12, useState as useState28 } from "react";
+import { useEffect as useEffect29, useId as useId12, useState as useState28 } from "react";
 import { jsx as jsx70, jsxs as jsxs45 } from "react/jsx-runtime";
 function SetPasswordDialog({
   userId,
@@ -36962,7 +37429,7 @@ function SetPasswordDialog({
   const [confirmPassword, setConfirmPassword] = useState28("");
   const [localErrors, setLocalErrors] = useState28({});
   const requireCurrent = mode === "self";
-  useEffect28(() => {
+  useEffect29(() => {
     setLocalErrors({});
   }, [fieldErrors]);
   const mergedErrors = {
@@ -37206,11 +37673,11 @@ function UsersWindow({
   const [showPasswordErrors, setShowPasswordErrors] = useState29(false);
   const [alert, setAlert] = useState29(null);
   const [confirmDelete, setConfirmDelete] = useState29(null);
-  const wasSavingRef = useRef14(false);
-  const wasSettingPasswordRef = useRef14(false);
-  const alertSoundKeyRef = useRef14(null);
-  const confirmSoundKeyRef = useRef14(null);
-  const appliedPreferIdRef = useRef14(null);
+  const wasSavingRef = useRef15(false);
+  const wasSettingPasswordRef = useRef15(false);
+  const alertSoundKeyRef = useRef15(null);
+  const confirmSoundKeyRef = useRef15(null);
+  const appliedPreferIdRef = useRef15(null);
   const showErrorAlert = useCallback10(
     (message, title = "Error") => {
       const key = `${title}\0${message}`;
@@ -37239,7 +37706,7 @@ function UsersWindow({
     setPasswordDialog({ open: false });
     setShowPasswordErrors(false);
   };
-  useEffect29(() => {
+  useEffect30(() => {
     if (preferSelectedId == null) {
       appliedPreferIdRef.current = null;
       return;
@@ -37252,26 +37719,26 @@ function UsersWindow({
       appliedPreferIdRef.current = preferSelectedId;
     }
   }, [preferSelectedId, users]);
-  useEffect29(() => {
+  useEffect30(() => {
     if (error) {
       showErrorAlert(error);
     }
   }, [error, showErrorAlert]);
-  useEffect29(() => {
+  useEffect30(() => {
     const message = formatSaveErrors5(formError, fieldErrors);
     if (message) {
       setShowFormErrors(true);
       showErrorAlert(message);
     }
   }, [formError, fieldErrors, showErrorAlert]);
-  useEffect29(() => {
+  useEffect30(() => {
     const message = formatPasswordErrors(passwordFormError, passwordFieldErrors);
     if (message) {
       setShowPasswordErrors(true);
       showErrorAlert(message);
     }
   }, [passwordFormError, passwordFieldErrors, showErrorAlert]);
-  useEffect29(() => {
+  useEffect30(() => {
     if (wasSavingRef.current && !saving && form.open && !formError) {
       const hasFieldError = Boolean(fieldErrors?.email) || Boolean(fieldErrors?.password) || Boolean(fieldErrors?.roleIds) || Boolean(fieldErrors?.siteAssignments);
       if (!hasFieldError) {
@@ -37280,7 +37747,7 @@ function UsersWindow({
     }
     wasSavingRef.current = saving;
   }, [saving, form.open, formError, fieldErrors]);
-  useEffect29(() => {
+  useEffect30(() => {
     if (wasSettingPasswordRef.current && !settingPassword && passwordDialog.open && !passwordFormError) {
       const hasFieldError = Boolean(passwordFieldErrors?.currentPassword) || Boolean(passwordFieldErrors?.password) || Boolean(passwordFieldErrors?.confirmPassword);
       if (!hasFieldError) {
@@ -37613,10 +38080,10 @@ function UsersWindow({
 }
 
 // src/admin/components/MyAccount/MyAccountWindow.tsx
-import { useEffect as useEffect30, useId as useId14, useMemo as useMemo13, useState as useState32 } from "react";
+import { useEffect as useEffect31, useId as useId14, useMemo as useMemo13, useState as useState32 } from "react";
 
 // src/admin/components/MyAccount/AvatarCropModal.tsx
-import { useRef as useRef15, useState as useState30 } from "react";
+import { useRef as useRef16, useState as useState30 } from "react";
 
 // node_modules/react-image-crop/dist/index.js
 import e2, { PureComponent as t2, createRef as n2 } from "react";
@@ -38207,7 +38674,7 @@ function AvatarCropModal({
   onClose,
   onError: onError2
 }) {
-  const imgRef = useRef15(null);
+  const imgRef = useRef16(null);
   const [crop, setCrop] = useState30();
   const [completed, setCompleted] = useState30();
   const [busy, setBusy] = useState30(false);
@@ -38410,7 +38877,7 @@ function MyAccountWindow({
     pw: useId14(),
     conf: useId14()
   };
-  useEffect30(() => {
+  useEffect31(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -38442,7 +38909,7 @@ function MyAccountWindow({
       cancelled = true;
     };
   }, [api, errorSoundUrl]);
-  useEffect30(() => {
+  useEffect31(() => {
     return () => {
       if (tempImageUrl) {
         URL.revokeObjectURL(tempImageUrl);
@@ -38976,7 +39443,7 @@ function MyAccountWindow({
 }
 
 // src/admin/pages/LoginPage.tsx
-import { useEffect as useEffect31, useLayoutEffect as useLayoutEffect12, useRef as useRef16, useState as useState33 } from "react";
+import { useEffect as useEffect32, useLayoutEffect as useLayoutEffect12, useRef as useRef17, useState as useState33 } from "react";
 import { jsx as jsx75, jsxs as jsxs50 } from "react/jsx-runtime";
 function normalizeError(error) {
   if (typeof error === "string") {
@@ -39001,9 +39468,9 @@ function LoginPage({
   errorSoundUrl,
   dingSoundUrl
 }) {
-  const dashboardRef = useRef16(null);
-  const modalRootRef = useRef16(null);
-  const soundedFor = useRef16(null);
+  const dashboardRef = useRef17(null);
+  const modalRootRef = useRef17(null);
+  const soundedFor = useRef17(null);
   const message = normalizeError(error);
   const [dismissed, setDismissed] = useState33(false);
   const [boundsEl, setBoundsEl] = useState33(null);
@@ -39011,10 +39478,10 @@ function LoginPage({
   useLayoutEffect12(() => {
     setBoundsEl(dashboardRef.current);
   }, []);
-  useEffect31(() => {
+  useEffect32(() => {
     setDismissed(false);
   }, [message]);
-  useEffect31(() => {
+  useEffect32(() => {
     if (!message || dismissed) {
       if (!message) {
         soundedFor.current = null;
@@ -39070,10 +39537,10 @@ function LoginPage({
 // src/admin/pages/AdminDesktop.tsx
 import {
   useCallback as useCallback12,
-  useEffect as useEffect37,
+  useEffect as useEffect38,
   useLayoutEffect as useLayoutEffect14,
   useMemo as useMemo15,
-  useRef as useRef21,
+  useRef as useRef22,
   useState as useState36
 } from "react";
 
@@ -39155,8 +39622,8 @@ function parseDocumentEditorWindowId(id) {
 
 // src/admin/shell/DesktopWindow.tsx
 import {
-  useEffect as useEffect32,
-  useRef as useRef17
+  useEffect as useEffect33,
+  useRef as useRef18
 } from "react";
 
 // src/admin/shell/resize.ts
@@ -39254,26 +39721,26 @@ function DesktopWindow({
   onPointerDown: onPointerDown2,
   ...rest
 }) {
-  const rootRef = useRef17(null);
-  const dragRef = useRef17(null);
-  const resizeRef = useRef17(null);
-  const onPositionChangeRef = useRef17(onPositionChange);
-  const onBoundsChangeRef = useRef17(onBoundsChange);
-  const dragDisabledRef = useRef17(dragDisabled);
-  const maximizedRef = useRef17(maximized);
-  useEffect32(() => {
+  const rootRef = useRef18(null);
+  const dragRef = useRef18(null);
+  const resizeRef = useRef18(null);
+  const onPositionChangeRef = useRef18(onPositionChange);
+  const onBoundsChangeRef = useRef18(onBoundsChange);
+  const dragDisabledRef = useRef18(dragDisabled);
+  const maximizedRef = useRef18(maximized);
+  useEffect33(() => {
     onPositionChangeRef.current = onPositionChange;
   }, [onPositionChange]);
-  useEffect32(() => {
+  useEffect33(() => {
     onBoundsChangeRef.current = onBoundsChange;
   }, [onBoundsChange]);
-  useEffect32(() => {
+  useEffect33(() => {
     dragDisabledRef.current = dragDisabled;
   }, [dragDisabled]);
-  useEffect32(() => {
+  useEffect33(() => {
     maximizedRef.current = maximized;
   }, [maximized]);
-  useEffect32(() => {
+  useEffect33(() => {
     const onMove = (event) => {
       const node = rootRef.current;
       if (!node) {
@@ -39493,7 +39960,7 @@ function DesktopWindow({
 }
 
 // src/admin/shell/TaskbarClock.tsx
-import { useEffect as useEffect33, useState as useState34 } from "react";
+import { useEffect as useEffect34, useState as useState34 } from "react";
 import { jsx as jsx77 } from "react/jsx-runtime";
 function formatClock(date) {
   const hours = String(date.getHours()).padStart(2, "0");
@@ -39511,7 +39978,7 @@ function TaskbarClock() {
   const [label, setLabel] = useState34(
     () => isChromaticCapture() ? CHROMATIC_FIXED_CLOCK : formatClock(/* @__PURE__ */ new Date())
   );
-  useEffect33(() => {
+  useEffect34(() => {
     if (isChromaticCapture()) {
       setLabel(CHROMATIC_FIXED_CLOCK);
       return;
@@ -39595,7 +40062,7 @@ function Taskbar({
 }
 
 // src/admin/shell/StartMenu.tsx
-import { useEffect as useEffect34, useRef as useRef18 } from "react";
+import { useEffect as useEffect35, useRef as useRef19 } from "react";
 import { jsx as jsx79, jsxs as jsxs53 } from "react/jsx-runtime";
 function StartMenu({
   open,
@@ -39604,8 +40071,8 @@ function StartMenu({
   onOpenMyAccount,
   logoutHref
 }) {
-  const rootRef = useRef18(null);
-  useEffect34(() => {
+  const rootRef = useRef19(null);
+  useEffect35(() => {
     if (!open) {
       return;
     }
@@ -40152,8 +40619,8 @@ function savePersistedDesktopIcons(state, storageKey = DESKTOP_ICONS_STORAGE_KEY
 
 // src/admin/shell/DesktopIcon.tsx
 import {
-  useEffect as useEffect35,
-  useRef as useRef19
+  useEffect as useEffect36,
+  useRef as useRef20
 } from "react";
 import { jsx as jsx80 } from "react/jsx-runtime";
 function DesktopIcon({
@@ -40167,24 +40634,24 @@ function DesktopIcon({
   onPointerDown: onPointerDown2,
   ...rest
 }) {
-  const rootRef = useRef19(null);
-  const dragRef = useRef19(null);
-  const didDragRef = useRef19(false);
-  const onPositionChangeRef = useRef19(onPositionChange);
-  const onIconDragEndRef = useRef19(onIconDragEnd);
-  const leftRef = useRef19(left);
-  const topRef = useRef19(top);
-  useEffect35(() => {
+  const rootRef = useRef20(null);
+  const dragRef = useRef20(null);
+  const didDragRef = useRef20(false);
+  const onPositionChangeRef = useRef20(onPositionChange);
+  const onIconDragEndRef = useRef20(onIconDragEnd);
+  const leftRef = useRef20(left);
+  const topRef = useRef20(top);
+  useEffect36(() => {
     onPositionChangeRef.current = onPositionChange;
   }, [onPositionChange]);
-  useEffect35(() => {
+  useEffect36(() => {
     onIconDragEndRef.current = onIconDragEnd;
   }, [onIconDragEnd]);
-  useEffect35(() => {
+  useEffect36(() => {
     leftRef.current = left;
     topRef.current = top;
   }, [left, top]);
-  useEffect35(() => {
+  useEffect36(() => {
     const onMove = (event) => {
       const session = dragRef.current;
       const node = rootRef.current;
@@ -40310,10 +40777,10 @@ function DesktopIcon({
 // src/admin/shell/DesktopIconLayer.tsx
 import {
   useCallback as useCallback11,
-  useEffect as useEffect36,
+  useEffect as useEffect37,
   useLayoutEffect as useLayoutEffect13,
   useMemo as useMemo14,
-  useRef as useRef20,
+  useRef as useRef21,
   useState as useState35
 } from "react";
 import { jsx as jsx81 } from "react/jsx-runtime";
@@ -40347,10 +40814,10 @@ function DesktopIconLayer({
   onOpenSite
 }) {
   const storageKey = iconsStorageKeyFromWindowsKey(windowsPersistenceKey);
-  const persistedRef = useRef20(
+  const persistedRef = useRef21(
     storageKey ? loadPersistedDesktopIcons(storageKey) : null
   );
-  const listRef = useRef20(null);
+  const listRef = useRef21(null);
   const [positions, setPositions] = useState35({});
   const siteIds = useMemo14(
     () => sites.map((site) => siteDesktopIconId(site.id)),
@@ -40378,7 +40845,7 @@ function DesktopIconLayer({
     }
     relayout(preferred);
   }, [siteIdsKey, relayout]);
-  useEffect36(() => {
+  useEffect37(() => {
     if (!storageKey) {
       return;
     }
@@ -40566,16 +41033,17 @@ function AdminDesktop({
   locationSearch,
   className
 }) {
+  useBlockOsFileWindowNavigation();
   const storageKey = persistenceKey === false ? null : persistenceKey;
-  const persistedRef = useRef21(
+  const persistedRef = useRef22(
     storageKey ? loadPersistedDesktop(storageKey) : null
   );
-  const hydratedRef = useRef21(
+  const hydratedRef = useRef22(
     hydrateDesktopFromPersistence(persistedRef.current, sites)
   );
-  const nextZRef = useRef21(hydratedRef.current.nextZ);
-  const cascadeRef = useRef21(hydratedRef.current.cascade);
-  const dashboardRef = useRef21(null);
+  const nextZRef = useRef22(hydratedRef.current.nextZ);
+  const cascadeRef = useRef22(hydratedRef.current.cascade);
+  const dashboardRef = useRef22(null);
   const [shell, setShell] = useState36(() => ({
     windows: hydratedRef.current.windows,
     activeId: hydratedRef.current.activeId
@@ -40584,7 +41052,7 @@ function AdminDesktop({
     const search = locationSearch !== void 0 ? locationSearch : typeof window !== "undefined" ? window.location.search : "";
     return parseAdminDeepLink(search);
   });
-  const deepLinkAppliedRef = useRef21(false);
+  const deepLinkAppliedRef = useRef22(false);
   const sitesPreferSelectedId = deepLink?.window === "sites" ? deepLink.id : null;
   const hostsPreferSelectedId = deepLink?.window === "hosts" ? deepLink.id : null;
   const permissionsPreferSelectedId = deepLink?.window === "permissions" ? deepLink.id : null;
@@ -40675,15 +41143,15 @@ function AdminDesktop({
   const [documentError, setDocumentError] = useState36(null);
   const [documentStatusMessage, setDocumentStatusMessage] = useState36(null);
   const [explorerForestRefreshBySite, setExplorerForestRefreshBySite] = useState36({});
-  const pendingLoginRedirectRef = useRef21(false);
-  const sitesStatusTimerRef = useRef21(null);
-  const hostsStatusTimerRef = useRef21(null);
-  const permissionsStatusTimerRef = useRef21(
+  const pendingLoginRedirectRef = useRef22(false);
+  const sitesStatusTimerRef = useRef22(null);
+  const hostsStatusTimerRef = useRef22(null);
+  const permissionsStatusTimerRef = useRef22(
     null
   );
-  const rolesStatusTimerRef = useRef21(null);
-  const usersStatusTimerRef = useRef21(null);
-  const settingsStatusTimerRef = useRef21(null);
+  const rolesStatusTimerRef = useRef22(null);
+  const usersStatusTimerRef = useRef22(null);
+  const settingsStatusTimerRef = useRef22(null);
   const api = useMemo15(
     () => sitesApi ?? createAdminApiClient({
       csrfToken: apiCsrfToken,
@@ -40814,7 +41282,7 @@ function AdminDesktop({
     },
     [clearSettingsStatusMessage]
   );
-  useEffect37(() => {
+  useEffect38(() => {
     return () => {
       if (sitesStatusTimerRef.current != null) {
         clearTimeout(sitesStatusTimerRef.current);
@@ -40923,10 +41391,10 @@ function AdminDesktop({
     }
     return map;
   }, [desktopSites, apiBaseUrl]);
-  useEffect37(() => {
+  useEffect38(() => {
     setDesktopSites(sites);
   }, [sites]);
-  useEffect37(() => {
+  useEffect38(() => {
     let cancelled = false;
     (async () => {
       const result = await api.getMe();
@@ -40944,7 +41412,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [api]);
-  useEffect37(() => {
+  useEffect38(() => {
     if (!storageKey) {
       return;
     }
@@ -40961,7 +41429,7 @@ function AdminDesktop({
     }, PERSIST_DEBOUNCE_MS2);
     return () => window.clearTimeout(timer);
   }, [shell, storageKey]);
-  useEffect37(() => {
+  useEffect38(() => {
     if (!sitesWindowOpen) {
       return;
     }
@@ -40987,7 +41455,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [sitesWindowOpen, api, handleApiFailure, clearSitesStatusMessage]);
-  useEffect37(() => {
+  useEffect38(() => {
     if (!permissionsWindowOpen) {
       return;
     }
@@ -41012,7 +41480,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [permissionsWindowOpen, api, handleApiFailure, clearPermissionsStatusMessage]);
-  useEffect37(() => {
+  useEffect38(() => {
     if (!rolesWindowOpen) {
       return;
     }
@@ -41050,7 +41518,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [rolesWindowOpen, api, handleApiFailure, clearRolesStatusMessage]);
-  useEffect37(() => {
+  useEffect38(() => {
     if (!usersWindowOpen) {
       return;
     }
@@ -41091,7 +41559,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [usersWindowOpen, api, handleApiFailure, clearUsersStatusMessage]);
-  useEffect37(() => {
+  useEffect38(() => {
     if (!hostsWindowOpen && !sitesWindowOpen) {
       return;
     }
@@ -41131,7 +41599,7 @@ function AdminDesktop({
     noteUnauthorized,
     clearHostsStatusMessage
   ]);
-  useEffect37(() => {
+  useEffect38(() => {
     if (!settingsWindowOpen && !hostsWindowOpen && !sitesWindowOpen) {
       return;
     }
