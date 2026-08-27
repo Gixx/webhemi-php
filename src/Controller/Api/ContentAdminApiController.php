@@ -6,6 +6,7 @@ namespace App\Controller\Api;
 
 use App\Api\ApiJson;
 use App\Api\ContentNodeApiMapper;
+use App\Api\ContentNodeCopier;
 use App\Api\ContentNodeCreator;
 use App\Api\ContentNodeInvalidBodyException;
 use App\Api\ContentNodeInvalidParentException;
@@ -134,6 +135,50 @@ final class ContentAdminApiController extends AbstractController
         }
 
         return ApiJson::data(ContentNodeApiMapper::toArray($node), 201);
+    }
+
+    #[Route('/nodes/{id}/copy', name: 'api_admin_content_nodes_copy', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsCsrfTokenValid('admin_api', tokenKey: 'X-CSRF-TOKEN', tokenSource: IsCsrfTokenValid::SOURCE_HEADER)]
+    public function copyNode(
+        #[MapEntity(id: 'siteId')] Site $site,
+        #[MapEntity(id: 'id')] ContentNode $node,
+        Request $request,
+        ContentNodeCopier $copier,
+    ): JsonResponse {
+        $this->requireSitePermission('content.edit', $site);
+        $this->assertNodeSite($site, $node);
+
+        try {
+            $payload = json_decode($request->getContent() ?: '{}', true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return ApiJson::error('invalid_json', 'Request body must be valid JSON.', 400);
+        }
+
+        if (!\is_array($payload)) {
+            return ApiJson::error('invalid_json', 'Request body must be a JSON object.', 400);
+        }
+
+        $parentId = null;
+        if (\array_key_exists('parentId', $payload) && (null !== $payload['parentId'] && '' !== $payload['parentId'])) {
+            if (!is_numeric($payload['parentId'])) {
+                return ApiJson::error('validation_failed', 'Node could not be copied.', 422, [
+                    'parentId' => 'Parent id must be a number or null.',
+                ]);
+            }
+            $parentId = (int) $payload['parentId'];
+        }
+
+        try {
+            $copy = $copier->copy($site, $node, $parentId);
+        } catch (ContentReservedSlugException $e) {
+            return ApiJson::error('reserved_slug', $e->getMessage(), 409, [
+                'slug' => $e->getMessage(),
+            ]);
+        } catch (ContentNodeInvalidParentException $e) {
+            return ApiJson::error('invalid_parent', $e->getMessage(), 422);
+        }
+
+        return ApiJson::data(ContentNodeApiMapper::toArray($copy), 201);
     }
 
     #[Route('/nodes/{id}', name: 'api_admin_content_nodes_update', requirements: ['id' => '\d+'], methods: ['PATCH'])]

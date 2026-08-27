@@ -2498,15 +2498,21 @@ html[data-wh-theme=admin] {
   position: relative;
 }
 [data-wh-theme=admin] .dashboard > .icon-list {
+  /* Absolute children are positioned against `.dashboard` (position: relative). */
   position: static;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  /* Former body padding — icons stay inset; maximized windows go edge-to-edge. */
-  padding: 20px 20px 44px;
+  /* Former body/icon padding is ICON_GRID_ORIGIN_PX on each icon left/top. */
+  padding: 0;
   box-sizing: border-box;
-  max-height: 100vh;
+  pointer-events: none;
+}
+[data-wh-theme=admin] .dashboard > .icon-list > .icon {
+  position: absolute;
+  pointer-events: auto;
+  touch-action: none;
+}
+[data-wh-theme=admin] .dashboard > .icon-list > .icon.is-dragging {
+  cursor: move;
+  z-index: 1;
 }
 [data-wh-theme=admin] .dashboard > .desktop-window {
   position: absolute;
@@ -2601,9 +2607,6 @@ html[data-wh-theme=admin] {
 [data-wh-theme=admin] .sb-admin-desktop-docs .dashboard {
   min-height: 100%;
   height: 100%;
-}
-[data-wh-theme=admin] .sb-admin-desktop-docs .dashboard > .icon-list {
-  max-height: calc(100% - 40px);
 }
 [data-wh-theme=admin] .sb-admin-desktop-docs #toolbar {
   position: absolute;

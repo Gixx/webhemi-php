@@ -1016,52 +1016,58 @@ function Progress({ value = 0, segmented = false, className, ...rest }) {
 }
 
 // src/admin/chrome/SystemIcon/SystemIcon.tsx
+import {
+  forwardRef
+} from "react";
 import { jsx as jsx27 } from "react/jsx-runtime";
-function SystemIcon({
-  kind,
-  label,
-  labelTone = "light",
-  iconUrl,
-  href = "#",
-  draggable = false,
-  onActivate,
-  onOpen,
-  className,
-  linkProps,
-  onDoubleClick,
-  style,
-  ...rest
-}) {
-  const handleClick2 = (event) => {
-    linkProps?.onClick?.(event);
-    if (event.defaultPrevented) {
-      return;
-    }
-    if (href === "#") {
-      event.preventDefault();
-    }
-    onActivate?.(event);
-  };
-  const handleDoubleClick = (event) => {
-    onDoubleClick?.(event);
-    if (event.defaultPrevented) {
-      return;
-    }
-    onActivate?.(event);
-    onOpen?.();
-  };
-  return /* @__PURE__ */ jsx27(
-    "div",
-    {
-      className: cn("icon", kind, `label-tone-${labelTone}`, className),
-      draggable,
-      onDoubleClick: handleDoubleClick,
-      style: iconUrl ? { ...style, backgroundImage: `url("${iconUrl}")` } : style,
-      ...rest,
-      children: /* @__PURE__ */ jsx27("a", { href, ...linkProps, onClick: handleClick2, children: /* @__PURE__ */ jsx27("span", { children: label }) })
-    }
-  );
-}
+var SystemIcon = forwardRef(
+  function SystemIcon2({
+    kind,
+    label,
+    labelTone = "light",
+    iconUrl,
+    href = "#",
+    draggable = false,
+    onActivate,
+    onOpen,
+    className,
+    linkProps,
+    onDoubleClick,
+    style,
+    ...rest
+  }, ref) {
+    const handleClick2 = (event) => {
+      linkProps?.onClick?.(event);
+      if (event.defaultPrevented) {
+        return;
+      }
+      if (href === "#") {
+        event.preventDefault();
+      }
+      onActivate?.(event);
+    };
+    const handleDoubleClick = (event) => {
+      onDoubleClick?.(event);
+      if (event.defaultPrevented) {
+        return;
+      }
+      onActivate?.(event);
+      onOpen?.();
+    };
+    return /* @__PURE__ */ jsx27(
+      "div",
+      {
+        ref,
+        className: cn("icon", kind, `label-tone-${labelTone}`, className),
+        draggable,
+        onDoubleClick: handleDoubleClick,
+        style: iconUrl ? { ...style, backgroundImage: `url("${iconUrl}")` } : style,
+        ...rest,
+        children: /* @__PURE__ */ jsx27("a", { href, ...linkProps, onClick: handleClick2, children: /* @__PURE__ */ jsx27("span", { children: label }) })
+      }
+    );
+  }
+);
 
 // src/admin/chrome/MenuPopup/MenuPopup.tsx
 import { useId as useId2, useRef as useRef4 } from "react";
@@ -3903,7 +3909,7 @@ function SiteFileExplorer({
   }, [live, selectedItems]);
   const canDelete = selectedItems.length > 0 && selectedItems.every((item) => canDeleteExplorerItem(forest, item));
   const canCutCopy = canCutOrCopyExplorerItems(forest, selectedMovable);
-  const canPaste = Boolean(clipboard) && (clipboard?.mode === "cut" || !live && clipboard?.mode === "copy") && canPasteIntoExplorerLocation(forest, locationId, clipboard);
+  const canPaste = Boolean(clipboard) && (clipboard?.mode === "cut" || clipboard?.mode === "copy") && canPasteIntoExplorerLocation(forest, locationId, clipboard);
   const canProperties = selectedItems.length === 1;
   const canSelectAll = items.length > 0;
   const canCreate = Boolean(
@@ -4054,16 +4060,12 @@ function SiteFileExplorer({
     });
   };
   const handleCopy = () => {
-    if (live) {
-      setErrorMessage("Copy is not supported yet.");
-      return;
-    }
-    if (!canCutOrCopyExplorerItems(forest, selectedItems) || selectedItems.length === 0) {
+    if (!canCutOrCopyExplorerItems(forest, selectedMovable) || selectedMovable.length === 0) {
       return;
     }
     setClipboard({
       mode: "copy",
-      items: cloneExplorerForest(selectedItems),
+      items: cloneExplorerForest(selectedMovable),
       sourceParentId: null
     });
   };
@@ -4084,7 +4086,7 @@ function SiteFileExplorer({
     }
   };
   const handlePasteApi = async () => {
-    if (!api || siteId == null || !clipboard || clipboard.mode !== "cut" || !location) {
+    if (!api || siteId == null || !clipboard || !location) {
       return;
     }
     const ctx = resolveCreateContext();
@@ -4097,7 +4099,7 @@ function SiteFileExplorer({
       if (!ref || ref.type !== "node") {
         continue;
       }
-      const result = await api.updateContentNode(siteId, ref.id, { parentId: ctx.parentId });
+      const result = clipboard.mode === "copy" ? await api.copyContentNode(siteId, ref.id, { parentId: ctx.parentId }) : await api.updateContentNode(siteId, ref.id, { parentId: ctx.parentId });
       if (!result.ok) {
         setErrorMessage(result.error.message);
         setBusy(false);
@@ -4105,7 +4107,9 @@ function SiteFileExplorer({
         return;
       }
     }
-    setClipboard(null);
+    if (clipboard.mode === "cut") {
+      setClipboard(null);
+    }
     setSoftDeleteUndo(null);
     setUndoEntry(null);
     clearSelection();
@@ -4374,7 +4378,7 @@ function SiteFileExplorer({
   };
   const statusCountLabel = selectedIds.length > 0 ? `${selectedIds.length} object(s) selected` : `${items.length} object(s)${hiddenCount > 0 ? ` (${hiddenCount} hidden)` : ""}${busy ? " \u2014 updating\u2026" : ""}`;
   const canUndo = live ? softDeleteUndo != null : undoEntry != null;
-  const copyHandler = live ? void 0 : canCutOrCopyExplorerItems(forest, selectedItems) ? handleCopy : void 0;
+  const copyHandler = canCutCopy ? handleCopy : void 0;
   return /* @__PURE__ */ jsxs24("div", { className: "site-file-explorer", children: [
     /* @__PURE__ */ jsx46(
       FileExplorerWindow,
@@ -28550,7 +28554,7 @@ __export(LexicalContentEditable_dev_exports, {
   ContentEditable: () => ContentEditable,
   ContentEditableElement: () => ContentEditableElement
 });
-import { useLayoutEffect as useLayoutEffect6, useEffect as useEffect11, forwardRef, useState as useState12, useCallback as useCallback4, useMemo as useMemo7 } from "react";
+import { useLayoutEffect as useLayoutEffect6, useEffect as useEffect11, forwardRef as forwardRef2, useState as useState12, useCallback as useCallback4, useMemo as useMemo7 } from "react";
 import { jsx as jsx49, jsxs as jsxs26, Fragment as Fragment10 } from "react/jsx-runtime";
 function mergeRefs(...refs) {
   return (value) => {
@@ -28634,7 +28638,7 @@ function ContentEditableElementImpl({
     ...rest
   });
 }
-var ContentEditableElement = /* @__PURE__ */ forwardRef(ContentEditableElementImpl);
+var ContentEditableElement = /* @__PURE__ */ forwardRef2(ContentEditableElementImpl);
 function canShowPlaceholderFromCurrentEditorState2(editor) {
   const currentCanShowPlaceholder = editor.read("latest", $canShowPlaceholderCurry2(editor.isComposing()));
   return currentCanShowPlaceholder;
@@ -28655,7 +28659,7 @@ function useCanShowPlaceholder2(editor) {
   }, [editor]);
   return canShowPlaceholder;
 }
-var ContentEditable = /* @__PURE__ */ forwardRef(ContentEditableImpl);
+var ContentEditable = /* @__PURE__ */ forwardRef2(ContentEditableImpl);
 function ContentEditableImpl(props, ref) {
   const {
     placeholder,
@@ -33179,6 +33183,10 @@ function createAdminApiClient(options = {}) {
     getContentTrash: (siteId) => request(`/sites/${siteId}/trash`),
     getContentNode: (siteId, nodeId) => request(`/sites/${siteId}/nodes/${nodeId}`),
     createContentNode: (siteId, body) => request(`/sites/${siteId}/nodes`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    }),
+    copyContentNode: (siteId, nodeId, body = {}) => request(`/sites/${siteId}/nodes/${nodeId}/copy`, {
       method: "POST",
       body: JSON.stringify(body)
     }),
@@ -39061,12 +39069,12 @@ function LoginPage({
 
 // src/admin/pages/AdminDesktop.tsx
 import {
-  useCallback as useCallback11,
-  useEffect as useEffect35,
-  useLayoutEffect as useLayoutEffect13,
-  useMemo as useMemo14,
-  useRef as useRef19,
-  useState as useState35
+  useCallback as useCallback12,
+  useEffect as useEffect37,
+  useLayoutEffect as useLayoutEffect14,
+  useMemo as useMemo15,
+  useRef as useRef21,
+  useState as useState36
 } from "react";
 
 // src/admin/lib/siteIcon.ts
@@ -39970,11 +39978,487 @@ function geometryFromPersistence(persisted, id, kind) {
   };
 }
 
+// src/admin/shell/iconGrid.ts
+var ICON_GRID_ORIGIN_PX = 20;
+var ICON_GRID_STEP_PX = 90;
+var DESKTOP_ICON_SIZE_PX = 90;
+function overlaps(a3, b2) {
+  return !(a3.right <= b2.left || a3.left >= b2.right || a3.bottom <= b2.top || a3.top >= b2.bottom);
+}
+function toBox(left, top, width, height) {
+  return {
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height
+  };
+}
+function clampToIconGrid(left, top, workWidth, workHeight, iconWidth = DESKTOP_ICON_SIZE_PX, iconHeight = DESKTOP_ICON_SIZE_PX, origin = ICON_GRID_ORIGIN_PX, step = ICON_GRID_STEP_PX) {
+  const maxLeft = Math.max(origin, workWidth - iconWidth);
+  const maxTop = Math.max(origin, workHeight - iconHeight);
+  const maxCol = Math.max(0, Math.floor((maxLeft - origin) / step));
+  const maxRow = Math.max(0, Math.floor((maxTop - origin) / step));
+  const col = Math.min(maxCol, Math.max(0, Math.round((left - origin) / step)));
+  const row = Math.min(maxRow, Math.max(0, Math.round((top - origin) / step)));
+  return {
+    left: origin + col * step,
+    top: origin + row * step
+  };
+}
+function isFree(left, top, iconWidth, iconHeight, others) {
+  const box = toBox(left, top, iconWidth, iconHeight);
+  return !others.some(
+    (other) => overlaps(
+      box,
+      toBox(other.left, other.top, other.width, other.height)
+    )
+  );
+}
+function nearestFreePosition(left, top, others, workWidth, workHeight, iconWidth = DESKTOP_ICON_SIZE_PX, iconHeight = DESKTOP_ICON_SIZE_PX, origin = ICON_GRID_ORIGIN_PX, step = ICON_GRID_STEP_PX) {
+  const preferred = clampToIconGrid(
+    left,
+    top,
+    workWidth,
+    workHeight,
+    iconWidth,
+    iconHeight,
+    origin,
+    step
+  );
+  if (isFree(preferred.left, preferred.top, iconWidth, iconHeight, others)) {
+    return preferred;
+  }
+  const maxLeft = Math.max(origin, workWidth - iconWidth);
+  const maxTop = Math.max(origin, workHeight - iconHeight);
+  const maxCol = Math.max(0, Math.floor((maxLeft - origin) / step));
+  const maxRow = Math.max(0, Math.floor((maxTop - origin) / step));
+  const startCol = Math.round((preferred.left - origin) / step);
+  const startRow = Math.round((preferred.top - origin) / step);
+  const maxRadius = Math.max(maxCol, maxRow) + 1;
+  let best = null;
+  let bestDist = Infinity;
+  for (let radius = 1; radius <= maxRadius; radius += 1) {
+    for (let dCol = -radius; dCol <= radius; dCol += 1) {
+      for (let dRow = -radius; dRow <= radius; dRow += 1) {
+        if (Math.max(Math.abs(dCol), Math.abs(dRow)) !== radius) {
+          continue;
+        }
+        const col = startCol + dCol;
+        const row = startRow + dRow;
+        if (col < 0 || row < 0 || col > maxCol || row > maxRow) {
+          continue;
+        }
+        const next = {
+          left: origin + col * step,
+          top: origin + row * step
+        };
+        if (!isFree(next.left, next.top, iconWidth, iconHeight, others)) {
+          continue;
+        }
+        const dist = (next.left - preferred.left) ** 2 + (next.top - preferred.top) ** 2;
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = next;
+        }
+      }
+    }
+    if (best) {
+      return best;
+    }
+  }
+  return preferred;
+}
+function defaultPackedPosition(index, workWidth, workHeight) {
+  const origin = ICON_GRID_ORIGIN_PX;
+  const step = ICON_GRID_STEP_PX;
+  const maxTop = Math.max(origin, workHeight - DESKTOP_ICON_SIZE_PX);
+  const rows = Math.max(1, Math.floor((maxTop - origin) / step) + 1);
+  const row = index % rows;
+  const col = Math.floor(index / rows);
+  return clampToIconGrid(
+    origin + col * step,
+    origin + row * step,
+    workWidth,
+    workHeight
+  );
+}
+function siteDesktopIconId(siteId) {
+  return `desktop-icon-site-${siteId}`;
+}
+
+// src/admin/shell/iconPersistence.ts
+var DESKTOP_ICONS_STORAGE_KEY = "webhemi.admin.desktop.icons.v1";
+function isFiniteNumber2(value) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+function iconsStorageKeyFromWindowsKey(windowsKey) {
+  if (windowsKey === false || windowsKey == null) {
+    return null;
+  }
+  if (windowsKey.includes(".windows.")) {
+    return windowsKey.replace(".windows.", ".icons.");
+  }
+  if (windowsKey === "webhemi.admin.desktop.windows.v1") {
+    return DESKTOP_ICONS_STORAGE_KEY;
+  }
+  return `${windowsKey}.icons`;
+}
+function loadPersistedDesktopIcons(storageKey = DESKTOP_ICONS_STORAGE_KEY) {
+  if (typeof localStorage === "undefined") {
+    return null;
+  }
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+    const data = parsed;
+    if (data.v !== 1 || !data.icons || typeof data.icons !== "object") {
+      return null;
+    }
+    const icons = {};
+    for (const [id, value] of Object.entries(
+      data.icons
+    )) {
+      if (!value || typeof value !== "object") {
+        continue;
+      }
+      const entry = value;
+      if (!isFiniteNumber2(entry.left) || !isFiniteNumber2(entry.top)) {
+        continue;
+      }
+      icons[id] = { left: entry.left, top: entry.top };
+    }
+    return { v: 1, icons };
+  } catch {
+    return null;
+  }
+}
+function savePersistedDesktopIcons(state, storageKey = DESKTOP_ICONS_STORAGE_KEY) {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(state));
+  } catch {
+  }
+}
+
+// src/admin/shell/DesktopIcon.tsx
+import {
+  useEffect as useEffect35,
+  useRef as useRef19
+} from "react";
+import { jsx as jsx80 } from "react/jsx-runtime";
+function DesktopIcon({
+  left,
+  top,
+  onPositionChange,
+  onIconDragEnd,
+  onOpen,
+  className,
+  linkProps,
+  onPointerDown: onPointerDown2,
+  ...rest
+}) {
+  const rootRef = useRef19(null);
+  const dragRef = useRef19(null);
+  const didDragRef = useRef19(false);
+  const onPositionChangeRef = useRef19(onPositionChange);
+  const onIconDragEndRef = useRef19(onIconDragEnd);
+  const leftRef = useRef19(left);
+  const topRef = useRef19(top);
+  useEffect35(() => {
+    onPositionChangeRef.current = onPositionChange;
+  }, [onPositionChange]);
+  useEffect35(() => {
+    onIconDragEndRef.current = onIconDragEnd;
+  }, [onIconDragEnd]);
+  useEffect35(() => {
+    leftRef.current = left;
+    topRef.current = top;
+  }, [left, top]);
+  useEffect35(() => {
+    const onMove = (event) => {
+      const session = dragRef.current;
+      const node = rootRef.current;
+      if (!session || !node || event.pointerId !== session.pointerId) {
+        return;
+      }
+      if (!session.active) {
+        const dx = event.clientX - session.startX;
+        const dy = event.clientY - session.startY;
+        if (dx * dx + dy * dy < DRAG_THRESHOLD_PX * DRAG_THRESHOLD_PX) {
+          return;
+        }
+        session.active = true;
+        didDragRef.current = true;
+        node.classList.add("is-dragging");
+        try {
+          if (typeof node.setPointerCapture === "function") {
+            node.setPointerCapture(session.pointerId);
+          }
+        } catch {
+        }
+        event.preventDefault();
+      }
+      const dashboard = node.closest(".dashboard");
+      const change = onPositionChangeRef.current;
+      if (!(dashboard instanceof HTMLElement) || !change) {
+        return;
+      }
+      const origin = dashboard.getBoundingClientRect();
+      const next = clampDesktopPosition(
+        dashboard,
+        node.offsetWidth,
+        node.offsetHeight,
+        event.clientX - origin.left - session.offsetX,
+        event.clientY - origin.top - session.offsetY
+      );
+      session.left = next.left;
+      session.top = next.top;
+      change(next.left, next.top);
+    };
+    const onUp = (event) => {
+      const session = dragRef.current;
+      const node = rootRef.current;
+      if (!session || event.pointerId !== session.pointerId) {
+        return;
+      }
+      if (node && typeof node.releasePointerCapture === "function" && node.hasPointerCapture?.(session.pointerId)) {
+        node.releasePointerCapture(session.pointerId);
+      }
+      node?.classList.remove("is-dragging");
+      dragRef.current = null;
+      if (session.active) {
+        onIconDragEndRef.current?.(session.left, session.top);
+      }
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, []);
+  const handlePointerDown = (event) => {
+    onPointerDown2?.(event);
+    if (event.defaultPrevented || event.button !== 0) {
+      return;
+    }
+    const node = rootRef.current;
+    if (!node) {
+      return;
+    }
+    const rect = node.getBoundingClientRect();
+    didDragRef.current = false;
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      active: false,
+      left: leftRef.current,
+      top: topRef.current
+    };
+  };
+  const handleDragStart = (event) => {
+    event.preventDefault();
+  };
+  const handleOpen = () => {
+    if (didDragRef.current) {
+      didDragRef.current = false;
+      return;
+    }
+    onOpen?.();
+  };
+  return /* @__PURE__ */ jsx80(
+    SystemIcon,
+    {
+      ...rest,
+      ref: rootRef,
+      draggable: true,
+      className: cn(className),
+      linkProps: {
+        ...linkProps,
+        onClick: (event) => {
+          linkProps?.onClick?.(event);
+          if (didDragRef.current) {
+            event.preventDefault();
+            event.stopPropagation();
+            didDragRef.current = false;
+          }
+        }
+      },
+      onOpen: handleOpen,
+      onPointerDown: handlePointerDown,
+      onDragStart: handleDragStart,
+      style: { left, top }
+    }
+  );
+}
+
+// src/admin/shell/DesktopIconLayer.tsx
+import {
+  useCallback as useCallback11,
+  useEffect as useEffect36,
+  useLayoutEffect as useLayoutEffect13,
+  useMemo as useMemo14,
+  useRef as useRef20,
+  useState as useState35
+} from "react";
+import { jsx as jsx81 } from "react/jsx-runtime";
+var PERSIST_DEBOUNCE_MS = 200;
+function layoutIconPositions(siteIds, preferred, workWidth, workHeight) {
+  const next = {};
+  const placed = [];
+  siteIds.forEach((id, index) => {
+    const hint = preferred[id] ?? defaultPackedPosition(index, workWidth, workHeight);
+    const point = nearestFreePosition(
+      hint.left,
+      hint.top,
+      placed,
+      workWidth,
+      workHeight
+    );
+    next[id] = point;
+    placed.push({
+      left: point.left,
+      top: point.top,
+      width: DESKTOP_ICON_SIZE_PX,
+      height: DESKTOP_ICON_SIZE_PX
+    });
+  });
+  return next;
+}
+function DesktopIconLayer({
+  sites,
+  apiBaseUrl,
+  windowsPersistenceKey,
+  onOpenSite
+}) {
+  const storageKey = iconsStorageKeyFromWindowsKey(windowsPersistenceKey);
+  const persistedRef = useRef20(
+    storageKey ? loadPersistedDesktopIcons(storageKey) : null
+  );
+  const listRef = useRef20(null);
+  const [positions, setPositions] = useState35({});
+  const siteIds = useMemo14(
+    () => sites.map((site) => siteDesktopIconId(site.id)),
+    [sites]
+  );
+  const siteIdsKey = siteIds.join(",");
+  const relayout = useCallback11(
+    (preferred) => {
+      const dashboard = listRef.current?.closest(".dashboard");
+      if (!(dashboard instanceof HTMLElement)) {
+        return;
+      }
+      const work = getDesktopWorkSize(dashboard);
+      setPositions(layoutIconPositions(siteIds, preferred, work.width, work.height));
+    },
+    [siteIds]
+  );
+  useLayoutEffect13(() => {
+    const saved = persistedRef.current?.icons ?? {};
+    const preferred = { ...saved };
+    for (const id of siteIds) {
+      if (positions[id]) {
+        preferred[id] = positions[id];
+      }
+    }
+    relayout(preferred);
+  }, [siteIdsKey, relayout]);
+  useEffect36(() => {
+    if (!storageKey) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const icons = {};
+      for (const id of siteIds) {
+        const point = positions[id];
+        if (point) {
+          icons[id] = point;
+        }
+      }
+      const next = { v: 1, icons };
+      persistedRef.current = next;
+      savePersistedDesktopIcons(next, storageKey);
+    }, PERSIST_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [positions, siteIds, storageKey]);
+  const moveIcon = useCallback11((id, left, top) => {
+    setPositions((prev) => ({ ...prev, [id]: { left, top } }));
+  }, []);
+  const endIconDrag = useCallback11(
+    (id, left, top) => {
+      const dashboard = listRef.current?.closest(".dashboard");
+      if (!(dashboard instanceof HTMLElement)) {
+        return;
+      }
+      const work = getDesktopWorkSize(dashboard);
+      const others = Object.entries(positions).filter(([otherId]) => otherId !== id).map(([, point]) => ({
+        left: point.left,
+        top: point.top,
+        width: DESKTOP_ICON_SIZE_PX,
+        height: DESKTOP_ICON_SIZE_PX
+      }));
+      const snapped = nearestFreePosition(
+        left,
+        top,
+        others,
+        work.width,
+        work.height
+      );
+      setPositions((prev) => ({ ...prev, [id]: snapped }));
+    },
+    [positions]
+  );
+  return /* @__PURE__ */ jsx81("div", { ref: listRef, className: "icon-list", children: sites.map((site) => {
+    const id = siteDesktopIconId(site.id);
+    const point = positions[id];
+    if (!point) {
+      return null;
+    }
+    const glyph = siteGlyphKind(site.slug);
+    const iconUrl = siteFaviconFileUrl(
+      site.id,
+      site.faviconMediaId,
+      apiBaseUrl
+    );
+    return /* @__PURE__ */ jsx81(
+      DesktopIcon,
+      {
+        id,
+        kind: glyph,
+        iconUrl,
+        label: site.name,
+        labelTone: "light",
+        left: point.left,
+        top: point.top,
+        onPositionChange: (left, top) => moveIcon(id, left, top),
+        onIconDragEnd: (left, top) => endIconDrag(id, left, top),
+        onOpen: () => onOpenSite(site)
+      },
+      site.id
+    );
+  }) });
+}
+
 // src/admin/pages/AdminDesktop.tsx
-import { jsx as jsx80, jsxs as jsxs54 } from "react/jsx-runtime";
+import { jsx as jsx82, jsxs as jsxs54 } from "react/jsx-runtime";
 var CASCADE_ORIGIN = { left: 48, top: 24 };
 var CASCADE_STEP = 28;
-var PERSIST_DEBOUNCE_MS = 200;
+var PERSIST_DEBOUNCE_MS2 = 200;
 function topVisibleWindowId(windows) {
   return windows.filter((win) => !win.minimized).reduce(
     (best, win) => !best || win.z > best.z ? win : best,
@@ -40083,124 +40567,124 @@ function AdminDesktop({
   className
 }) {
   const storageKey = persistenceKey === false ? null : persistenceKey;
-  const persistedRef = useRef19(
+  const persistedRef = useRef21(
     storageKey ? loadPersistedDesktop(storageKey) : null
   );
-  const hydratedRef = useRef19(
+  const hydratedRef = useRef21(
     hydrateDesktopFromPersistence(persistedRef.current, sites)
   );
-  const nextZRef = useRef19(hydratedRef.current.nextZ);
-  const cascadeRef = useRef19(hydratedRef.current.cascade);
-  const dashboardRef = useRef19(null);
-  const [shell, setShell] = useState35(() => ({
+  const nextZRef = useRef21(hydratedRef.current.nextZ);
+  const cascadeRef = useRef21(hydratedRef.current.cascade);
+  const dashboardRef = useRef21(null);
+  const [shell, setShell] = useState36(() => ({
     windows: hydratedRef.current.windows,
     activeId: hydratedRef.current.activeId
   }));
-  const [deepLink] = useState35(() => {
+  const [deepLink] = useState36(() => {
     const search = locationSearch !== void 0 ? locationSearch : typeof window !== "undefined" ? window.location.search : "";
     return parseAdminDeepLink(search);
   });
-  const deepLinkAppliedRef = useRef19(false);
+  const deepLinkAppliedRef = useRef21(false);
   const sitesPreferSelectedId = deepLink?.window === "sites" ? deepLink.id : null;
   const hostsPreferSelectedId = deepLink?.window === "hosts" ? deepLink.id : null;
   const permissionsPreferSelectedId = deepLink?.window === "permissions" ? deepLink.id : null;
   const rolesPreferSelectedId = deepLink?.window === "roles" ? deepLink.id : null;
   const usersPreferSelectedId = deepLink?.window === "users" ? deepLink.id : null;
-  const [startMenuOpen, setStartMenuOpen] = useState35(false);
-  const [desktopSites, setDesktopSites] = useState35(sites);
-  const [sitesRows, setSitesRows] = useState35([]);
-  const [sitesLoading, setSitesLoading] = useState35(false);
-  const [sitesCreating, setSitesCreating] = useState35(false);
-  const [sitesDeleting, setSitesDeleting] = useState35(false);
-  const [sitesError, setSitesError] = useState35(null);
-  const [sitesFormError, setSitesFormError] = useState35(null);
-  const [sitesFieldErrors, setSitesFieldErrors] = useState35({});
-  const [permissionsRows, setPermissionsRows] = useState35([]);
-  const [permissionsLoading, setPermissionsLoading] = useState35(false);
-  const [permissionsCreating, setPermissionsCreating] = useState35(false);
-  const [permissionsDeleting, setPermissionsDeleting] = useState35(false);
-  const [permissionsError, setPermissionsError] = useState35(null);
-  const [permissionsFormError, setPermissionsFormError] = useState35(
+  const [startMenuOpen, setStartMenuOpen] = useState36(false);
+  const [desktopSites, setDesktopSites] = useState36(sites);
+  const [sitesRows, setSitesRows] = useState36([]);
+  const [sitesLoading, setSitesLoading] = useState36(false);
+  const [sitesCreating, setSitesCreating] = useState36(false);
+  const [sitesDeleting, setSitesDeleting] = useState36(false);
+  const [sitesError, setSitesError] = useState36(null);
+  const [sitesFormError, setSitesFormError] = useState36(null);
+  const [sitesFieldErrors, setSitesFieldErrors] = useState36({});
+  const [permissionsRows, setPermissionsRows] = useState36([]);
+  const [permissionsLoading, setPermissionsLoading] = useState36(false);
+  const [permissionsCreating, setPermissionsCreating] = useState36(false);
+  const [permissionsDeleting, setPermissionsDeleting] = useState36(false);
+  const [permissionsError, setPermissionsError] = useState36(null);
+  const [permissionsFormError, setPermissionsFormError] = useState36(
     null
   );
-  const [permissionsFieldErrors, setPermissionsFieldErrors] = useState35({});
-  const [permissionsStatusMessage, setPermissionsStatusMessage] = useState35(null);
-  const [rolesRows, setRolesRows] = useState35([]);
-  const [rolesPermissionOptions, setRolesPermissionOptions] = useState35([]);
-  const [rolesLoading, setRolesLoading] = useState35(false);
-  const [rolesCreating, setRolesCreating] = useState35(false);
-  const [rolesDeleting, setRolesDeleting] = useState35(false);
-  const [rolesError, setRolesError] = useState35(null);
-  const [rolesFormError, setRolesFormError] = useState35(null);
-  const [rolesFieldErrors, setRolesFieldErrors] = useState35({});
-  const [rolesStatusMessage, setRolesStatusMessage] = useState35(
+  const [permissionsFieldErrors, setPermissionsFieldErrors] = useState36({});
+  const [permissionsStatusMessage, setPermissionsStatusMessage] = useState36(null);
+  const [rolesRows, setRolesRows] = useState36([]);
+  const [rolesPermissionOptions, setRolesPermissionOptions] = useState36([]);
+  const [rolesLoading, setRolesLoading] = useState36(false);
+  const [rolesCreating, setRolesCreating] = useState36(false);
+  const [rolesDeleting, setRolesDeleting] = useState36(false);
+  const [rolesError, setRolesError] = useState36(null);
+  const [rolesFormError, setRolesFormError] = useState36(null);
+  const [rolesFieldErrors, setRolesFieldErrors] = useState36({});
+  const [rolesStatusMessage, setRolesStatusMessage] = useState36(
     null
   );
-  const [usersRows, setUsersRows] = useState35([]);
-  const [usersRoleOptions, setUsersRoleOptions] = useState35([]);
-  const [usersSiteOptions, setUsersSiteOptions] = useState35([]);
-  const [usersLoading, setUsersLoading] = useState35(false);
-  const [usersCreating, setUsersCreating] = useState35(false);
-  const [usersDeleting, setUsersDeleting] = useState35(false);
-  const [usersError, setUsersError] = useState35(null);
-  const [usersFormError, setUsersFormError] = useState35(null);
-  const [usersFieldErrors, setUsersFieldErrors] = useState35({});
-  const [usersStatusMessage, setUsersStatusMessage] = useState35(
+  const [usersRows, setUsersRows] = useState36([]);
+  const [usersRoleOptions, setUsersRoleOptions] = useState36([]);
+  const [usersSiteOptions, setUsersSiteOptions] = useState36([]);
+  const [usersLoading, setUsersLoading] = useState36(false);
+  const [usersCreating, setUsersCreating] = useState36(false);
+  const [usersDeleting, setUsersDeleting] = useState36(false);
+  const [usersError, setUsersError] = useState36(null);
+  const [usersFormError, setUsersFormError] = useState36(null);
+  const [usersFieldErrors, setUsersFieldErrors] = useState36({});
+  const [usersStatusMessage, setUsersStatusMessage] = useState36(
     null
   );
-  const [usersSettingPassword, setUsersSettingPassword] = useState35(false);
-  const [usersPasswordFormError, setUsersPasswordFormError] = useState35(null);
-  const [usersPasswordFieldErrors, setUsersPasswordFieldErrors] = useState35({});
-  const [currentUserId, setCurrentUserId] = useState35(null);
-  const [userCapabilities, setUserCapabilities] = useState35(null);
-  const [hostsRows, setHostsRows] = useState35([]);
-  const [hostsLoading, setHostsLoading] = useState35(false);
-  const [hostsCreating, setHostsCreating] = useState35(false);
-  const [hostsDeleting, setHostsDeleting] = useState35(false);
-  const [hostsUnassigning, setHostsUnassigning] = useState35(false);
-  const [hostsAssigning, setHostsAssigning] = useState35(false);
-  const [hostsVerifying, setHostsVerifying] = useState35(false);
-  const [hostsError, setHostsError] = useState35(null);
-  const [hostsFormError, setHostsFormError] = useState35(null);
-  const [hostsFieldErrors, setHostsFieldErrors] = useState35({});
-  const [sitesStatusMessage, setSitesStatusMessage] = useState35(null);
-  const [hostsStatusMessage, setHostsStatusMessage] = useState35(null);
-  const [settings, setSettings] = useState35(null);
-  const [settingsLoading, setSettingsLoading] = useState35(false);
-  const [settingsSaving, setSettingsSaving] = useState35(false);
-  const [settingsError, setSettingsError] = useState35(null);
-  const [settingsStatusMessage, setSettingsStatusMessage] = useState35(
+  const [usersSettingPassword, setUsersSettingPassword] = useState36(false);
+  const [usersPasswordFormError, setUsersPasswordFormError] = useState36(null);
+  const [usersPasswordFieldErrors, setUsersPasswordFieldErrors] = useState36({});
+  const [currentUserId, setCurrentUserId] = useState36(null);
+  const [userCapabilities, setUserCapabilities] = useState36(null);
+  const [hostsRows, setHostsRows] = useState36([]);
+  const [hostsLoading, setHostsLoading] = useState36(false);
+  const [hostsCreating, setHostsCreating] = useState36(false);
+  const [hostsDeleting, setHostsDeleting] = useState36(false);
+  const [hostsUnassigning, setHostsUnassigning] = useState36(false);
+  const [hostsAssigning, setHostsAssigning] = useState36(false);
+  const [hostsVerifying, setHostsVerifying] = useState36(false);
+  const [hostsError, setHostsError] = useState36(null);
+  const [hostsFormError, setHostsFormError] = useState36(null);
+  const [hostsFieldErrors, setHostsFieldErrors] = useState36({});
+  const [sitesStatusMessage, setSitesStatusMessage] = useState36(null);
+  const [hostsStatusMessage, setHostsStatusMessage] = useState36(null);
+  const [settings, setSettings] = useState36(null);
+  const [settingsLoading, setSettingsLoading] = useState36(false);
+  const [settingsSaving, setSettingsSaving] = useState36(false);
+  const [settingsError, setSettingsError] = useState36(null);
+  const [settingsStatusMessage, setSettingsStatusMessage] = useState36(
     null
   );
-  const [siteSettingsById, setSiteSettingsById] = useState35({});
-  const [siteSettingsLoadingId, setSiteSettingsLoadingId] = useState35(
+  const [siteSettingsById, setSiteSettingsById] = useState36({});
+  const [siteSettingsLoadingId, setSiteSettingsLoadingId] = useState36(
     null
   );
-  const [siteSettingsSavingId, setSiteSettingsSavingId] = useState35(
+  const [siteSettingsSavingId, setSiteSettingsSavingId] = useState36(
     null
   );
-  const [siteSettingsError, setSiteSettingsError] = useState35(null);
-  const [siteSettingsStatusMessage, setSiteSettingsStatusMessage] = useState35(null);
-  const [documentsByKey, setDocumentsByKey] = useState35({});
-  const [documentLoadingKey, setDocumentLoadingKey] = useState35(
+  const [siteSettingsError, setSiteSettingsError] = useState36(null);
+  const [siteSettingsStatusMessage, setSiteSettingsStatusMessage] = useState36(null);
+  const [documentsByKey, setDocumentsByKey] = useState36({});
+  const [documentLoadingKey, setDocumentLoadingKey] = useState36(
     null
   );
-  const [documentSavingKey, setDocumentSavingKey] = useState35(
+  const [documentSavingKey, setDocumentSavingKey] = useState36(
     null
   );
-  const [documentError, setDocumentError] = useState35(null);
-  const [documentStatusMessage, setDocumentStatusMessage] = useState35(null);
-  const [explorerForestRefreshBySite, setExplorerForestRefreshBySite] = useState35({});
-  const pendingLoginRedirectRef = useRef19(false);
-  const sitesStatusTimerRef = useRef19(null);
-  const hostsStatusTimerRef = useRef19(null);
-  const permissionsStatusTimerRef = useRef19(
+  const [documentError, setDocumentError] = useState36(null);
+  const [documentStatusMessage, setDocumentStatusMessage] = useState36(null);
+  const [explorerForestRefreshBySite, setExplorerForestRefreshBySite] = useState36({});
+  const pendingLoginRedirectRef = useRef21(false);
+  const sitesStatusTimerRef = useRef21(null);
+  const hostsStatusTimerRef = useRef21(null);
+  const permissionsStatusTimerRef = useRef21(
     null
   );
-  const rolesStatusTimerRef = useRef19(null);
-  const usersStatusTimerRef = useRef19(null);
-  const settingsStatusTimerRef = useRef19(null);
-  const api = useMemo14(
+  const rolesStatusTimerRef = useRef21(null);
+  const usersStatusTimerRef = useRef21(null);
+  const settingsStatusTimerRef = useRef21(null);
+  const api = useMemo15(
     () => sitesApi ?? createAdminApiClient({
       csrfToken: apiCsrfToken,
       baseUrl: apiBaseUrl,
@@ -40222,42 +40706,42 @@ function AdminDesktop({
     editUser: canEditSites,
     deleteUser: canEditSites
   };
-  const clearSitesStatusMessage = useCallback11(() => {
+  const clearSitesStatusMessage = useCallback12(() => {
     if (sitesStatusTimerRef.current != null) {
       clearTimeout(sitesStatusTimerRef.current);
       sitesStatusTimerRef.current = null;
     }
     setSitesStatusMessage(null);
   }, []);
-  const clearHostsStatusMessage = useCallback11(() => {
+  const clearHostsStatusMessage = useCallback12(() => {
     if (hostsStatusTimerRef.current != null) {
       clearTimeout(hostsStatusTimerRef.current);
       hostsStatusTimerRef.current = null;
     }
     setHostsStatusMessage(null);
   }, []);
-  const clearPermissionsStatusMessage = useCallback11(() => {
+  const clearPermissionsStatusMessage = useCallback12(() => {
     if (permissionsStatusTimerRef.current != null) {
       clearTimeout(permissionsStatusTimerRef.current);
       permissionsStatusTimerRef.current = null;
     }
     setPermissionsStatusMessage(null);
   }, []);
-  const clearRolesStatusMessage = useCallback11(() => {
+  const clearRolesStatusMessage = useCallback12(() => {
     if (rolesStatusTimerRef.current != null) {
       clearTimeout(rolesStatusTimerRef.current);
       rolesStatusTimerRef.current = null;
     }
     setRolesStatusMessage(null);
   }, []);
-  const clearUsersStatusMessage = useCallback11(() => {
+  const clearUsersStatusMessage = useCallback12(() => {
     if (usersStatusTimerRef.current != null) {
       clearTimeout(usersStatusTimerRef.current);
       usersStatusTimerRef.current = null;
     }
     setUsersStatusMessage(null);
   }, []);
-  const flashSitesStatus = useCallback11(
+  const flashSitesStatus = useCallback12(
     (message) => {
       clearSitesStatusMessage();
       setSitesStatusMessage(message);
@@ -40268,7 +40752,7 @@ function AdminDesktop({
     },
     [clearSitesStatusMessage]
   );
-  const flashHostsStatus = useCallback11(
+  const flashHostsStatus = useCallback12(
     (message) => {
       clearHostsStatusMessage();
       setHostsStatusMessage(message);
@@ -40279,7 +40763,7 @@ function AdminDesktop({
     },
     [clearHostsStatusMessage]
   );
-  const flashPermissionsStatus = useCallback11(
+  const flashPermissionsStatus = useCallback12(
     (message) => {
       clearPermissionsStatusMessage();
       setPermissionsStatusMessage(message);
@@ -40290,7 +40774,7 @@ function AdminDesktop({
     },
     [clearPermissionsStatusMessage]
   );
-  const flashRolesStatus = useCallback11(
+  const flashRolesStatus = useCallback12(
     (message) => {
       clearRolesStatusMessage();
       setRolesStatusMessage(message);
@@ -40301,7 +40785,7 @@ function AdminDesktop({
     },
     [clearRolesStatusMessage]
   );
-  const flashUsersStatus = useCallback11(
+  const flashUsersStatus = useCallback12(
     (message) => {
       clearUsersStatusMessage();
       setUsersStatusMessage(message);
@@ -40312,14 +40796,14 @@ function AdminDesktop({
     },
     [clearUsersStatusMessage]
   );
-  const clearSettingsStatusMessage = useCallback11(() => {
+  const clearSettingsStatusMessage = useCallback12(() => {
     if (settingsStatusTimerRef.current != null) {
       clearTimeout(settingsStatusTimerRef.current);
       settingsStatusTimerRef.current = null;
     }
     setSettingsStatusMessage(null);
   }, []);
-  const flashSettingsStatus = useCallback11(
+  const flashSettingsStatus = useCallback12(
     (message) => {
       clearSettingsStatusMessage();
       setSettingsStatusMessage(message);
@@ -40330,7 +40814,7 @@ function AdminDesktop({
     },
     [clearSettingsStatusMessage]
   );
-  useEffect35(() => {
+  useEffect37(() => {
     return () => {
       if (sitesStatusTimerRef.current != null) {
         clearTimeout(sitesStatusTimerRef.current);
@@ -40352,11 +40836,11 @@ function AdminDesktop({
       }
     };
   }, []);
-  const noteUnauthorized = useCallback11((setError, message) => {
+  const noteUnauthorized = useCallback12((setError, message) => {
     pendingLoginRedirectRef.current = true;
     setError(message);
   }, []);
-  const handleApiFailure = useCallback11(
+  const handleApiFailure = useCallback12(
     (result, setError) => {
       if (result.ok) {
         return;
@@ -40370,38 +40854,38 @@ function AdminDesktop({
     },
     [noteUnauthorized]
   );
-  const handleAlertClose = useCallback11(() => {
+  const handleAlertClose = useCallback12(() => {
     if (pendingLoginRedirectRef.current) {
       pendingLoginRedirectRef.current = false;
       assignSafeAppPath(loginHref, "/admin/login");
     }
   }, [loginHref]);
-  const dismissSitesAlert = useCallback11(() => {
+  const dismissSitesAlert = useCallback12(() => {
     setSitesError(null);
     handleAlertClose();
   }, [handleAlertClose]);
-  const dismissHostsAlert = useCallback11(() => {
+  const dismissHostsAlert = useCallback12(() => {
     setHostsError(null);
     setHostsFormError(null);
     handleAlertClose();
   }, [handleAlertClose]);
-  const dismissPermissionsAlert = useCallback11(() => {
+  const dismissPermissionsAlert = useCallback12(() => {
     setPermissionsError(null);
     setPermissionsFormError(null);
     handleAlertClose();
   }, [handleAlertClose]);
-  const dismissRolesAlert = useCallback11(() => {
+  const dismissRolesAlert = useCallback12(() => {
     setRolesError(null);
     setRolesFormError(null);
     handleAlertClose();
   }, [handleAlertClose]);
-  const dismissUsersAlert = useCallback11(() => {
+  const dismissUsersAlert = useCallback12(() => {
     setUsersError(null);
     setUsersFormError(null);
     setUsersPasswordFormError(null);
     handleAlertClose();
   }, [handleAlertClose]);
-  const dismissSettingsAlert = useCallback11(() => {
+  const dismissSettingsAlert = useCallback12(() => {
     setSettingsError(null);
     handleAlertClose();
   }, [handleAlertClose]);
@@ -40413,11 +40897,11 @@ function AdminDesktop({
   const rolesWindowOpen = shell.windows.some((win) => win.id === ROLES_WINDOW_ID);
   const usersWindowOpen = shell.windows.some((win) => win.id === USERS_WINDOW_ID);
   const settingsWindowOpen = shell.windows.some((win) => win.id === SETTINGS_WINDOW_ID);
-  const siteFormHosts = useMemo14(
+  const siteFormHosts = useMemo15(
     () => hostsRows.map(toSiteFormHostOption),
     [hostsRows]
   );
-  const hostFormSites = useMemo14(
+  const hostFormSites = useMemo15(
     () => desktopSites.map((site) => ({
       id: site.id,
       name: site.name,
@@ -40425,24 +40909,24 @@ function AdminDesktop({
     })),
     [desktopSites]
   );
-  const siteTaskGlyphById = useMemo14(() => {
+  const siteTaskGlyphById = useMemo15(() => {
     const map = {};
     for (const site of desktopSites) {
       map[site.id] = siteGlyphKind(site.slug);
     }
     return map;
   }, [desktopSites]);
-  const siteTaskIconUrlById = useMemo14(() => {
+  const siteTaskIconUrlById = useMemo15(() => {
     const map = {};
     for (const site of desktopSites) {
       map[site.id] = siteFaviconFileUrl(site.id, site.faviconMediaId, apiBaseUrl);
     }
     return map;
   }, [desktopSites, apiBaseUrl]);
-  useEffect35(() => {
+  useEffect37(() => {
     setDesktopSites(sites);
   }, [sites]);
-  useEffect35(() => {
+  useEffect37(() => {
     let cancelled = false;
     (async () => {
       const result = await api.getMe();
@@ -40460,7 +40944,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [api]);
-  useEffect35(() => {
+  useEffect37(() => {
     if (!storageKey) {
       return;
     }
@@ -40474,10 +40958,10 @@ function AdminDesktop({
       );
       persistedRef.current = next;
       savePersistedDesktop(next, storageKey);
-    }, PERSIST_DEBOUNCE_MS);
+    }, PERSIST_DEBOUNCE_MS2);
     return () => window.clearTimeout(timer);
   }, [shell, storageKey]);
-  useEffect35(() => {
+  useEffect37(() => {
     if (!sitesWindowOpen) {
       return;
     }
@@ -40503,7 +40987,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [sitesWindowOpen, api, handleApiFailure, clearSitesStatusMessage]);
-  useEffect35(() => {
+  useEffect37(() => {
     if (!permissionsWindowOpen) {
       return;
     }
@@ -40528,7 +41012,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [permissionsWindowOpen, api, handleApiFailure, clearPermissionsStatusMessage]);
-  useEffect35(() => {
+  useEffect37(() => {
     if (!rolesWindowOpen) {
       return;
     }
@@ -40566,7 +41050,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [rolesWindowOpen, api, handleApiFailure, clearRolesStatusMessage]);
-  useEffect35(() => {
+  useEffect37(() => {
     if (!usersWindowOpen) {
       return;
     }
@@ -40607,7 +41091,7 @@ function AdminDesktop({
       cancelled = true;
     };
   }, [usersWindowOpen, api, handleApiFailure, clearUsersStatusMessage]);
-  useEffect35(() => {
+  useEffect37(() => {
     if (!hostsWindowOpen && !sitesWindowOpen) {
       return;
     }
@@ -40647,7 +41131,7 @@ function AdminDesktop({
     noteUnauthorized,
     clearHostsStatusMessage
   ]);
-  useEffect35(() => {
+  useEffect37(() => {
     if (!settingsWindowOpen && !hostsWindowOpen && !sitesWindowOpen) {
       return;
     }
@@ -40685,8 +41169,8 @@ function AdminDesktop({
     handleApiFailure,
     clearSettingsStatusMessage
   ]);
-  const closeStartMenu = useCallback11(() => setStartMenuOpen(false), []);
-  const toggleStartMenu = useCallback11(() => {
+  const closeStartMenu = useCallback12(() => setStartMenuOpen(false), []);
+  const toggleStartMenu = useCallback12(() => {
     setStartMenuOpen((open) => !open);
   }, []);
   const allocatePlacement = () => {
@@ -40910,7 +41394,7 @@ function AdminDesktop({
       DEFAULT_WINDOW_SIZE.users
     );
   };
-  const refreshSettings = useCallback11(async () => {
+  const refreshSettings = useCallback12(async () => {
     const result = await api.getSettings();
     if (!result.ok) {
       return;
@@ -40918,7 +41402,7 @@ function AdminDesktop({
     pendingLoginRedirectRef.current = false;
     setSettings(result.data);
   }, [api]);
-  const handleSaveSettings = useCallback11(
+  const handleSaveSettings = useCallback12(
     async (patch) => {
       setSettingsSaving(true);
       setSettingsError(null);
@@ -41166,7 +41650,7 @@ function AdminDesktop({
       )
     }));
   };
-  useLayoutEffect13(() => {
+  useLayoutEffect14(() => {
     if (!deepLink || deepLinkAppliedRef.current) {
       return;
     }
@@ -41727,31 +42211,21 @@ function AdminDesktop({
     }
   };
   return /* @__PURE__ */ jsxs54("div", { ref: dashboardRef, className: cn("dashboard", className), children: [
-    /* @__PURE__ */ jsx80("div", { className: "icon-list", children: desktopSites.map((site) => {
-      const glyph = siteGlyphKind(site.slug);
-      const iconUrl = siteFaviconFileUrl(
-        site.id,
-        site.faviconMediaId,
-        apiBaseUrl
-      );
-      return /* @__PURE__ */ jsx80(
-        SystemIcon,
-        {
-          kind: glyph,
-          iconUrl,
-          label: site.name,
-          labelTone: "light",
-          onOpen: () => openSite(site)
-        },
-        site.id
-      );
-    }) }),
+    /* @__PURE__ */ jsx82(
+      DesktopIconLayer,
+      {
+        sites: desktopSites,
+        apiBaseUrl,
+        windowsPersistenceKey: persistenceKey,
+        onOpenSite: openSite
+      }
+    ),
     shell.windows.map((win) => {
       const active = win.id === shell.activeId && !win.minimized;
       const maximizeAction = win.maximized ? "Restore" : "Maximize";
       const shellFrame = (child, options) => {
         const shellResizable = options?.resizable !== false;
-        return /* @__PURE__ */ jsx80(
+        return /* @__PURE__ */ jsx82(
           DesktopWindow,
           {
             windowId: win.id,
@@ -41775,7 +42249,7 @@ function AdminDesktop({
       };
       if (win.kind === "control-panel") {
         return shellFrame(
-          /* @__PURE__ */ jsx80(
+          /* @__PURE__ */ jsx82(
             ControlPanel,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -41797,7 +42271,7 @@ function AdminDesktop({
       }
       if (win.kind === "sites") {
         return shellFrame(
-          /* @__PURE__ */ jsx80(
+          /* @__PURE__ */ jsx82(
             SitesWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -41839,7 +42313,7 @@ function AdminDesktop({
       }
       if (win.kind === "hosts") {
         return shellFrame(
-          /* @__PURE__ */ jsx80(
+          /* @__PURE__ */ jsx82(
             HostsWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -41882,7 +42356,7 @@ function AdminDesktop({
       }
       if (win.kind === "settings") {
         return shellFrame(
-          /* @__PURE__ */ jsx80(
+          /* @__PURE__ */ jsx82(
             SettingsWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -41921,7 +42395,7 @@ function AdminDesktop({
           name: win.title.replace(/ — Settings$/, "") || "Site"
         };
         return shellFrame(
-          /* @__PURE__ */ jsx80(
+          /* @__PURE__ */ jsx82(
             SiteSettingsWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -41971,7 +42445,7 @@ function AdminDesktop({
         const key = documentCacheKey(siteId, nodeId);
         const data = documentsByKey[key];
         return shellFrame(
-          /* @__PURE__ */ jsx80(
+          /* @__PURE__ */ jsx82(
             DocumentEditorWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -42004,7 +42478,7 @@ function AdminDesktop({
       }
       if (win.kind === "permissions") {
         return shellFrame(
-          /* @__PURE__ */ jsx80(
+          /* @__PURE__ */ jsx82(
             PermissionsWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -42039,7 +42513,7 @@ function AdminDesktop({
       }
       if (win.kind === "roles") {
         return shellFrame(
-          /* @__PURE__ */ jsx80(
+          /* @__PURE__ */ jsx82(
             RolesWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -42076,7 +42550,7 @@ function AdminDesktop({
       }
       if (win.kind === "users") {
         return shellFrame(
-          /* @__PURE__ */ jsx80(
+          /* @__PURE__ */ jsx82(
             UsersWindow,
             {
               className: cn(win.maximized && "is-maximized"),
@@ -42121,7 +42595,7 @@ function AdminDesktop({
           return null;
         }
         return shellFrame(
-          /* @__PURE__ */ jsx80(
+          /* @__PURE__ */ jsx82(
             MyAccountWindow,
             {
               api,
@@ -42151,7 +42625,7 @@ function AdminDesktop({
         apiBaseUrl
       );
       return shellFrame(
-        /* @__PURE__ */ jsx80(
+        /* @__PURE__ */ jsx82(
           SiteFileExplorer,
           {
             className: cn(win.maximized && "is-maximized"),
@@ -42180,7 +42654,7 @@ function AdminDesktop({
         )
       );
     }),
-    /* @__PURE__ */ jsx80(
+    /* @__PURE__ */ jsx82(
       Taskbar,
       {
         windows: shell.windows,
@@ -42190,7 +42664,7 @@ function AdminDesktop({
         menuExpanded: startMenuOpen,
         siteTaskGlyphById,
         siteTaskIconUrlById,
-        startMenu: /* @__PURE__ */ jsx80(
+        startMenu: /* @__PURE__ */ jsx82(
           StartMenu,
           {
             open: startMenuOpen,
@@ -42206,9 +42680,9 @@ function AdminDesktop({
 }
 
 // src/themes/default/components/SiteHeader/SiteHeader.tsx
-import { jsx as jsx81, jsxs as jsxs55 } from "react/jsx-runtime";
+import { jsx as jsx83, jsxs as jsxs55 } from "react/jsx-runtime";
 function SiteHeader({ siteName, navItems = [], actions, className }) {
-  return /* @__PURE__ */ jsx81(
+  return /* @__PURE__ */ jsx83(
     "header",
     {
       className: cn(
@@ -42216,7 +42690,7 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
         className
       ),
       children: /* @__PURE__ */ jsxs55("div", { className: "mx-auto flex max-w-5xl items-center justify-between gap-6 px-6 py-4", children: [
-        /* @__PURE__ */ jsx81(
+        /* @__PURE__ */ jsx83(
           "a",
           {
             href: "/",
@@ -42224,7 +42698,7 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
             children: siteName
           }
         ),
-        /* @__PURE__ */ jsx81("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx81(
+        /* @__PURE__ */ jsx83("nav", { className: "flex flex-1 items-center gap-4", "aria-label": "Primary", children: navItems.map((item) => /* @__PURE__ */ jsx83(
           "a",
           {
             href: item.href,
@@ -42236,14 +42710,14 @@ function SiteHeader({ siteName, navItems = [], actions, className }) {
           },
           `${item.label}:${item.href}`
         )) }),
-        actions ? /* @__PURE__ */ jsx81("div", { className: "flex items-center gap-2", children: actions }) : null
+        actions ? /* @__PURE__ */ jsx83("div", { className: "flex items-center gap-2", children: actions }) : null
       ] })
     }
   );
 }
 
 // src/themes/default/components/Hero/Hero.tsx
-import { jsx as jsx82, jsxs as jsxs56 } from "react/jsx-runtime";
+import { jsx as jsx84, jsxs as jsxs56 } from "react/jsx-runtime";
 function Hero({ title, subtitle, actions, className }) {
   return /* @__PURE__ */ jsxs56(
     "section",
@@ -42253,7 +42727,7 @@ function Hero({ title, subtitle, actions, className }) {
         className
       ),
       children: [
-        /* @__PURE__ */ jsx82(
+        /* @__PURE__ */ jsx84(
           "div",
           {
             className: "pointer-events-none absolute inset-0 opacity-40",
@@ -42264,9 +42738,9 @@ function Hero({ title, subtitle, actions, className }) {
           }
         ),
         /* @__PURE__ */ jsxs56("div", { className: "relative mx-auto flex min-h-[70vh] max-w-5xl flex-col justify-end gap-4 px-6 pb-16 pt-24", children: [
-          /* @__PURE__ */ jsx82("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
-          subtitle ? /* @__PURE__ */ jsx82("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
-          actions ? /* @__PURE__ */ jsx82("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
+          /* @__PURE__ */ jsx84("h1", { className: "max-w-3xl font-[family-name:var(--wh-font-display)] text-5xl leading-tight md:text-6xl", children: title }),
+          subtitle ? /* @__PURE__ */ jsx84("p", { className: "max-w-xl text-lg text-[var(--wh-color-canvas)]/90", children: subtitle }) : null,
+          actions ? /* @__PURE__ */ jsx84("div", { className: "mt-2 flex flex-wrap gap-3", children: actions }) : null
         ] })
       ]
     }
